@@ -1,0 +1,14 @@
+.DS_Store
+.project
+.settings
+.idea
+
+*~
+*.deepcopy.go
+*.sw[a-z]
+
+/build/
+/vendor/
+/pkg/generated/
+/pkg/revision/revision.go
+example/crd.yaml

@@ -1,0 +1,35 @@
+package v1
+
+import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/scheme"
+)
+
+const (
+	ServiceBrokerConfigKind = "CouchbaseServiceBrokerConfig"
+	ServiceBrokerConfigName = "couchbaseservicebrokerconfigs"
+	GroupVersion            = "v1"
+	GroupName               = "broker.couchbase.com"
+	Group                   = GroupName + "/" + GroupVersion
+)
+
+var (
+	SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: GroupVersion}
+
+	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
+
+	AddToScheme = SchemeBuilder.AddToScheme
+)
+
+func init() {
+	SchemeBuilder.Register(&CouchbaseServiceBrokerConfig{}, &CouchbaseServiceBrokerConfigList{})
+}
+
+func Resource(resource string) schema.GroupResource {
+	switch resource {
+	case "couchbaseservicebrokerconfig":
+		return schema.GroupResource{Group: GroupName, Resource: ServiceBrokerConfigKind}
+	default:
+		return schema.GroupResource{}
+	}
+}

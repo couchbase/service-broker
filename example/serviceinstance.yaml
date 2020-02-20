@@ -1,0 +1,10 @@
+apiVersion: servicecatalog.k8s.io/v1beta1
+kind: ServiceInstance
+metadata:
+  name: test-instance
+spec:
+  clusterServiceClassExternalName: couchbase-developer
+  clusterServicePlanExternalName: couchbase-developer-private
+  parameters:
+    password: cGFzc3dvcmQ=
+    size: 3
