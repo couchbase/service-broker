@@ -54,3 +54,15 @@ A service instance or binding is conceptually an ordered list of templates of Ku
 Upon creation of an instance the templates are first rendered to apply dynamic configuration from both the environment and the request.
 All template rendering operations are carried out in JSON, using [JSON Pointer](https://tools.ietf.org/html/rfc6902) and [JSON Patch](https://tools.ietf.org/html/rfc6902) operations.
 Once rendered the resources are then committed to the Kubernetes API.
+
+## Contributing
+
+### Testing
+
+All code submissions must include sufficient tests to check correctness.
+All tests must pass, and do so consistently.
+Tests can be run with the following command:
+
+```bash
+go test -v ./test -args -logtostderr -v 1
+```

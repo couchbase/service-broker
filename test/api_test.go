@@ -8,7 +8,7 @@ import (
 	"github.com/couchbase/service-broker/test/util"
 )
 
-// TestReadiness tests a TLS readiness probe succeed with no other headers.
+// TestReadiness tests a TLS readiness probe succeeds with no other headers.
 func TestReadiness(t *testing.T) {
 	request := util.MustBasicRequest(t, http.MethodGet, "/readyz")
 	client := util.MustDefaultClient(t)

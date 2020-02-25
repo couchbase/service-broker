@@ -27,7 +27,16 @@ var (
 	instanceRegistry *registry.Registry
 )
 
-// handleBrokerBearerToken implements RFC-6750
+// handleReadiness returns 503 until the configuration is correct.
+func handleReadiness(w http.ResponseWriter, r *http.Request) error {
+	if !config.Ready() {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return fmt.Errorf("service not ready")
+	}
+	return nil
+}
+
+// handleBrokerBearerToken implements RFC-6750.
 func handleBrokerBearerToken(w http.ResponseWriter, r *http.Request) error {
 	for name := range r.Header {
 		if strings.EqualFold(name, "Authorization") {
@@ -117,7 +126,7 @@ type openServiceBrokerHandler struct {
 // NewOpenServiceBrokerHandler initializes the main router with the Open Service Broker API.
 func NewOpenServiceBrokerHandler() http.Handler {
 	router := httprouter.New()
-	router.GET("/readyz", handleReady)
+	router.GET("/readyz", handleReadyz)
 	router.GET("/v2/catalog", handleReadCatalog)
 	router.PUT("/v2/service_instances/:instance_id", handleCreateServiceInstance)
 	router.GET("/v2/service_instances/:instance_id", handleReadServiceInstance)
@@ -134,6 +143,12 @@ func NewOpenServiceBrokerHandler() http.Handler {
 
 // ServeHTTP performs generic test on all API endpoints.
 func (handler *openServiceBrokerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Indicate that the service is not ready until configured.
+	if err := handleReadiness(w, r); err != nil {
+		glog.Error(err)
+		return
+	}
+
 	// Ignore security checks for the readiness handler
 	if r.URL.Path != "/readyz" {
 		// Process headers, API versions, content types.

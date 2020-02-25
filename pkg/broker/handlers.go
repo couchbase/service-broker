@@ -19,9 +19,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
-// handleReady is a handler for Kubernetes readiness checks.  It is less verbose than the
+// handleReadyz is a handler for Kubernetes readiness checks.  It is less verbose than the
 // other API calls as it's called significantly more often.
-func handleReady(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func handleReadyz(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	w.WriteHeader(http.StatusOK)
 }
 
