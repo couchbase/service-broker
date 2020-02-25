@@ -1,6 +1,7 @@
 package test
 
 import (
+	"bytes"
 	"net/http"
 	"testing"
 
@@ -90,4 +91,27 @@ func TestConnect(t *testing.T) {
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
 	util.MustVerifyStatusCode(t, response, http.StatusOK)
+}
+
+// TestConnectWithBody tests that the server accepts a content of type application/json.
+// Note we use a GET against /v2/catalog, the server will ignore payloads when not required
+// however content type checking occurrs regardless.
+// https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#content-type
+func TestConnectWithBody(t *testing.T) {
+	request := util.MustDefaultRequestWithBody(t, http.MethodGet, "/v2/catalog", bytes.NewBufferString("{}"))
+	client := util.MustDefaultClient(t)
+	response := util.MustDoRequest(t, client, request)
+	util.MustVerifyStatusCode(t, response, http.StatusOK)
+}
+
+// TestConnectInvalidContentType types that the server rejects content that isn't of type application/json.
+// Note we use a GET against /v2/catalog, the server will ignore payloads when not required
+// however content type checking occurrs regardless.
+// https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#content-type
+func TestConnectInvalidContentType(t *testing.T) {
+	request := util.MustDefaultRequestWithBody(t, http.MethodGet, "/v2/catalog", bytes.NewBufferString("{}"))
+	request.Header.Set("Content-Type", "text/plain")
+	client := util.MustDefaultClient(t)
+	response := util.MustDoRequest(t, client, request)
+	util.MustVerifyStatusCode(t, response, http.StatusBadRequest)
 }

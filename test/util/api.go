@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io"
 	"net/http"
 	"testing"
 )
@@ -25,6 +26,20 @@ func MustBasicRequest(t *testing.T, method, path string) *http.Request {
 // for the common case.
 func MustDefaultRequest(t *testing.T, method, path string) *http.Request {
 	request, err := http.NewRequest(method, "https://localhost:8443"+path, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("X-Broker-API-Version", "2.13")
+	request.Header.Set("Authorization", "Bearer "+Token)
+	return request
+}
+
+// MustDefaultRequestWithBody creates a HTTP request object for the requested method
+// on a path.
+// It applies known good configuration to provide connectivity with the broker
+// for the common case.
+func MustDefaultRequestWithBody(t *testing.T, method, path string, body io.Reader) *http.Request {
+	request, err := http.NewRequest(method, "https://localhost:8443"+path, body)
 	if err != nil {
 		t.Fatal(err)
 	}

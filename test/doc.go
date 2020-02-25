@@ -8,5 +8,9 @@
 // tested.  We instead use a fake client layer, populate with fixtures and then
 // validate against this.
 //
-// Tests should only verify one thing and should aim to fail fast.
+// Tests should only verify one thing and should aim to fail fast.  Tests are
+// orgnaized into domain specific files as follows:
+//
+// api_test - Global API related functionality e.g. security and content type
+//            processing.
 package test
