@@ -46,12 +46,20 @@ func TestConnectAPIVersionTooOld(t *testing.T) {
 	util.MustVerifyStatusCode(t, response, http.StatusPreconditionFailed)
 }
 
-// TestConnectNotFound tests that illegal paths return a 404.
-func TestConnectNotFound(t *testing.T) {
+// TestConnectPathNotFound tests that illegal paths return a 404.
+func TestConnectPathNotFound(t *testing.T) {
 	request := util.MustDefaultRequest(t, http.MethodGet, "/batman")
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
 	util.MustVerifyStatusCode(t, response, http.StatusNotFound)
+}
+
+// TestConnectMethodNotFound tests that illegal paths return a 405.
+func TestConnectMethodNotFound(t *testing.T) {
+	request := util.MustDefaultRequest(t, http.MethodPost, "/v2/catalog")
+	client := util.MustDefaultClient(t)
+	response := util.MustDoRequest(t, client, request)
+	util.MustVerifyStatusCode(t, response, http.StatusMethodNotAllowed)
 }
 
 // TestConnectNoAuthorization tests that the Authorization is required by the broker.
