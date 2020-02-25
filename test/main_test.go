@@ -9,8 +9,17 @@ import (
 	"time"
 
 	"github.com/couchbase/service-broker/pkg/broker"
+	"github.com/couchbase/service-broker/pkg/client"
 	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/test/util"
+)
+
+var (
+	// clients are a global set of clients for test cases to use.
+	// They are initialzed so that the server will start, and can be
+	// written to to trigger behviours, witness consequences and
+	// verify actions.  They should be reset after each test.
+	clients client.Clients
 )
 
 // TestMain creates, initializes and starts the service broker locally.
@@ -27,7 +36,7 @@ func TestMain(m *testing.M) {
 
 	// Create fake clients we can use to mock Kubernetes and have complete
 	// controll over.
-	clients, err := util.NewClients()
+	clients, err = util.NewClients()
 	if err != nil {
 		fmt.Println("failed to initialize clients:", err)
 		os.Exit(1)

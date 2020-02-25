@@ -18,20 +18,23 @@ import (
 )
 
 var (
+	// DefaultBrokerConfig is a minimal service broker config to allow initialization.
+	DefaultBrokerConfig = &v1.CouchbaseServiceBrokerConfig{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: v1.Group,
+			Kind:       v1.ServiceBrokerConfigKind,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "couchbase-service-broker",
+			Namespace: Namespace,
+		},
+	}
+
 	// defaultBrokerObjects is a global list of objects that the fake client will
 	// contain.
 	// TODO: These should be like fixtures.
 	defaultBrokerObjects = []runtime.Object{
-		&v1.CouchbaseServiceBrokerConfig{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: v1.Group,
-				Kind:       v1.ServiceBrokerConfigKind,
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "couchbase-service-broker",
-				Namespace: Namespace,
-			},
-		},
+		DefaultBrokerConfig,
 	}
 )
 

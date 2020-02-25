@@ -16,6 +16,17 @@ func TestReadiness(t *testing.T) {
 	util.MustVerifyStatusCode(t, response, http.StatusOK)
 }
 
+// TestReadinessUnconfigured tests removal of the service broker configuration
+// results in the server becoming unavailable.
+func TestReadinessUnconfigured(t *testing.T) {
+	util.MustDeleteServiceBrokerConfig(t, clients)
+	request := util.MustBasicRequest(t, http.MethodGet, "/readyz")
+	client := util.MustDefaultClient(t)
+	response := util.MustDoRequest(t, client, request)
+	util.MustVerifyStatusCode(t, response, http.StatusServiceUnavailable)
+	util.MustCreateServiceBrokerConfig(t, clients, util.DefaultBrokerConfig)
+}
+
 // TestConnectNoTLS tests that the client fails when connecting without using
 // TLS transport.
 func TestConnectNoTLS(t *testing.T) {
