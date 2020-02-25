@@ -74,6 +74,10 @@ func handleBrokerAPIHeader(w http.ResponseWriter, r *http.Request) error {
 // handleContentTypeHeader looks for a verifies the Content-Type header is supported.
 // If not specified we just return the standard JSON anyway.
 func handleContentTypeHeader(w http.ResponseWriter, r *http.Request) error {
+	// If no content is specified we don't need a type.
+	if r.ContentLength == 0 {
+		return nil
+	}
 	for name := range r.Header {
 		if strings.EqualFold(name, "Content-Type") {
 			for _, contentType := range r.Header[name] {

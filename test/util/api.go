@@ -8,6 +8,17 @@ import (
 	"testing"
 )
 
+// MustBasicRequest creates a HTTP request object for the requested method
+// on a path.
+// It applies no additional headers.
+func MustBasicRequest(t *testing.T, method, path string) *http.Request {
+	request, err := http.NewRequest(method, "https://localhost:8443"+path, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return request
+}
+
 // MustDefaultRequest creates a HTTP request object for the requested method
 // on a path.
 // It applies known good configuration to provide connectivity with the broker

@@ -7,6 +7,14 @@ import (
 	"github.com/couchbase/service-broker/test/util"
 )
 
+// TestReadiness tests a TLS readiness probe succeed with no other headers.
+func TestReadiness(t *testing.T) {
+	request := util.MustBasicRequest(t, http.MethodGet, "/readyz")
+	client := util.MustDefaultClient(t)
+	response := util.MustDoRequest(t, client, request)
+	util.MustVerifyStatusCode(t, response, http.StatusOK)
+}
+
 // TestConnectNoTLS tests that the client fails when connecting without using
 // TLS transport.
 func TestConnectNoTLS(t *testing.T) {
@@ -46,9 +54,9 @@ func TestConnectNotFound(t *testing.T) {
 	util.MustVerifyStatusCode(t, response, http.StatusNotFound)
 }
 
-// TestConnectNoBearerToken tests that the Authorization is required by the broker.
+// TestConnectNoAuthorization tests that the Authorization is required by the broker.
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#platform-to-service-broker-authentication
-func TestConnectNoBearerToken(t *testing.T) {
+func TestConnectNoAuthorization(t *testing.T) {
 	request := util.MustDefaultRequest(t, http.MethodGet, "/v2/catalog")
 	request.Header.Del("Authorization")
 	client := util.MustDefaultClient(t)
@@ -56,11 +64,11 @@ func TestConnectNoBearerToken(t *testing.T) {
 	util.MustVerifyStatusCode(t, response, http.StatusUnauthorized)
 }
 
-// TestConnectNoBearerTokenPrecedence tests that Authorization takes precedence
-// over broker API versioning.
+// TestConnectAuthorizationPrecedence tests that Authorization takes precedence
+// over everything else.
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#platform-to-service-broker-authentication
-func TestConnectNoBearerTokenPrecedence(t *testing.T) {
-	request := util.MustDefaultRequest(t, http.MethodGet, "/v2/catalog")
+func TestConnectAuthorizationPrecedence(t *testing.T) {
+	request := util.MustDefaultRequest(t, http.MethodGet, "/batman")
 	request.Header.Del("Authorization")
 	request.Header.Del("X-Broker-API-Version")
 	client := util.MustDefaultClient(t)
