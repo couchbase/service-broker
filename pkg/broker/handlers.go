@@ -22,7 +22,7 @@ import (
 // handleReadyz is a handler for Kubernetes readiness checks.  It is less verbose than the
 // other API calls as it's called significantly more often.
 func handleReadyz(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	w.WriteHeader(http.StatusOK)
+	util.HTTPResponse(w, http.StatusOK)
 }
 
 // handleReadCatalog advertises the classes of service we offer, and specifc plans to

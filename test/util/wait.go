@@ -2,8 +2,8 @@ package util
 
 import (
 	"context"
-	"net"
 	"fmt"
+	"net"
 	"time"
 )
 

@@ -18,6 +18,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// HTTPResponse is the canonical writer for HTTP responses.
+func HTTPResponse(w http.ResponseWriter, status int) {
+	w.WriteHeader(status)
+}
+
 // JSONRequest reads the JSON body into the give structure and raises the
 // appropriate errors on error.
 func JSONRequest(w http.ResponseWriter, r *http.Request, data interface{}) bool {
@@ -28,7 +33,7 @@ func JSONRequest(w http.ResponseWriter, r *http.Request, data interface{}) bool 
 		return false
 	}
 
-	glog.Infof("request: %s", string(body))
+	glog.V(1).Infof("JSON req: %s", string(body))
 	if err := json.Unmarshal(body, data); err != nil {
 		JSONError(w, http.StatusBadRequest, fmt.Errorf("unable to unmarshal body: %v", err))
 		return false
@@ -42,13 +47,13 @@ func JSONRequest(w http.ResponseWriter, r *http.Request, data interface{}) bool 
 func JSONResponse(w http.ResponseWriter, status int, data interface{}) {
 	resp, err := json.Marshal(data)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		glog.Errorf("failed to marshal body: %v", err)
+		HTTPResponse(w, http.StatusInternalServerError)
 	}
 
-	glog.Infof("response: %d %s", status, string(resp))
+	glog.V(1).Infof("JSON rsp: %s", string(resp))
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
+	HTTPResponse(w, status)
 	if _, err := w.Write(resp); err != nil {
 		glog.Errorf("error writing response: %v", err)
 	}
