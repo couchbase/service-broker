@@ -37,6 +37,7 @@ container: build
 	docker build -f Dockerfile -t couchbase/service-broker:0.0.0 .
 
 test:
+	go vet ./...
 	go test -v -race -cover -coverpkg github.com/couchbase/service-broker/pkg/... -coverprofile=/tmp/cover.out ./test -args -logtostderr
 
 cover:
