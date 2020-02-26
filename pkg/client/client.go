@@ -1,7 +1,7 @@
 package client
 
 import (
-	"github.com/couchbase/service-broker/pkg/generated/clientset/versioned"
+	"github.com/couchbase/service-broker/generated/clientset/versioned"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"

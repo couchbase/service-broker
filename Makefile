@@ -4,7 +4,7 @@ SOURCE = $(shell find . -name *.go -type f)
 APISRC = $(shell find pkg/apis -name [^z]*.go -type f)
 DEPSRC = Gopkg.lock
 GENSRC = pkg/revision/revision.go
-GENAPI = pkg/generated
+GENAPI = generated
 BROKER_BIN = build/bin/broker
 CRDGEN_FILE = example/broker.couchbase.com_couchbaseservicebrokerconfigs.yaml
 COVER_FILE=/tmp/cover.out
@@ -21,7 +21,7 @@ vendor: $(DEPSRC)
 	GOPATH=$(GOPATH) dep ensure -vendor-only
 
 $(GENAPI): $(APISRC)
-	rm -rf pkg/generated
+	rm -rf $(GENAPI)
 	scripts/codegen/update-generated.sh
 
 $(BROKER_BIN): $(SOURCE)

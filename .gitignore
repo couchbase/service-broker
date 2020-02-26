@@ -9,6 +9,5 @@
 
 /build/
 /vendor/
-/pkg/generated/
-/pkg/revision/revision.go
+/generated/
 /example/broker.couchbase.com_*
