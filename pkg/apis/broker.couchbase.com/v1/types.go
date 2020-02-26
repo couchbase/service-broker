@@ -7,6 +7,8 @@ import (
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:resource:categories=all;couchbase
+// +kubebuilder:resource:scope=Namespaced
 type CouchbaseServiceBrokerConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -16,81 +18,196 @@ type CouchbaseServiceBrokerConfig struct {
 // CouchbaseServiceBrokerConfigSpec defines the top level service broker configuration
 // data structure.
 type CouchbaseServiceBrokerConfigSpec struct {
-	Catalog   *ServiceCatalog                        `json:"catalog,omitempty"`
-	Templates []CouchbaseServiceBrokerConfigTemplate `json:"templates,omitempty"`
-	Bindings  []CouchbaseServiceBrokerConfigBinding  `json:"bindings,omitempty"`
+	// Catalog is the service catalog defintiion and is required.
+	Catalog *ServiceCatalog `json:"catalog"`
+
+	// Templates is a set of resource templates that can be rendered by the service broker and is required.
+	// +kubebuilder:validation:MinItems=1
+	Templates []CouchbaseServiceBrokerConfigTemplate `json:"templates"`
+
+	// Bindings is a set of bindings that link service plans to resource templates and is required.
+	// +kubebuilder:validation:MinItems=1
+	Bindings []CouchbaseServiceBrokerConfigBinding `json:"bindings"`
 }
 
 // ServiceCatalog is defined by:
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#body
 type ServiceCatalog struct {
+	// Services is an array of Service Offering objects
 	Services []ServiceOffering `json:"services"`
 }
 
 // ServiceOffering is defined by:
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#body
 type ServiceOffering struct {
-	Name                 string                `json:"name,omitempty"`
-	ID                   string                `json:"id,omitempty"`
-	Description          string                `json:"description,omitempty"`
-	Tags                 []string              `json:"tags,omitempty"`
-	Requires             []string              `json:"requires,omitempty"`
-	Bindable             bool                  `json:"bindable,omitempty"`
-	InstancesRetrievable bool                  `json:"instances_retrievable,omitempty"`
-	BindingsRetrievable  bool                  `json:"bindings_retrievable,omitempty"`
-	AllowContextUpdates  bool                  `json:"allow_context_updates,omitempty"`
-	Metadata             *runtime.RawExtension `json:"metadata,omitempty"`
-	DashboardClient      *DashboardClient      `json:"dashboard_client,omitempty"`
-	PlanUpdatable        bool                  `json:"plan_updatable,omitempty"`
-	Plans                []ServicePlan         `json:"plans,omitempty"`
+	// Name is the name of the Service Offering. MUST be unique across all Service Offering
+	// objects returned in this response. MUST be a non-empty string. Using a CLI-friendly name
+	// is RECOMMENDED.
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+
+	// ID is an identifier used to correlate this Service Offering in future requests to the
+	// Service Broker. This MUST be globally unique such that Platforms (and their users) MUST
+	// be able to assume that seeing the same value (no matter what Service Broker uses it) will
+	// always refer to this Service Offering. MUST be a non-empty string. Using a GUID is RECOMMENDED.
+	// +kubebuilder:validation:MinLength=1
+	ID string `json:"id"`
+
+	// Descriptions is a short description of the service. MUST be a non-empty string.
+	// +kubebuilder:validation:MinLength=1
+	Description string `json:"description"`
+
+	// Tags provide a flexible mechanism to expose a classification, attribute, or base
+	// technology of a service, enabling equivalent services to be swapped out without changes
+	// to dependent logic in applications, buildpacks, or other services. E.g. mysql, relational,
+	// redis, key-value, caching, messaging, amqp.
+	Tags []string `json:"tags,omitempty"`
+
+	// Requires is a list of permissions that the user would have to give the service, if they provision
+	// it. The only permissions currently supported are syslog_drain, route_forwarding and volume_mount.
+	// +kubebuilder:validation:Enum=syslog_drain;route_forwarding;volume_mount
+	Requires []string `json:"requires,omitempty"`
+
+	// Bindable specifies whether Service Instances of the service can be bound to applications. This
+	// specifies the default for all Service Plans of this Service Offering. Service Plans can override
+	// this field (see Service Plan Object).
+	Bindable bool `json:"bindable"`
+
+	// InstancesRetrievable specifies whether the Fetching a Service Instance endpoint is supported for
+	// all Service Plans.
+	InstancesRetrievable bool `json:"instances_retrievable,omitempty"`
+
+	// BindingsRetrievable specifies whether the Fetching a Service Binding endpoint is supported for all
+	// Service Plans.
+	BindingsRetrievable bool `json:"bindings_retrievable,omitempty"`
+
+	// AllowContextUpdates specifies whether a Service Instance supports Update requests when contextual
+	// data for the Service Instance in the Platform changes.
+	AllowContextUpdates bool `json:"allow_context_updates,omitempty"`
+
+	// Metadata is an opaque object of metadata for a Service Offering. It is expected that Platforms will
+	// treat this as a blob. Note that there are conventions in existing Service Brokers and Platforms for
+	// fields that aid in the display of catalog data.
+	Metadata *runtime.RawExtension `json:"metadata,omitempty"`
+
+	// Dashboard is a Cloud Foundry extension described in Catalog Extensions. Contains the data necessary
+	// to activate the Dashboard SSO feature for this service.
+	DashboardClient *DashboardClient `json:"dashboard_client,omitempty"`
+
+	// PlanUpdatable is whether the Service Offering supports upgrade/downgrade for Service Plans by default.
+	// Service Plans can override this field (see Service Plan). Please note that the misspelling of the
+	// attribute plan_updatable as plan_updateable was done by mistake. We have opted to keep that misspelling
+	// instead of fixing it and thus breaking backward compatibility. Defaults to false.
+	PlanUpdatable bool `json:"plan_updatable,omitempty"`
+
+	// ServicePlan is a list of Service Plans for this Service Offering, schema is defined below. MUST
+	// contain at least one Service Plan.
+	// +kubebuilder:validation:MinItems=1
+	Plans []ServicePlan `json:"plans"`
 }
 
 // DashboardClient is defined by:
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#body
 type DashboardClient struct {
-	ID            string `json:"id"`
-	Secret        string `json:"secret"`
-	RedirectedURI string `json:"redirected_uri"`
+	// ID is the id of the OAuth client that the dashboard will use. If present, MUST be a non-empty string.
+	// +kubebuilder:validation:MinLength=1
+	ID string `json:"id"`
+
+	// Secret is a secret for the dashboard client. If present, MUST be a non-empty string.
+	// +kubebuilder:validation:MinLength=1
+	Secret string `json:"secret"`
+
+	// RedirectedURI is a URI for the service dashboard. Validated by the OAuth token server when the dashboard
+	// requests a token.
+	RedirectedURI string `json:"redirected_uri,omitempty"`
 }
 
 // ServicePlan is defined by:
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#body
 type ServicePlan struct {
-	ID                     string            `json:"id,omitempty"`
-	Name                   string            `json:"name,omitempty"`
-	Description            string            `json:"description,omitempty"`
-	Metadata               map[string]string `json:"metadata,omitempty"`
-	Free                   bool              `json:"free,omitempty"`
-	Bindable               bool              `json:"bindable,omitempty"`
-	PlanUpdatable          bool              `json:"plan_updatable,omitempty"`
-	Schemas                *Schemas          `json:"schemas,omitempty"`
-	MaximumPollingDuration int               `json:"maximum_polling_duration,omitempty"`
-	MaintenanceInfo        *MaintenanceInfo  `json:"maintentance_info,omitempty"`
+	// ID is an identifier used to correlate this Service Offering in future requests to the
+	// Service Broker. This MUST be globally unique such that Platforms (and their users) MUST
+	// be able to assume that seeing the same value (no matter what Service Broker uses it) will
+	// always refer to this Service Offering. MUST be a non-empty string. Using a GUID is RECOMMENDED.
+	// +kubebuilder:validation:MinLength=1
+	ID string `json:"id"`
+
+	// Name is the name of the Service Plan. MUST be unique within the Service Offering. MUST be
+	// a non-empty string. Using a CLI-friendly name is RECOMMENDED.
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+
+	// Description is a short description of the Service Plan. MUST be a non-empty string.
+	// +kubebuilder:validation:MinLength=1
+	Description string `json:"description"`
+
+	// Metadata is an opaque object of metadata for a Service Plan. It is expected that Platforms
+	// will treat this as a blob. Note that there are conventions in existing Service Brokers and
+	// Platforms for fields that aid in the display of catalog data.
+	Metadata *runtime.RawExtension `json:"metadata,omitempty"`
+
+	// Free, when false, Service Instances of this Service Plan have a cost. The default is true.
+	Free bool `json:"free,omitempty"`
+
+	// Bindable specifies whether Service Instances of the Service Plan can be bound to applications.
+	// This field is OPTIONAL. If specified, this takes precedence over the bindable attribute of
+	// the Service Offering. If not specified, the default is derived from the Service Offering.
+	Bindable *bool `json:"bindable,omitempty"`
+
+	// PlanUpdatable specifies whether the Plan supports upgrade/downgrade/sidegrade to another
+	// version. This field is OPTIONAL. If specificed, this takes precedence over the Service
+	// Offering's plan_updateable field. If not specified, the default is derived from the Service
+	// Offering. Please note that the attribute is intentionally misspelled as plan_updateable
+	// for legacy reasons.
+	PlanUpdatable *bool `json:"plan_updatable,omitempty"`
+
+	// Schemas are schema definitions for Service Instances and Service Bindings for the Service
+	// Plan.
+	Schemas *Schemas `json:"schemas,omitempty"`
+
+	// MaximumPollingDuration is a duration, in seconds, that the Platform SHOULD use as the
+	// Service's maximum polling duration.
+	MaximumPollingDuration int `json:"maximum_polling_duration,omitempty"`
+
+	// MaintenanceInfo is maintenance information for a Service Instance which is provisioned using
+	// the Service Plan. If provided, a version string MUST be provided and platforms MAY use this
+	// when Provisioning or Updating a Service Instance.
+	MaintenanceInfo *MaintenanceInfo `json:"maintentance_info,omitempty"`
 }
 
 // Schemas is defined by:
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#body
 type Schemas struct {
+	// ServiceInstance is the schema definitions for creating and updating a Service Instance.
 	ServiceInstance *ServiceInstanceSchema `json:"service_instance,omitempty"`
-	ServiceBinding  *ServiceBindingSchema  `json:"service_binding,omitempty"`
+
+	// ServiceBinding is the schema definition for creating a Service Binding. Used only if the
+	// Service Plan is bindable.
+	ServiceBinding *ServiceBindingSchema `json:"service_binding,omitempty"`
 }
 
 // ServiceInstanceSchema is defined by:
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#body
 type ServiceInstanceSchema struct {
+	// Create is the schema definition for creating a Service Instance.
 	Create *InputParamtersSchema `json:"create,omitempty"`
+
+	// Update is the chema definition for updating a Service Instance.
 	Update *InputParamtersSchema `json:"update,omitempty"`
 }
 
 // ServiceBindingSchema is defined by:
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#body
 type ServiceBindingSchema struct {
+	// Create is the schema definition for creating a Service Binding.
 	Create *InputParamtersSchema `json:"create,omitempty"`
 }
 
 // InputParamtersSchema is defined by:
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#body
 type InputParamtersSchema struct {
+	// Parameters is the schema definition for the input parameters. Each input parameter is
+	// expressed as a property within a JSON object.
 	Parameters *runtime.RawExtension `json:"parameters,omitempty"`
 }
 
@@ -104,11 +221,12 @@ type MaintenanceInfo struct {
 // creating a service instance or service binding.
 type CouchbaseServiceBrokerConfigTemplate struct {
 	// Name is the name of the template
-	Name string `json:"name,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
 
 	// Template defines the resource template, it can be any kind of resource
 	// supported by client-go or couchbase.
-	Template *runtime.RawExtension `json:"template,omitempty"`
+	Template *runtime.RawExtension `json:"template"`
 
 	// Parameters allow parameters to be sourced either from request metadata
 	// or request parameters as defined in the service catalog.  If specified
@@ -130,7 +248,8 @@ type CouchbaseServiceBrokerConfigTemplate struct {
 type CouchbaseServiceBrokerConfigTemplateParameter struct {
 	// Name is a textual name used to uniquely identify the parameter for
 	// the template.
-	Name string `json:"name,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
 
 	// Source is source of the parameter, either from request metadata or
 	// the request parameters from the client.
@@ -192,13 +311,16 @@ type CouchbaseServiceBrokerConfigTemplateParameterDestination struct {
 // required to realize that plan.
 type CouchbaseServiceBrokerConfigBinding struct {
 	// Name is a unique identifier for the binding.
-	Name string `json:"name,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
 
 	// Service is the name of the service offering to bind to.
-	Service string `json:"service,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	Service string `json:"service"`
 
 	// Plan is the name of the service plan to bind to.
-	Plan string `json:"plan,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	Plan string `json:"plan"`
 
 	// ServiceInstance defines the set of templates to render and create when
 	// a new service instance is created.

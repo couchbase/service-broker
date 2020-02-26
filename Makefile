@@ -6,8 +6,7 @@ DEPSRC = Gopkg.lock
 GENSRC = pkg/revision/revision.go
 GENAPI = pkg/generated
 BROKER_BIN = build/bin/broker
-CRDGEN_BIN = build/bin/crdgen
-CRDGEN_FILE = example/crd.yaml
+CRDGEN_FILE = example/broker.couchbase.com_couchbaseservicebrokerconfigs.yaml
 
 .PHONY: all build dep apigen codegen doc crd container test cover
 
@@ -20,22 +19,19 @@ dep: vendor
 vendor: ${DEPSRC}
 	GOPATH=$(GOPATH) dep ensure -vendor-only
 
-${GENAPI}:${APISRC}
+${GENAPI}: ${APISRC}
 	rm -rf pkg/generated
 	scripts/codegen/update-generated.sh
-
-$(CRDGEN_BIN): ${SOURCE}
-	GOARCH=amd64 CGO_ENABLED=0 go build -o $@ ./cmd/crdgen
 
 $(BROKER_BIN): $(SOURCE)
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o $@ ./cmd/broker
 
 doc: crd
 
-crd: $(CRDGEN_BIN)
+crd: $(CRDGEN_FILE)
 
-$(CRDGEN_FILE): $(CRDGEN_BIN)
-	$@ > $<
+$(CRDGEN_FILE): $(APISRC)
+	go run sigs.k8s.io/controller-tools/cmd/controller-gen crd paths=./pkg/apis/... output:dir=./example
 
 container: build
 	docker build -f Dockerfile -t couchbase/service-broker:0.0.0 .

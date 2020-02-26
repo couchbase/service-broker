@@ -11,4 +11,4 @@
 /vendor/
 /pkg/generated/
 /pkg/revision/revision.go
-example/crd.yaml
+/example/broker.couchbase.com_*
