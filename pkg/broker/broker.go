@@ -96,7 +96,8 @@ func handleContentTypeHeader(w http.ResponseWriter, r *http.Request) error {
 			return fmt.Errorf("invalid Content-Type header")
 		}
 	}
-	return nil
+	util.HTTPResponse(w, http.StatusBadRequest)
+	return fmt.Errorf("no Content-Type header")
 }
 
 // handleRequestHeaders checks that required headers are sent and are
