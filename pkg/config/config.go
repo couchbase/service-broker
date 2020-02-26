@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1"
@@ -28,9 +29,12 @@ type configuration struct {
 	// namespace is the default namespace the broker is running in.
 	namespace string
 
-	// ready tells the server that the broker is correctly configured
-	// and ready to handle operations.
-	ready bool
+	// lock is used to remove races around the use of the context.
+	// The context can be read by many, but can only be written
+	// by one when there are no readers.
+	// Updates must appear atomic so handlers should hold the read
+	// lock while processing a request.
+	lock sync.RWMutex
 }
 
 // c is the global configuration struct.
@@ -50,8 +54,10 @@ func createHandler(obj interface{}) {
 		return
 	}
 	glog.Info("service broker configuration created, service ready")
+
+	c.lock.Lock()
 	c.config = brokerConfiguration
-	c.ready = true
+	c.lock.Unlock()
 }
 
 // updateHandler modifies the service broker configuration when the underlying
@@ -68,8 +74,10 @@ func updateHandler(oldObj, newObj interface{}) {
 		return
 	}
 	glog.Info("service broker configuration updated")
+
+	c.lock.Lock()
 	c.config = brokerConfiguration
-	c.ready = true
+	c.lock.Unlock()
 }
 
 // deleteHandler deletes the service broker configuration when the underlying
@@ -86,8 +94,10 @@ func deleteHandler(obj interface{}) {
 		return
 	}
 	glog.Info("service broker configuration deleted, service unready")
-	c.ready = false
+
+	c.lock.Lock()
 	c.config = nil
+	c.lock.Unlock()
 }
 
 // Configure initializes global configuration and must be called before starting
@@ -120,6 +130,18 @@ func Configure(clients client.Clients, namespace, token string) error {
 	return nil
 }
 
+// Lock puts a read lock on the configuration during the lifetime
+// of a request.
+func Lock() {
+	c.lock.RLock()
+}
+
+// Unlock releases the read lock on the configuration after a
+// request has completed.
+func Unlock() {
+	c.lock.RUnlock()
+}
+
 // Clients returns a set of Kubernetes clients.
 func Clients() client.Clients {
 	return c.clients
@@ -138,9 +160,4 @@ func Token() string {
 // Namespace returns the broker namespace.
 func Namespace() string {
 	return c.namespace
-}
-
-// Ready returns whether the config is valid and the service ready to accept requests.
-func Ready() bool {
-	return c.ready
 }

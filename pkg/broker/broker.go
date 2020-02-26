@@ -27,7 +27,7 @@ var (
 
 // handleReadiness returns 503 until the configuration is correct.
 func handleReadiness(w http.ResponseWriter, r *http.Request) error {
-	if !config.Ready() {
+	if config.Config() == nil {
 		util.HTTPResponse(w, http.StatusServiceUnavailable)
 		return fmt.Errorf("service not ready")
 	}
@@ -166,6 +166,12 @@ func (w *responseWriter) WriteHeader(statusCode int) {
 func (handler *openServiceBrokerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Start the profiling timer.
 	start := time.Now()
+
+	// The configuration is global, and sadly we cannot pass it around as a variable
+	// so place a read lock on it for the duration of the request.  Requests must
+	// therefore be non-blocking.
+	config.Lock()
+	defer config.Unlock()
 
 	// Print out request logging information.
 	// DO NOT print out headers at info level as that will leak credentials into the log stream.

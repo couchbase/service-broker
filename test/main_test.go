@@ -10,7 +10,6 @@ import (
 
 	"github.com/couchbase/service-broker/pkg/broker"
 	"github.com/couchbase/service-broker/pkg/client"
-	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/test/util"
 )
 
@@ -45,12 +44,6 @@ func TestMain(m *testing.M) {
 	// Configure the server.
 	if err := broker.ConfigureServer(clients, util.Namespace, util.Token); err != nil {
 		fmt.Println("failed to configure service broker server:", err)
-		os.Exit(1)
-	}
-
-	// Synchronize on server readiness.
-	if err := util.WaitFor(config.Ready, time.Minute); err != nil {
-		fmt.Println("failed to wait for service broker ready condition")
 		os.Exit(1)
 	}
 
