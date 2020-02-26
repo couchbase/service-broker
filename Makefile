@@ -7,6 +7,7 @@ GENSRC = pkg/revision/revision.go
 GENAPI = pkg/generated
 BROKER_BIN = build/bin/broker
 CRDGEN_FILE = example/broker.couchbase.com_couchbaseservicebrokerconfigs.yaml
+COVER_FILE=/tmp/cover.out
 
 .PHONY: all build dep apigen codegen doc crd container test cover
 
@@ -16,10 +17,10 @@ build: dep ${GENAPI} $(CRDGEN_BIN) $(BROKER_BIN)
 
 dep: vendor
 
-vendor: ${DEPSRC}
+vendor: $(DEPSRC)
 	GOPATH=$(GOPATH) dep ensure -vendor-only
 
-${GENAPI}: ${APISRC}
+$(GENAPI): $(APISRC)
 	rm -rf pkg/generated
 	scripts/codegen/update-generated.sh
 
@@ -38,7 +39,7 @@ container: build
 
 test:
 	go vet ./...
-	go test -v -race -cover -coverpkg github.com/couchbase/service-broker/pkg/... -coverprofile=/tmp/cover.out ./test -args -logtostderr
+	go test -v -race -cover -coverpkg github.com/couchbase/service-broker/pkg/... -coverprofile=$(COVER_FILE) ./test -args -logtostderr
 
 cover:
-	go tool cover -html=/tmp/cover.out
+	go tool cover -html=$(COVER_FILE)
