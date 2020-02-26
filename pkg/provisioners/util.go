@@ -105,9 +105,20 @@ func resolveParameter(parameter *v1.CouchbaseServiceBrokerConfigTemplateParamete
 		// the schema advertised to the client.  First set the default then try
 		// override if the parameter is specified by the client.
 		if useDefaults && parameter.Source.Parameter.Default != nil {
-			if err := json.Unmarshal(parameter.Source.Parameter.Default.Raw, &value); err != nil {
-				glog.Errorf("unmarshal of default parameter failed: %v", err)
-				return nil, err
+			switch {
+			case parameter.Source.Parameter.Default.String != nil:
+				value = *parameter.Source.Parameter.Default.String
+			case parameter.Source.Parameter.Default.Bool != nil:
+				value = *parameter.Source.Parameter.Default.Bool
+			case parameter.Source.Parameter.Default.Int != nil:
+				value = *parameter.Source.Parameter.Default.Int
+			case parameter.Source.Parameter.Default.Object != nil:
+				if err := json.Unmarshal(parameter.Source.Parameter.Default.Object.Raw, &value); err != nil {
+					glog.Errorf("unmarshal of default parameter failed: %v", err)
+					return nil, err
+				}
+			default:
+				return nil, fmt.Errorf("undefined default parameter")
 			}
 			glog.Infof("using parameter default %v", value)
 		}

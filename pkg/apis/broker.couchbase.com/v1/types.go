@@ -291,11 +291,26 @@ type CouchbaseServiceBrokerConfigTemplateParameterSource struct {
 type CouchbaseServiceBrokerConfigTemplateParameterSourceParameter struct {
 	// Path specifies the path in JSON pointer format to extract
 	// the parameter from a request parameter.
-	Path string `json:"path,omitempty"`
+	Path string `json:"path"`
 
-	// Default specifies the default value to use if a source parameter
-	// is not defined in the request parameters.
-	Default *runtime.RawExtension `json:"default,omitempty"`
+	// Default specifies the default value is if the parameter is not defined.
+	Default *CouchbaseServiceBrokerConfigTemplateParameterSourceParameterDefault `json:"default,omitempty"`
+}
+
+// CouchbaseServiceBrokerConfigTemplateParameterSourceParameterDefault defines a
+// default value for a parameter source if it is not specified.
+type CouchbaseServiceBrokerConfigTemplateParameterSourceParameterDefault struct {
+	// String specifies the default string value if the parameter is not defined.
+	String *string `json:"string,omitempty"`
+
+	// Bool specifies the default boolean value if the parameter is not defined.
+	Bool *bool `json:"bool,omitempty"`
+
+	// Int specifies the default int value if the parameter is not defined.
+	Int *int `json:"int,omitempty"`
+
+	// Object specifies the default value if the parameter is not defined.
+	Object *runtime.RawExtension `json:"object,omitempty"`
 }
 
 // CouchbaseServiceBrokerConfigTemplateParameterDestination defines where to
