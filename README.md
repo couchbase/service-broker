@@ -64,5 +64,13 @@ All tests must pass, and do so consistently.
 Tests can be run with the following command:
 
 ```bash
-go test -v ./test -args -logtostderr -v 1
+make test
 ```
+
+Code coverage is run as part of the test command and -- although not enforced -- should be checked:
+
+```bask
+make cover
+```
+
+Any code that is added (and not auto-generated) should be covered by testing.
