@@ -18,6 +18,24 @@ import (
 )
 
 var (
+	// resources is a list of API resources that the broker knows about.
+	// The broker will use the discovery client to map from a dynamic object's
+	// api version and kind, into a group, version and resource for use with
+	// the dynamic client.  Any resources that are rendered should be registered
+	// here.
+	// NOTE: Ideally there would be a way to extract this information from the
+	// scheme, but there doesn't seem to be.
+	// NOTE: Any resource listed here will be subject to garbage collection
+	// for tests that require it, as such the broker configuration is omitted.
+	resources = []*metav1.APIResourceList{
+		{
+			GroupVersion: "v1",
+			APIResources: []metav1.APIResource{
+				{Name: "pods", Namespaced: true, Group: "", Version: "v1", Kind: "Pod"},
+			},
+		},
+	}
+
 	// DefaultBrokerConfig is a minimal service broker config to allow initialization.
 	DefaultBrokerConfig = &v1.CouchbaseServiceBrokerConfig{
 		ObjectMeta: metav1.ObjectMeta{
@@ -28,7 +46,6 @@ var (
 
 	// defaultBrokerObjects is a global list of objects that the fake client will
 	// contain.
-	// TODO: These should be like fixtures.
 	defaultBrokerObjects = []runtime.Object{
 		DefaultBrokerConfig,
 	}
@@ -48,10 +65,15 @@ type clientsImpl struct {
 
 // NewClients creates a new set of fake clients for use by testing.
 func NewClients() (client.Clients, error) {
+	// Create all the clients, seeding with default objects.
 	kubernetes := kubernetesclientfake.NewSimpleClientset()
 	broker := brokerclientfake.NewSimpleClientset(defaultBrokerObjects...)
 	dynamic := dynamicclientfake.NewSimpleDynamicClient(scheme.Scheme)
 
+	// Initialize the discovery API.
+	kubernetes.Fake.Resources = resources
+
+	// Initialize the REST mapper once the discover interface is populated.
 	groupresources, err := restmapper.GetAPIGroupResources(kubernetes.Discovery())
 	if err != nil {
 		return nil, err

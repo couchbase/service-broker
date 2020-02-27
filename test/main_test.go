@@ -11,6 +11,9 @@ import (
 	"github.com/couchbase/service-broker/pkg/broker"
 	"github.com/couchbase/service-broker/pkg/client"
 	"github.com/couchbase/service-broker/test/util"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 var (
@@ -20,6 +23,40 @@ var (
 	// verify actions.  They should be reset after each test.
 	clients client.Clients
 )
+
+// resetClients cleans the client of any resources that we may have registered.
+// NOTE: we could just blindly replace the client's fake object cache but
+// then we'd not trigger any reaction chains e.g. watches.  So play it safe
+// and do it manually.
+func resetClients() error {
+	resources, err := clients.Kubernetes().Discovery().ServerResources()
+	if err != nil {
+		return err
+	}
+
+	deleteOptions := metav1.NewDeleteOptions(0)
+	listOptions := metav1.ListOptions{}
+	for _, resourceList := range resources {
+		for _, resource := range resourceList.APIResources {
+			gvr := schema.GroupVersionResource{
+				Group:    resource.Group,
+				Version:  resource.Version,
+				Resource: resource.Name,
+			}
+			if err := clients.Dynamic().Resource(gvr).DeleteCollection(deleteOptions, listOptions); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// mustResetClients cleans the client of any resources that we may have registered.
+func mustResetClients(t *testing.T) {
+	if err := resetClients(); err != nil {
+		t.Fatal(err)
+	}
+}
 
 // TestMain creates, initializes and starts the service broker locally.
 // Tests are then run against the

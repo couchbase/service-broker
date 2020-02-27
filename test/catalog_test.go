@@ -23,6 +23,8 @@ var (
 
 // TestCatalogUpdate tests that catalog updates are reflected in the API.
 func TestCatalogUpdate(t *testing.T) {
+	defer mustResetClients(t)
+
 	callback := func(config *v1.CouchbaseServiceBrokerConfig) {
 		config.Spec.Catalog = testCatalogUpdateFixture
 	}
