@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
+	informerv1 "github.com/couchbase/service-broker/generated/informers/externalversions/broker.couchbase.com/v1"
 	"github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1"
 	"github.com/couchbase/service-broker/pkg/client"
-	informerv1 "github.com/couchbase/service-broker/generated/informers/externalversions/broker.couchbase.com/v1"
 
 	"k8s.io/client-go/tools/cache"
 

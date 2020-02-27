@@ -13,6 +13,7 @@ func TestReadiness(t *testing.T) {
 	request := util.MustBasicRequest(t, http.MethodGet, "/readyz")
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
+	defer response.Body.Close()
 	util.MustVerifyStatusCode(t, response, http.StatusOK)
 }
 
@@ -23,6 +24,7 @@ func TestReadinessUnconfigured(t *testing.T) {
 	request := util.MustBasicRequest(t, http.MethodGet, "/readyz")
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
+	defer response.Body.Close()
 	util.MustVerifyStatusCode(t, response, http.StatusServiceUnavailable)
 	util.MustCreateServiceBrokerConfig(t, clients, util.DefaultBrokerConfig)
 }
@@ -44,16 +46,18 @@ func TestConnectNoAPIVersion(t *testing.T) {
 	request.Header.Del("X-Broker-API-Version")
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
+	defer response.Body.Close()
 	util.MustVerifyStatusCode(t, response, http.StatusBadRequest)
 }
 
 // TestConnectMultipleAPIVersion tests we reject requests with multiple X-Broker-API-Version
-// headers due to amiguity.
+// headers due to ambiguity.
 func TestConnectMultipleAPIVersion(t *testing.T) {
 	request := util.MustDefaultRequest(t, http.MethodGet, "/v2/catalog")
 	request.Header.Add("X-Broker-API-Version", "2.13")
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
+	defer response.Body.Close()
 	util.MustVerifyStatusCode(t, response, http.StatusBadRequest)
 }
 
@@ -64,6 +68,7 @@ func TestConnectInvalidAPIVersion(t *testing.T) {
 	request.Header.Set("X-Broker-API-Version", "dave")
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
+	defer response.Body.Close()
 	util.MustVerifyStatusCode(t, response, http.StatusBadRequest)
 }
 
@@ -75,6 +80,7 @@ func TestConnectAPIVersionTooOld(t *testing.T) {
 	request.Header.Set("X-Broker-API-Version", "2.12")
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
+	defer response.Body.Close()
 	util.MustVerifyStatusCode(t, response, http.StatusPreconditionFailed)
 }
 
@@ -83,6 +89,7 @@ func TestConnectPathNotFound(t *testing.T) {
 	request := util.MustDefaultRequest(t, http.MethodGet, "/batman")
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
+	defer response.Body.Close()
 	util.MustVerifyStatusCode(t, response, http.StatusNotFound)
 }
 
@@ -91,6 +98,7 @@ func TestConnectMethodNotFound(t *testing.T) {
 	request := util.MustDefaultRequest(t, http.MethodPost, "/v2/catalog")
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
+	defer response.Body.Close()
 	util.MustVerifyStatusCode(t, response, http.StatusMethodNotAllowed)
 }
 
@@ -101,17 +109,19 @@ func TestConnectNoAuthorization(t *testing.T) {
 	request.Header.Del("Authorization")
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
+	defer response.Body.Close()
 	util.MustVerifyStatusCode(t, response, http.StatusUnauthorized)
 }
 
 // TestConnectMultipleAuthorization tests we reject requests with multiple Authorization
-// headers due to amiguity.
+// headers due to ambiguity.
 func TestConnectMultipleAuthorization(t *testing.T) {
 	request := util.MustDefaultRequest(t, http.MethodGet, "/v2/catalog")
 	request.Header.Add("Authorization", "She-ra")
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
-	util.MustVerifyStatusCode(t, response, http.StatusBadRequest)
+	defer response.Body.Close()
+	util.MustVerifyStatusCode(t, response, http.StatusUnauthorized)
 }
 
 // TestConnectInvalidAuthorization tests we reject requests with an invalid Authorization header.
@@ -120,6 +130,7 @@ func TestConnectInvalidAuthorization(t *testing.T) {
 	request.Header.Set("Authorization", "Bearer She-ra")
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
+	defer response.Body.Close()
 	util.MustVerifyStatusCode(t, response, http.StatusUnauthorized)
 }
 
@@ -131,6 +142,7 @@ func TestConnectAuthorizationPrecedence(t *testing.T) {
 	request.Header.Del("X-Broker-API-Version")
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
+	defer response.Body.Close()
 	util.MustVerifyStatusCode(t, response, http.StatusUnauthorized)
 }
 
@@ -139,6 +151,7 @@ func TestConnect(t *testing.T) {
 	request := util.MustDefaultRequest(t, http.MethodGet, "/v2/catalog")
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
+	defer response.Body.Close()
 	util.MustVerifyStatusCode(t, response, http.StatusOK)
 }
 
@@ -150,6 +163,7 @@ func TestConnectWithBody(t *testing.T) {
 	request := util.MustDefaultRequestWithBody(t, http.MethodGet, "/v2/catalog", bytes.NewBufferString("{}"))
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
+	defer response.Body.Close()
 	util.MustVerifyStatusCode(t, response, http.StatusOK)
 }
 
@@ -161,6 +175,19 @@ func TestConnectNoContentType(t *testing.T) {
 	request.Header.Del("Content-Type")
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
+	defer response.Body.Close()
+	util.MustVerifyStatusCode(t, response, http.StatusBadRequest)
+}
+
+// TestConnectMultipleContentType that the server rejects content that has multiple a content types.
+// NOTE: we use a GET against /v2/catalog, the server will ignore payloads when not required
+// however content type checking occurrs regardless.
+func TestConnectMultipleContentType(t *testing.T) {
+	request := util.MustDefaultRequestWithBody(t, http.MethodGet, "/v2/catalog", bytes.NewBufferString("{}"))
+	request.Header.Add("Content-Type", "text/plain")
+	client := util.MustDefaultClient(t)
+	response := util.MustDoRequest(t, client, request)
+	defer response.Body.Close()
 	util.MustVerifyStatusCode(t, response, http.StatusBadRequest)
 }
 
@@ -173,5 +200,6 @@ func TestConnectInvalidContentType(t *testing.T) {
 	request.Header.Set("Content-Type", "text/plain")
 	client := util.MustDefaultClient(t)
 	response := util.MustDoRequest(t, client, request)
+	defer response.Body.Close()
 	util.MustVerifyStatusCode(t, response, http.StatusBadRequest)
 }

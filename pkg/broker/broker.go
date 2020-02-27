@@ -25,6 +25,29 @@ var (
 	instanceRegistry *registry.Registry
 )
 
+// getHeader returns the header value for a header name.
+func getHeader(r *http.Request, name string) ([]string, error) {
+	for headerName := range r.Header {
+		if strings.EqualFold(headerName, name) {
+			return r.Header[headerName], nil
+		}
+	}
+	return nil, fmt.Errorf("no header found for %s", name)
+}
+
+// getHeaderSingle returns the header value for a name.
+// If the header has more than one value this is an error condition.
+func getHeaderSingle(r *http.Request, name string) (string, error) {
+	headers, err := getHeader(r, name)
+	if err != nil {
+		return "", err
+	}
+	if len(headers) != 1 {
+		return "", fmt.Errorf("multiple headers found for %s", name)
+	}
+	return headers[0], nil
+}
+
 // handleReadiness returns 503 until the configuration is correct.
 func handleReadiness(w http.ResponseWriter, r *http.Request) error {
 	if config.Config() == nil {
@@ -36,68 +59,53 @@ func handleReadiness(w http.ResponseWriter, r *http.Request) error {
 
 // handleBrokerBearerToken implements RFC-6750.
 func handleBrokerBearerToken(w http.ResponseWriter, r *http.Request) error {
-	for name := range r.Header {
-		if strings.EqualFold(name, "Authorization") {
-			if len(r.Header[name]) != 1 {
-				util.HTTPResponse(w, http.StatusBadRequest)
-				return fmt.Errorf("multiple Authorization headers given")
-			}
-			if r.Header[name][0] != "Bearer "+string(config.Token()) {
-				util.HTTPResponse(w, http.StatusUnauthorized)
-				return fmt.Errorf("authorization failed")
-			}
-			return nil
-		}
+	header, err := getHeaderSingle(r, "Authorization")
+	if err != nil {
+		util.HTTPResponse(w, http.StatusUnauthorized)
+		return err
 	}
-	util.HTTPResponse(w, http.StatusUnauthorized)
-	return fmt.Errorf("no Authorization header")
+	if header != "Bearer "+string(config.Token()) {
+		util.HTTPResponse(w, http.StatusUnauthorized)
+		return fmt.Errorf("authorization failed")
+	}
+	return nil
 }
 
-// handleBrokerAPIHeader looks for a verifies the X-Broker-API-Version header
-// is supported.
+// handleBrokerAPIHeader looks for and verifies the X-Broker-API-Version header.
 func handleBrokerAPIHeader(w http.ResponseWriter, r *http.Request) error {
-	for name := range r.Header {
-		if strings.EqualFold(name, "X-Broker-API-Version") {
-			if len(r.Header[name]) != 1 {
-				util.HTTPResponse(w, http.StatusBadRequest)
-				return fmt.Errorf("multiple X-Broker-Api-Version headers given")
-			}
-			apiVersion, err := strconv.ParseFloat(r.Header[name][0], 64)
-			if err != nil {
-				util.HTTPResponse(w, http.StatusBadRequest)
-				return fmt.Errorf("malformed X-Broker-Api-Version header: %v", err)
-			}
-			if apiVersion < minBrokerAPIVersion {
-				util.HTTPResponse(w, http.StatusPreconditionFailed)
-				return fmt.Errorf("unsupported X-Broker-Api-Version header %v, requires at least %.2f", r.Header[name][0], minBrokerAPIVersion)
-			}
-			return nil
-		}
+	header, err := getHeaderSingle(r, "X-Broker-API-Version")
+	if err != nil {
+		util.HTTPResponse(w, http.StatusBadRequest)
+		return err
 	}
-	util.HTTPResponse(w, http.StatusBadRequest)
-	return fmt.Errorf("no X-Broker-Api-Version header")
+	apiVersion, err := strconv.ParseFloat(header, 64)
+	if err != nil {
+		util.HTTPResponse(w, http.StatusBadRequest)
+		return fmt.Errorf("malformed X-Broker-Api-Version header: %v", err)
+	}
+	if apiVersion < minBrokerAPIVersion {
+		util.HTTPResponse(w, http.StatusPreconditionFailed)
+		return fmt.Errorf("unsupported X-Broker-Api-Version header %v, requires at least %.2f", header, minBrokerAPIVersion)
+	}
+	return nil
 }
 
-// handleContentTypeHeader looks for a verifies the Content-Type header is supported.
-// If not specified we just return the standard JSON anyway.
+// handleContentTypeHeader looks for and verifies the Content-Type header.
 func handleContentTypeHeader(w http.ResponseWriter, r *http.Request) error {
 	// If no content is specified we don't need a type.
 	if r.ContentLength == 0 {
 		return nil
 	}
-	for name := range r.Header {
-		if strings.EqualFold(name, "Content-Type") {
-			for _, contentType := range r.Header[name] {
-				if strings.EqualFold(contentType, "application/json") {
-					return nil
-				}
-			}
-			util.HTTPResponse(w, http.StatusBadRequest)
-			return fmt.Errorf("invalid Content-Type header")
-		}
+	header, err := getHeaderSingle(r, "Content-Type")
+	if err != nil {
+		util.HTTPResponse(w, http.StatusBadRequest)
+		return err
 	}
-	util.HTTPResponse(w, http.StatusBadRequest)
-	return fmt.Errorf("no Content-Type header")
+	if header != "application/json" {
+		util.HTTPResponse(w, http.StatusBadRequest)
+		return fmt.Errorf("invalid Content-Type header")
+	}
+	return nil
 }
 
 // handleRequestHeaders checks that required headers are sent and are
@@ -173,26 +181,27 @@ func (handler *openServiceBrokerHandler) ServeHTTP(w http.ResponseWriter, r *htt
 	config.Lock()
 	defer config.Unlock()
 
-	// Print out request logging information.
-	// DO NOT print out headers at info level as that will leak credentials into the log stream.
-	userAgent := "-"
-	for name := range r.Header {
-		if strings.EqualFold(name, "User-Agent") {
-			userAgent = r.Header[name][0]
-			break
-		}
-	}
-	glog.Infof(`HTTP req: "%s %s %s" %s %s`, r.Method, r.URL.Path, r.Proto, r.RemoteAddr, userAgent)
-
-	// Start using the wrapped writer so we can capture the status code etc.
+	// Use the wrapped writer so we can capture the status code etc.
 	writer := &responseWriter{
 		writer: w,
 	}
 
+	// Print out request logging information.
+	// DO NOT print out headers at info level as that will leak credentials into the log stream.
+	glog.Infof(`HTTP req: "%s %s %s" %s `, r.Method, r.URL.Path, r.Proto, r.RemoteAddr)
+	for name, values := range r.Header {
+		for _, value := range values {
+			glog.V(1).Infof(`HTTP hdr: "%s: %s"`, name, value)
+		}
+	}
+	defer func() {
+		glog.Infof(`HTTP rsp: "%d %s" %v`, writer.status, http.StatusText(writer.status), time.Since(start))
+	}()
+
 	// Indicate that the service is not ready until configured.
 	if err := handleReadiness(writer, r); err != nil {
 		glog.V(1).Info(err)
-		goto ServeHTTPTail
+		return
 	}
 
 	// Ignore security checks for the readiness handler
@@ -200,16 +209,12 @@ func (handler *openServiceBrokerHandler) ServeHTTP(w http.ResponseWriter, r *htt
 		// Process headers, API versions, content types.
 		if err := handleRequestHeaders(writer, r); err != nil {
 			glog.V(1).Info(err)
-			goto ServeHTTPTail
+			return
 		}
 	}
 
 	// Route and process the request.
 	handler.Handler.ServeHTTP(writer, r)
-
-ServeHTTPTail:
-	// Print out response logging information.
-	glog.Infof(`HTTP rsp: "%d %s" %v`, writer.status, http.StatusText(writer.status), time.Since(start))
 }
 
 // ConfigureServer is the main entry point for both the container and test

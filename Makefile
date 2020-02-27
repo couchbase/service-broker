@@ -39,7 +39,7 @@ container: build
 
 test:
 	go vet ./...
-	go test -v -race -cover -coverpkg github.com/couchbase/service-broker/pkg/... -coverprofile=$(COVER_FILE) ./test -args -logtostderr
+	go test -v -race -cover -coverpkg github.com/couchbase/service-broker/pkg/... -coverprofile=$(COVER_FILE) ./test
 
 cover:
 	go tool cover -html=$(COVER_FILE)
