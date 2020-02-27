@@ -13,7 +13,7 @@ COVER_FILE=/tmp/cover.out
 
 all: build doc
 
-build: dep ${GENAPI} $(CRDGEN_BIN) $(BROKER_BIN)
+build: dep ${GENAPI} $(BROKER_BIN)
 
 dep: vendor
 
@@ -37,7 +37,7 @@ $(CRDGEN_FILE): $(APISRC)
 container: build
 	docker build -f Dockerfile -t couchbase/service-broker:0.0.0 .
 
-test:
+test: dep ${GENAPI}
 	go vet ./...
 	go test -v -race -cover -coverpkg github.com/couchbase/service-broker/pkg/... -coverprofile=$(COVER_FILE) ./test
 
