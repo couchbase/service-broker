@@ -1,10 +1,10 @@
 package util
 
 import (
-	"github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1"
-	"github.com/couchbase/service-broker/pkg/client"
 	brokerclient "github.com/couchbase/service-broker/generated/clientset/versioned"
 	brokerclientfake "github.com/couchbase/service-broker/generated/clientset/versioned/fake"
+	"github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1"
+	"github.com/couchbase/service-broker/pkg/client"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,10 +20,6 @@ import (
 var (
 	// DefaultBrokerConfig is a minimal service broker config to allow initialization.
 	DefaultBrokerConfig = &v1.CouchbaseServiceBrokerConfig{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: v1.Group,
-			Kind:       v1.ServiceBrokerConfigKind,
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "couchbase-service-broker",
 			Namespace: Namespace,

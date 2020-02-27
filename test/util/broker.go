@@ -22,3 +22,15 @@ func MustCreateServiceBrokerConfig(t *testing.T, clients client.Clients, config 
 		t.Fatal(err)
 	}
 }
+
+// MustUpdateBrokerConfig updates the service broker configuration with a typesafe callback.
+func MustUpdateBrokerConfig(t *testing.T, clients client.Clients, callback func(*v1.CouchbaseServiceBrokerConfig)) {
+	config, err := clients.Broker().BrokerV1().CouchbaseServiceBrokerConfigs(Namespace).Get("couchbase-service-broker", metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	callback(config)
+	if _, err := clients.Broker().BrokerV1().CouchbaseServiceBrokerConfigs(Namespace).Update(config); err != nil {
+		t.Fatal(err)
+	}
+}

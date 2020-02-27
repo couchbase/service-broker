@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net/http"
+	"testing"
 	"time"
 )
 
@@ -64,4 +65,11 @@ func WaitFor(f WaitFunc, timeout time.Duration) error {
 	}
 
 	return nil
+}
+
+// WaitFor waits until a condition is true.
+func MustWaitFor(t *testing.T, f WaitFunc, timeout time.Duration) {
+	if err := WaitFor(f, timeout); err != nil {
+		t.Fatal(err)
+	}
 }
