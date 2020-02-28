@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/couchbase/service-broker/pkg/api"
 	"github.com/couchbase/service-broker/test/fixtures"
 	"github.com/couchbase/service-broker/test/util"
 
@@ -15,7 +16,9 @@ import (
 func TestServiceInstanceCreateNotAynchronous(t *testing.T) {
 	defer mustResetClients(t)
 
-	util.MustPut(t, "/v2/service_instances/pinkiepie", http.StatusUnprocessableEntity, ``)
+	util.MustReplaceBrokerConfig(t, clients, fixtures.EmptyConfiguration())
+
+	util.MustPutWithError(t, "/v2/service_instances/pinkiepie", ``, http.StatusUnprocessableEntity, api.ErrorAsyncRequired)
 }
 
 // TestServiceInstanceCreateIllegalBody tests that the service broker rejects service
@@ -23,7 +26,9 @@ func TestServiceInstanceCreateNotAynchronous(t *testing.T) {
 func TestServiceInstanceCreateIllegalBody(t *testing.T) {
 	defer mustResetClients(t)
 
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, `illegal`)
+	util.MustReplaceBrokerConfig(t, clients, fixtures.EmptyConfiguration())
+
+	util.MustPutWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", `illegal`, http.StatusBadRequest, api.ErrorParameterErrorEXT)
 }
 
 // TestServiceInstanceCreateIllegalConfiguration tests that the service broker handles
@@ -32,8 +37,21 @@ func TestServiceInstanceCreateIllegalBody(t *testing.T) {
 func TestServiceInstanceCreateIllegalConfiguration(t *testing.T) {
 	defer mustResetClients(t)
 
+	util.MustReplaceBrokerConfig(t, clients, fixtures.EmptyConfiguration())
+
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req)
+	util.MustPutWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusBadRequest, api.ErrorParameterErrorEXT)
+}
+
+// TestServiceInstanceCreateIllegalQuery tests that the service broker rejects service
+// instance creation when the body isn't JSON.
+func TestServiceInstanceCreateIllegalQuery(t *testing.T) {
+	defer mustResetClients(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustPutWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true&%illegal", req, http.StatusBadRequest, api.ErrorQueryErrorEXT)
 }
 
 // TestServiceInstanceCreateInvalidService tests that the service broker handles
@@ -45,7 +63,7 @@ func TestServiceInstanceCreateInvalidService(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	req.ServiceID = "illegal"
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req)
+	util.MustPutWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusBadRequest, api.ErrorParameterErrorEXT)
 }
 
 // TestServiceInstanceCreateInvalidPlan tests that the service broker handles
@@ -57,7 +75,7 @@ func TestServiceInstanceCreateInvalidPlan(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	req.PlanID = "illegal"
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req)
+	util.MustPutWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusBadRequest, api.ErrorParameterErrorEXT)
 }
 
 // TestServiceInstanceCreate tests that the service broker accepts a minimal
@@ -68,7 +86,7 @@ func TestServiceInstanceCreate(t *testing.T) {
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req)
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
 }
 
 // TestServiceInstanceCreateWithSchema tests that the service broker accepts a
@@ -84,7 +102,20 @@ func TestServiceInstanceCreateWithSchema(t *testing.T) {
 	req.Parameters = &runtime.RawExtension{
 		Raw: []byte(`{"test":1}`),
 	}
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req)
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
+}
+
+// TestServiceInstanceCreateWithSchemaNoParameters tests that the service broker accepts a
+// minimal service instance creation with schema validation and no parameters.
+func TestServiceInstanceCreateWithSchemaNoParameters(t *testing.T) {
+	defer mustResetClients(t)
+
+	configuration := fixtures.BasicConfiguration()
+	configuration.Catalog.Services[0].Plans[0].Schemas = fixtures.BasicSchema()
+	util.MustReplaceBrokerConfig(t, clients, configuration)
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
 }
 
 // TestServiceInstanceCreateSchemaValidationFail tests that the service broker rejects
@@ -100,20 +131,7 @@ func TestServiceInstanceCreateSchemaValidationFail(t *testing.T) {
 	req.Parameters = &runtime.RawExtension{
 		Raw: []byte(`{"test":"string"}`),
 	}
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req)
-}
-
-// TestServiceInstanceCreateWithSchemaNoParameters tests that the service broker accepts a
-// minimal service instance creation with schema validation and no parameters.
-func TestServiceInstanceCreateWithSchemaNoParameters(t *testing.T) {
-	defer mustResetClients(t)
-
-	configuration := fixtures.BasicConfiguration()
-	configuration.Catalog.Services[0].Plans[0].Schemas = fixtures.BasicSchema()
-	util.MustReplaceBrokerConfig(t, clients, configuration)
-
-	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req)
+	util.MustPutWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusBadRequest, api.ErrorValidationErrorEXT)
 }
 
 // TestServiceInstanceCreateWithRequiredSchemaNoParameters tests that the service broker
@@ -127,5 +145,5 @@ func TestServiceInstanceCreateWithRequiredSchemaNoParameters(t *testing.T) {
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req)
+	util.MustPutWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusBadRequest, api.ErrorValidationErrorEXT)
 }

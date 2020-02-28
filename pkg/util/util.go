@@ -29,13 +29,13 @@ func JSONRequest(w http.ResponseWriter, r *http.Request, data interface{}) bool 
 	// Parse the creation request.
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		JSONError(w, http.StatusBadRequest, fmt.Errorf("unable to read body: %v", err))
+		JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("unable to read body: %v", err))
 		return false
 	}
 
 	glog.V(1).Infof("JSON req: %s", string(body))
 	if err := json.Unmarshal(body, data); err != nil {
-		JSONError(w, http.StatusBadRequest, fmt.Errorf("unable to unmarshal body: %v", err))
+		JSONError(w, http.StatusBadRequest, api.ErrorParameterErrorEXT, fmt.Errorf("unable to unmarshal body: %v", err))
 		return false
 	}
 
@@ -60,8 +60,9 @@ func JSONResponse(w http.ResponseWriter, status int, data interface{}) {
 }
 
 // JSONError is a helper method to return an error back to the client.
-func JSONError(w http.ResponseWriter, status int, err error) {
+func JSONError(w http.ResponseWriter, status int, apiError api.APIError, err error) {
 	e := &api.Error{
+		Error:       apiError,
 		Description: err.Error(),
 	}
 	JSONResponse(w, status, e)
@@ -70,9 +71,10 @@ func JSONError(w http.ResponseWriter, status int, err error) {
 // JSONErrorUsable is a helper method to return an error back to the client,
 // it also communicates the instance is usable for example when an update goes
 // wrong.
-func JSONErrorUsable(w http.ResponseWriter, status int, err error) {
+func JSONErrorUsable(w http.ResponseWriter, status int, apiError api.APIError, err error) {
 	usable := true
 	e := &api.Error{
+		Error:          apiError,
 		Description:    err.Error(),
 		InstanceUsable: &usable,
 	}
@@ -86,17 +88,12 @@ func AsyncOnlyResponse(w http.ResponseWriter, r *http.Request) bool {
 	// Parse any query parameters.
 	query, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
-		JSONError(w, http.StatusBadRequest, fmt.Errorf("malformed query data: %v", err))
+		JSONError(w, http.StatusBadRequest, api.ErrorQueryErrorEXT, fmt.Errorf("malformed query data: %v", err))
 		return false
 	}
 
 	if acceptsIncomplete, ok := query["accepts_incomplete"]; !ok || acceptsIncomplete[0] != "true" {
-		// Respond to the client.
-		response := &api.Error{
-			Error:       "AsyncRequired",
-			Description: "client must support asynchronous instance creation",
-		}
-		JSONResponse(w, http.StatusUnprocessableEntity, response)
+		JSONError(w, http.StatusUnprocessableEntity, api.ErrorAsyncRequired, fmt.Errorf("client must support asynchronous instance creation"))
 		return false
 	}
 
@@ -121,6 +118,14 @@ func getServicePlan(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID s
 		return nil, fmt.Errorf("service plan %s not found in service offering %s", planID, serviceID)
 	}
 	return nil, fmt.Errorf("service offering '%s' not found", serviceID)
+}
+
+// ValidateServicePlan checks the paramters are valid for the configuration.
+func ValidateServicePlan(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID string) error {
+	if _, err := getServicePlan(config, serviceID, planID); err != nil {
+		return err
+	}
+	return nil
 }
 
 // schemaType is the type of schema we are referring to, either for a service instance

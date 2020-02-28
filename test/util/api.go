@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/couchbase/service-broker/pkg/api"
 )
 
 // MustBasicRequest creates a HTTP request object for the requested method
@@ -207,7 +209,7 @@ func Get(path string, statusCode int, body interface{}) error {
 }
 
 // Put does a PUT API call and expects a certain response.
-func Put(path string, statusCode int, body interface{}) error {
+func Put(path string, body interface{}, statusCode int) error {
 	raw, err := json.Marshal(body)
 	if err != nil {
 		return err
@@ -233,8 +235,54 @@ func Put(path string, statusCode int, body interface{}) error {
 }
 
 // MustPut does a PUT API call and expects a certain response.
-func MustPut(t *testing.T, path string, statusCode int, body interface{}) {
-	if err := Put(path, statusCode, body); err != nil {
+func MustPut(t *testing.T, path string, body interface{}, statusCode int) {
+	if err := Put(path, body, statusCode); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// PutWithError does a PUT API call and expects a certain response.
+func PutWithError(path string, body interface{}, statusCode int, apiError api.APIError) error {
+	raw, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	buffer := bytes.NewBuffer(raw)
+	request, err := DefaultRequestWithBody(http.MethodPut, path, buffer)
+	if err != nil {
+		return err
+	}
+	client, err := DefaultClient()
+	if err != nil {
+		return err
+	}
+	response, err := DoRequest(client, request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if err := VerifyStatusCode(response, statusCode); err != nil {
+		return err
+	}
+	if err := MatchHeader(response, "Content-Type", "application/json"); err != nil {
+		return err
+	}
+	if raw, err = ioutil.ReadAll(response.Body); err != nil {
+		return err
+	}
+	e := &api.Error{}
+	if err := json.Unmarshal(raw, e); err != nil {
+		return err
+	}
+	if e.Error != apiError {
+		return fmt.Errorf("expected error %s does not match %s", apiError, e.Error)
+	}
+	return nil
+}
+
+// MustPutWithError does a PUT API call and expects a certain response.
+func MustPutWithError(t *testing.T, path string, body interface{}, statusCode int, apiError api.APIError) {
+	if err := PutWithError(path, body, statusCode, apiError); err != nil {
 		t.Fatal(err)
 	}
 }

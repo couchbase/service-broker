@@ -63,7 +63,7 @@ var (
 		},
 	}
 
-	// basicSchemaRequired is a schema for service instance create validation with required parameters..
+	// basicSchemaRequired is a schema for service instance create validation with required parameters.
 	basicSchemaRequired = &v1.Schemas{
 		ServiceInstance: &v1.ServiceInstanceSchema{
 			Create: &v1.InputParamtersSchema{
@@ -82,18 +82,30 @@ var (
 	}
 )
 
+// EmptyConfiguration returns an empty configuration, useful for testing when users
+// really screw up.
+func EmptyConfiguration() *v1.CouchbaseServiceBrokerConfigSpec {
+	return &v1.CouchbaseServiceBrokerConfigSpec{}
+}
+
+// BasicConfiguration is the absolute minimum valid configuration allowed by the
+// service broker configuration schema.
 func BasicConfiguration() *v1.CouchbaseServiceBrokerConfigSpec {
 	return basicConfiguration.DeepCopy()
 }
 
+// BasicSchema is schema for service instance create validation with optional parameters.
 func BasicSchema() *v1.Schemas {
 	return basicSchema.DeepCopy()
 }
 
+// BasicSchemaRequired is a schema for service instance create validation with required parameters.
 func BasicSchemaRequired() *v1.Schemas {
 	return basicSchemaRequired.DeepCopy()
 }
 
+// BasicServiceInstanceCreateRequest is the absolute minimum valid service instance create
+// request to use against the basicConfiguration.
 func BasicServiceInstanceCreateRequest() *api.CreateServiceInstanceRequest {
 	return basicServiceInstanceCreateRequest.DeepCopy()
 }

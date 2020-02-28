@@ -47,18 +47,22 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	// Check parameters.
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		util.JSONError(w, http.StatusBadRequest, fmt.Errorf("request missing instance_id parameter"))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("request missing instance_id parameter"))
+		return
+	}
+	if err := util.ValidateServicePlan(config.Config(), request.ServiceID, request.PlanID); err != nil {
+		util.JSONError(w, http.StatusBadRequest, api.ErrorParameterErrorEXT, err)
 		return
 	}
 	if err := util.ValidateParameters(config.Config(), request.ServiceID, request.PlanID, util.SchemaTypeServiceInstance, util.SchemaOperationCreate, request.Parameters); err != nil {
-		util.JSONError(w, http.StatusBadRequest, err)
+		util.JSONError(w, http.StatusBadRequest, api.ErrorValidationErrorEXT, err)
 		return
 	}
 
 	// Check if the instance already exists.
 	registryEntry, err := instanceRegistry.Get(registry.ServiceInstanceRegistryName(instanceID))
 	if err != nil && !errors.IsNotFound(err) {
-		util.JSONError(w, http.StatusInternalServerError, fmt.Errorf("failed to lookup registry entry: %v", err))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("failed to lookup registry entry: %v", err))
 		return
 	}
 
@@ -68,12 +72,12 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		// provisioning with different attributes.
 		prevRequestRaw, err := registryEntry.Get(registry.ServiceInstanceRequestKey)
 		if err != nil {
-			util.JSONError(w, http.StatusInternalServerError, fmt.Errorf("unable to get service instance request from registry: %v", err))
+			util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("unable to get service instance request from registry: %v", err))
 			return
 		}
 		prevRequest := &api.CreateServiceInstanceRequest{}
 		if err := json.Unmarshal([]byte(prevRequestRaw), prevRequest); err != nil {
-			util.JSONError(w, http.StatusInternalServerError, fmt.Errorf("unable to unmarshal previous instance request: %v", err))
+			util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("unable to unmarshal previous instance request: %v", err))
 			return
 		}
 		if reflect.DeepEqual(request, prevRequest) {
@@ -96,7 +100,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 				return
 			}
 		}
-		util.JSONError(w, http.StatusConflict, fmt.Errorf("request conflicts with existing service instance"))
+		util.JSONError(w, http.StatusConflict, api.ErrorResourceConflictEXT, fmt.Errorf("request conflicts with existing service instance"))
 		return
 	}
 
@@ -105,26 +109,26 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	// know where to look.
 	registryEntry, err = instanceRegistry.New(registry.ServiceInstanceRegistryName(instanceID))
 	if err != nil {
-		util.JSONError(w, http.StatusInternalServerError, fmt.Errorf("failed to create registry entry for request: %v", err))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("failed to create registry entry for request: %v", err))
 		return
 	}
 
 	// Save the raw request in the registry, it is required for other handler logic.
 	requestJSON, err := json.Marshal(request)
 	if err != nil {
-		util.JSONError(w, http.StatusInternalServerError, fmt.Errorf("failed to marshal instance data: %v", err))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("failed to marshal instance data: %v", err))
 		return
 	}
 	if err := registryEntry.Set(registry.ServiceInstanceRequestKey, string(requestJSON)); err != nil {
-		util.JSONError(w, http.StatusInternalServerError, fmt.Errorf("failed to set registry entry value %s: %v", registry.ServiceInstanceRequestKey, err))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("failed to set registry entry value %s: %v", registry.ServiceInstanceRequestKey, err))
 		return
 	}
 	if err := registryEntry.Set(registry.ServiceOfferingKey, request.ServiceID); err != nil {
-		util.JSONError(w, http.StatusInternalServerError, fmt.Errorf("failed to set registry entry value %s: %v", registry.ServiceOfferingKey, err))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("failed to set registry entry value %s: %v", registry.ServiceOfferingKey, err))
 		return
 	}
 	if err := registryEntry.Set(registry.ServicePlanKey, request.PlanID); err != nil {
-		util.JSONError(w, http.StatusInternalServerError, fmt.Errorf("failed to set registry entry value %s: %v", registry.ServicePlanKey, err))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("failed to set registry entry value %s: %v", registry.ServicePlanKey, err))
 		return
 	}
 
@@ -134,11 +138,11 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	// things like the dashboard URL for the synchronous response.
 	provisioner, err := provisioners.NewServiceInstanceCreator(instanceRegistry, instanceID, request)
 	if err != nil {
-		util.JSONError(w, http.StatusInternalServerError, fmt.Errorf("failed to create provisioner: %v", err))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("failed to create provisioner: %v", err))
 		return
 	}
 	if err := provisioner.PrepareServiceInstance(); err != nil {
-		util.JSONError(w, http.StatusInternalServerError, fmt.Errorf("failed to prepare service instance: %v", err))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("failed to prepare service instance: %v", err))
 		return
 	}
 
@@ -159,13 +163,13 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		util.JSONError(w, http.StatusBadRequest, fmt.Errorf("request missing instance_id parameter"))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("request missing instance_id parameter"))
 		return
 	}
 
 	registryEntry, err := instanceRegistry.Get(registry.ServiceInstanceRegistryName(instanceID))
 	if err != nil {
-		util.JSONError(w, http.StatusInternalServerError, fmt.Errorf("failed to lookup registry entry: %v", err))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("failed to lookup registry entry: %v", err))
 		return
 	}
 
@@ -173,19 +177,19 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 	// a 404.
 	_, ok := operation.Get(instanceID)
 	if errors.IsNotFound(err) || ok {
-		util.JSONError(w, http.StatusInternalServerError, fmt.Errorf("failed to lookup registry entry: %v", err))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("failed to lookup registry entry: %v", err))
 		return
 	}
 
 	requestJSON, err := registryEntry.Get(registry.ServiceInstanceRequestKey)
 	if err != nil {
-		util.JSONError(w, http.StatusInternalServerError, fmt.Errorf("failed to lookup registry entry: %v", err))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("failed to lookup registry entry: %v", err))
 		return
 	}
 
 	request := &api.CreateServiceInstanceRequest{}
 	if err := json.Unmarshal([]byte(requestJSON), request); err != nil {
-		util.JSONError(w, http.StatusInternalServerError, fmt.Errorf("unable to unmarshal instance request: %v", err))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("unable to unmarshal instance request: %v", err))
 		return
 	}
 
@@ -208,27 +212,27 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		util.JSONErrorUsable(w, http.StatusBadRequest, fmt.Errorf("request missing instance_id parameter"))
+		util.JSONErrorUsable(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("request missing instance_id parameter"))
 		return
 	}
 
 	// Check if the instance already exists.
 	registryEntry, err := instanceRegistry.Get(registry.ServiceInstanceRegistryName(instanceID))
 	if err != nil && !errors.IsNotFound(err) {
-		util.JSONErrorUsable(w, http.StatusInternalServerError, fmt.Errorf("failed to lookup registry entry: %v", err))
+		util.JSONErrorUsable(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("failed to lookup registry entry: %v", err))
 		return
 	}
 
 	// Not found, return a 404
 	if registryEntry == nil {
-		util.JSONError(w, http.StatusNotFound, fmt.Errorf("service instance does not exist"))
+		util.JSONError(w, http.StatusNotFound, api.ErrorResourceNotFoundEXT, fmt.Errorf("service instance does not exist"))
 		return
 	}
 
 	// Get the plan from the registry, it is not guaranyeed to be in the rquest.
 	planID, err := registryEntry.Get(registry.ServicePlanKey)
 	if err != nil {
-		util.JSONError(w, http.StatusNotFound, fmt.Errorf("unable to lookup service instance plan ID: %v", err))
+		util.JSONError(w, http.StatusNotFound, api.ErrorParameterErrorEXT, fmt.Errorf("unable to lookup service instance plan ID: %v", err))
 		return
 	}
 
@@ -239,18 +243,22 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	// Check parameters.
+	if err := util.ValidateServicePlan(config.Config(), request.ServiceID, request.PlanID); err != nil {
+		util.JSONError(w, http.StatusBadRequest, api.ErrorParameterErrorEXT, err)
+		return
+	}
 	if err := util.ValidateParameters(config.Config(), request.ServiceID, planID, util.SchemaTypeServiceInstance, util.SchemaOperationUpdate, request.Parameters); err != nil {
-		util.JSONErrorUsable(w, http.StatusBadRequest, err)
+		util.JSONErrorUsable(w, http.StatusBadRequest, api.ErrorValidationErrorEXT, err)
 		return
 	}
 
 	updater, err := provisioners.NewServiceInstanceUpdater(instanceRegistry, instanceID, request)
 	if err != nil {
-		util.JSONErrorUsable(w, http.StatusInternalServerError, err)
+		util.JSONErrorUsable(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, err)
 		return
 	}
 	if err := updater.PrepareResources(); err != nil {
-		util.JSONErrorUsable(w, http.StatusInternalServerError, err)
+		util.JSONErrorUsable(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, err)
 		return
 	}
 
@@ -277,16 +285,16 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	// Check parameters.
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		util.JSONError(w, http.StatusBadRequest, fmt.Errorf("request missing instance_id parameter"))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("request missing instance_id parameter"))
 		return
 	}
 
 	if _, err := instanceRegistry.Get(registry.ServiceInstanceRegistryName(instanceID)); err != nil {
 		if errors.IsNotFound(err) {
-			util.JSONError(w, http.StatusGone, fmt.Errorf("service instance does not exist"))
+			util.JSONError(w, http.StatusGone, api.ErrorResourceGoneEXT, fmt.Errorf("service instance does not exist"))
 			return
 		}
-		util.JSONError(w, http.StatusInternalServerError, fmt.Errorf("failed to lookup resigstry instance: %v", err))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("failed to lookup resigstry instance: %v", err))
 		return
 	}
 
@@ -305,6 +313,10 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 // handleReadServiceInstanceStatus
 func handleReadServiceInstanceStatus(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	instanceID := params.ByName("instance_id")
+	if instanceID == "" {
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("request missing instance_id parameter"))
+		return
+	}
 
 	// TODO: Check all parameters
 
@@ -320,7 +332,7 @@ func handleReadServiceInstanceStatus(w http.ResponseWriter, r *http.Request, par
 	}
 
 	// Poll the provisioner process for status updates.
-	var status string
+	var status api.PollState
 	var description string
 	select {
 	case err := <-op.Status:
@@ -355,12 +367,12 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 	// Check request parameters.
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		util.JSONError(w, http.StatusBadRequest, fmt.Errorf("request missing instance_id parameter"))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("request missing instance_id parameter"))
 		return
 	}
 	bindingID := params.ByName("binding_id")
 	if bindingID == "" {
-		util.JSONError(w, http.StatusBadRequest, fmt.Errorf("request missing binding_id parameter"))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("request missing binding_id parameter"))
 		return
 	}
 
@@ -369,15 +381,19 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 	if !util.JSONRequest(w, r, request) {
 		return
 	}
+	if err := util.ValidateServicePlan(config.Config(), request.ServiceID, request.PlanID); err != nil {
+		util.JSONError(w, http.StatusBadRequest, api.ErrorParameterErrorEXT, err)
+		return
+	}
 	if err := util.ValidateParameters(config.Config(), request.ServiceID, request.PlanID, util.SchemaTypeServiceBinding, util.SchemaOperationCreate, request.Parameters); err != nil {
-		util.JSONError(w, http.StatusBadRequest, err)
+		util.JSONError(w, http.StatusBadRequest, api.ErrorValidationErrorEXT, err)
 		return
 	}
 
 	// Check for an existing binding.
 	registryEntry, err := instanceRegistry.Get(registry.ServiceBindingRegistryName(instanceID, bindingID))
 	if err != nil && !errors.IsNotFound(err) {
-		util.JSONError(w, http.StatusInternalServerError, fmt.Errorf("failed to lookup registry entry: %v", err))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("failed to lookup registry entry: %v", err))
 		return
 	}
 
@@ -389,7 +405,7 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 
 	_, err = instanceRegistry.New(registry.ServiceBindingRegistryName(instanceID, bindingID))
 	if err != nil {
-		util.JSONError(w, http.StatusInternalServerError, fmt.Errorf("failed to create registry entry for request: %v", err))
+		util.JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("failed to create registry entry for request: %v", err))
 		return
 	}
 

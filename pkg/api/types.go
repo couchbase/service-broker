@@ -6,11 +6,87 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// APIError is returned when a service broker error is encountered.
+// Errors suffixed with an "EXT" are custom extensions and are for
+// extended debugging and testing above and byond the OSB specification.
+// All JSON errors returned by the service broker will have an error
+// field to test that the correct error is being raised for a specific
+// test.
+type APIError string
+
+const (
+	// ErrorAsyncRequired meand this request requires client support for asynchronous
+	// service operations.
+	ErrorAsyncRequired APIError = "AsyncRequired"
+
+	// ErrorConcurrencyError means the Service Broker does not support concurrent
+	// requests that mutate the same resource.
+	ErrorConcurrencyError APIError = "ConcurrencyError"
+
+	// ErrorRequiresApp means the request body is missing the app_guid field.
+	ErrorRequiresApp APIError = "RequiresApp"
+
+	// ErrorMaintenanceInfoConflict means the maintenance_info.version field provided
+	// in the request does not match the maintenance_info.version field provided in
+	// the Service Broker's Catalog.
+	ErrorMaintenanceInfoConflict APIError = "MaintenanceInfoConflict"
+
+	// ErrorInternalServerErrorEXT means that something that shouldn't ever break has.
+	ErrorInternalServerErrorEXT APIError = "InternalServerErrorEXT"
+
+	// ErrorQueryErrorEXT means that the user specified query is inavlid.
+	ErrorQueryErrorEXT APIError = "QueryErrorEXT"
+
+	// ErrorParameterErrorEXT means that the user specified parameters are
+	// invalid.
+	ErrorParameterErrorEXT APIError = "ParameterErrorEXT"
+
+	// ErrorValidationErrorEXT means that the supplied parameters failed JSON schema
+	// validation.
+	ErrorValidationErrorEXT APIError = "ValidationErrorEXT"
+
+	// ErrorResourceConflictEXT means that an attempt to create a resource has resulted
+	// in a conflict with an existing one.
+	ErrorResourceConflictEXT APIError = "ResourceConflictEXT"
+
+	// ErrorResourceNotFoundEXT means that an attempt has been made to access a resource
+	// that does not extst.
+	ErrorResourceNotFoundEXT APIError = "ResourceNotFoundEXT"
+
+	// ErrorResourceGoneEXT means that a delete request has failed because the
+	// requested resource does not exist.
+	ErrorResourceGoneEXT APIError = "ResourceGoneEXT"
+)
+
+// PollState is returned when an asynchronous request is polled.
+type PollState string
+
+const (
+	// PollStateInProgress means the async request is still being done.
+	PollStateInProgress PollState = "in progress"
+
+	// PollStateInProgress means the async request completed successfully.
+	PollStateSucceeded PollState = "succeeded"
+
+	// PollStateFailed means the async request failed.
+	PollStateFailed PollState = "failed"
+)
+
 // Error is the structured JSON response to send to a client on an error condition.
 type Error struct {
-	Error          string `json:"error,omitempty"`
-	Description    string `json:"description,omitempty"`
-	InstanceUsable *bool  `json:"instance_usable,omitempty"`
+	// A single word in camel case that uniquely identifies the error condition.
+	// If present, MUST be a non-empty string.
+	Error APIError `json:"error,omitempty"`
+
+	// A user-facing error message explaining why the request failed.
+	// If present, MUST be a non-empty string.
+	Description string `json:"description,omitempty"`
+
+	// If an update or deprovisioning operation failed, this flag indicates
+	// whether or not the Service Instance is still usable. If true, the
+	// Service Instance can still be used, false otherwise. This field MUST NOT
+	// be present for errors of other operations. Defaults to true.
+	InstanceUsable *bool `json:"instance_usable,omitempty"`
 }
 
 // CreateServiceInstanceRequest is submitted by the client when creating a service instance.
@@ -32,8 +108,8 @@ type CreateServiceInstanceResponse struct {
 
 // PollServiceInstanceResponse is returned by the server when an operation is being polled.
 type PollServiceInstanceResponse struct {
-	State       string `json:"state"`
-	Description string `json:"description,omitempty"`
+	State       PollState `json:"state"`
+	Description string    `json:"description,omitempty"`
 }
 
 // GetServiceInstanceResponse is returned by the server when a service instance is read.
@@ -89,6 +165,6 @@ type CreateServiceBindingResponse struct {
 
 // PollServiceBindingResponse is returned by the server when an operation is being polled.
 type PollServiceBindingResponse struct {
-	State       string `json:"state"`
-	Description string `json:"description,omitempty"`
+	State       PollState `json:"state"`
+	Description string    `json:"description,omitempty"`
 }
