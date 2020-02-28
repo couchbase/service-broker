@@ -1,14 +1,16 @@
 package api
 
 // DeepCopy clones a CreateServiceInstanceRequest
-func (i *CreateServiceInstanceRequest) DeepCopy() *CreateServiceInstanceRequest {
-	return &CreateServiceInstanceRequest{
-		ServiceID:        i.ServiceID,
-		PlanID:           i.PlanID,
-		Context:          i.Context.DeepCopy(),
-		OrganizationGUID: i.OrganizationGUID,
-		SpaceGUID:        i.SpaceGUID,
-		Parameters:       i.Parameters.DeepCopy(),
-		MaintenanceInfo:  i.MaintenanceInfo.DeepCopy(),
+func (in *CreateServiceInstanceRequest) DeepCopy() *CreateServiceInstanceRequest {
+	out := *in
+	if in.Context != nil {
+		out.Context = in.Context.DeepCopy()
 	}
+	if in.Parameters != nil {
+		out.Parameters = in.Parameters.DeepCopy()
+	}
+	if in.MaintenanceInfo != nil {
+		out.MaintenanceInfo = in.MaintenanceInfo.DeepCopy()
+	}
+	return &out
 }
