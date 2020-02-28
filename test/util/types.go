@@ -65,6 +65,7 @@ type InputParamtersSchema struct {
 	Parameters interface{} `json:"parameters,omitempty"`
 }
 
+// MaintenanceInfo may be provided for a service plan.
 type MaintenanceInfo struct {
 	Version string `json:"version,omitempty"`
 }

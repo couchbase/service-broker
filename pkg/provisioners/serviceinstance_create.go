@@ -194,6 +194,9 @@ func (p *serviceInstanceCreator) PrepareServiceInstance() error {
 	}
 
 	glog.Infof("rendering templates for binding %s", templateBindings.Name)
+	if templateBindings.ServiceInstance == nil {
+		return nil
+	}
 	for _, templateName := range templateBindings.ServiceInstance.Templates {
 		template, err := getTemplate(templateName)
 		if err != nil {

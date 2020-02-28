@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -49,12 +50,27 @@ func MustDefaultRequest(t *testing.T, method, path string) *http.Request {
 	return request
 }
 
+// DefaultRequestWithBody creates a HTTP request object for the requested method
+// on a path.
+// It applies known good configuration to provide connectivity with the broker
+// for the common case.
+func DefaultRequestWithBody(method, path string, body io.Reader) (*http.Request, error) {
+	request, err := http.NewRequest(method, "https://localhost:8443"+path, body)
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("X-Broker-API-Version", "2.13")
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Authorization", "Bearer "+Token)
+	return request, nil
+}
+
 // MustDefaultRequestWithBody creates a HTTP request object for the requested method
 // on a path.
 // It applies known good configuration to provide connectivity with the broker
 // for the common case.
 func MustDefaultRequestWithBody(t *testing.T, method, path string, body io.Reader) *http.Request {
-	request, err := http.NewRequest(method, "https://localhost:8443"+path, body)
+	request, err := DefaultRequestWithBody(method, path, body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +173,7 @@ func MatchHeader(response *http.Response, name, value string) error {
 	return fmt.Errorf("expected header %s does not exist", name)
 }
 
-// Get does a GET api call and expects a certain response and to be able to
+// Get does a GET API call and expects a certain response and to be able to
 // unmarshal the data into the provided structure.  All communication from the
 // broker should be in JSON, so encode this check.
 func Get(path string, statusCode int, body interface{}) error {
@@ -174,6 +190,9 @@ func Get(path string, statusCode int, body interface{}) error {
 		return err
 	}
 	defer response.Body.Close()
+	if err := VerifyStatusCode(response, statusCode); err != nil {
+		return err
+	}
 	if err := MatchHeader(response, "Content-Type", "application/json"); err != nil {
 		return err
 	}
@@ -185,4 +204,37 @@ func Get(path string, statusCode int, body interface{}) error {
 		return err
 	}
 	return nil
+}
+
+// Put does a PUT API call and expects a certain response.
+func Put(path string, statusCode int, body interface{}) error {
+	raw, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	buffer := bytes.NewBuffer(raw)
+	request, err := DefaultRequestWithBody(http.MethodPut, path, buffer)
+	if err != nil {
+		return err
+	}
+	client, err := DefaultClient()
+	if err != nil {
+		return err
+	}
+	response, err := DoRequest(client, request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if err := VerifyStatusCode(response, statusCode); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MustPut does a PUT API call and expects a certain response.
+func MustPut(t *testing.T, path string, statusCode int, body interface{}) {
+	if err := Put(path, statusCode, body); err != nil {
+		t.Fatal(err)
+	}
 }

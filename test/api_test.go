@@ -29,6 +29,15 @@ func TestReadinessUnconfigured(t *testing.T) {
 	util.MustCreateServiceBrokerConfig(t, clients, util.DefaultBrokerConfig)
 }
 
+// TestConnect tests basic connection to the service broker.
+func TestConnect(t *testing.T) {
+	request := util.MustDefaultRequest(t, http.MethodGet, "/v2/catalog")
+	client := util.MustDefaultClient(t)
+	response := util.MustDoRequest(t, client, request)
+	defer response.Body.Close()
+	util.MustVerifyStatusCode(t, response, http.StatusOK)
+}
+
 // TestConnectNoTLS tests that the client fails when connecting without using
 // TLS transport.
 func TestConnectNoTLS(t *testing.T) {
@@ -144,15 +153,6 @@ func TestConnectAuthorizationPrecedence(t *testing.T) {
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
 	util.MustVerifyStatusCode(t, response, http.StatusUnauthorized)
-}
-
-// TestConnect tests basic connection to the service broker.
-func TestConnect(t *testing.T) {
-	request := util.MustDefaultRequest(t, http.MethodGet, "/v2/catalog")
-	client := util.MustDefaultClient(t)
-	response := util.MustDoRequest(t, client, request)
-	defer response.Body.Close()
-	util.MustVerifyStatusCode(t, response, http.StatusOK)
 }
 
 // TestConnectWithBody tests that the server accepts a content of type application/json.

@@ -53,7 +53,7 @@ func WaitFor(f WaitFunc, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	tick := time.NewTicker(time.Second)
+	tick := time.NewTicker(10 * time.Millisecond)
 	defer tick.Stop()
 
 	for !f() {

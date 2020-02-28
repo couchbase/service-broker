@@ -1,6 +1,8 @@
 package util
 
 import (
+	"fmt"
+
 	brokerclient "github.com/couchbase/service-broker/generated/clientset/versioned"
 	brokerclientfake "github.com/couchbase/service-broker/generated/clientset/versioned/fake"
 	"github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1"
@@ -25,13 +27,11 @@ var (
 	// here.
 	// NOTE: Ideally there would be a way to extract this information from the
 	// scheme, but there doesn't seem to be.
-	// NOTE: Any resource listed here will be subject to garbage collection
-	// for tests that require it, as such the broker configuration is omitted.
 	resources = []*metav1.APIResourceList{
 		{
 			GroupVersion: "v1",
 			APIResources: []metav1.APIResource{
-				{Name: "pods", Namespaced: true, Group: "", Version: "v1", Kind: "Pod"},
+				{Name: "configmaps", Namespaced: true, Group: "", Version: "v1", Kind: "ConfigMap"},
 			},
 		},
 	}
@@ -88,6 +88,40 @@ func NewClients() (client.Clients, error) {
 	}
 
 	return clients, nil
+}
+
+// ResetClients resets clients back to a pristine state.  The kubernetes and dynamic
+// clients have their own object caches, therefore objects created with the kubernetes
+// client cannot be cleaned up using the dynamic client.  This also has implications
+// for the service broker as a whole.  Clients are reset by just overwriting them,
+// therefore at any one time only the top level clients interface is valid.  Objects
+// contained within must not be cached e.g. references to the kubernetes client for
+// example.
+func ResetClients(clients client.Clients) error {
+	c, ok := clients.(*clientsImpl)
+	if !ok {
+		return fmt.Errorf("wrong client type")
+	}
+
+	// Create all the clients, seeding with default objects.
+	kubernetes := kubernetesclientfake.NewSimpleClientset()
+	dynamic := dynamicclientfake.NewSimpleDynamicClient(scheme.Scheme)
+
+	// Initialize the discovery API.
+	kubernetes.Fake.Resources = resources
+
+	// Initialize the REST mapper once the discover interface is populated.
+	groupresources, err := restmapper.GetAPIGroupResources(kubernetes.Discovery())
+	if err != nil {
+		return err
+	}
+	mapper := restmapper.NewDiscoveryRESTMapper(groupresources)
+
+	c.kubernetes = kubernetes
+	c.dynamic = dynamic
+	c.mapper = mapper
+
+	return nil
 }
 
 // Kubernetes returns a typed client for Kubernetes resources.

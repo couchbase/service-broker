@@ -151,17 +151,12 @@ type Registry struct {
 	// naemspace defines the namespace where the registry entries live,
 	// which is the same as where the broker is running.
 	namespace string
-
-	// cache is used to store registry entries and prevent unnecessary API
-	// traffic.
-	cache map[string]*RegistryEntry
 }
 
 // New creates a new registry.
 func New(namespace string) *Registry {
 	return &Registry{
 		namespace: namespace,
-		cache:     map[string]*RegistryEntry{},
 	}
 }
 
@@ -190,8 +185,6 @@ func (r *Registry) New(name RegistryEntryName) (*RegistryEntry, error) {
 		configMap: configMap,
 	}
 
-	r.cache[registryName] = entry
-
 	return entry, nil
 }
 
@@ -200,10 +193,6 @@ func (r *Registry) Get(name RegistryEntryName) (*RegistryEntry, error) {
 	registryName, err := name.name()
 	if err != nil {
 		return nil, err
-	}
-
-	if cacheEntry, ok := r.cache[registryName]; ok {
-		return cacheEntry, nil
 	}
 
 	client := config.Clients().Kubernetes()
@@ -217,8 +206,6 @@ func (r *Registry) Get(name RegistryEntryName) (*RegistryEntry, error) {
 		configMap: configMap,
 	}
 
-	r.cache[registryName] = entry
-
 	return entry, nil
 }
 
@@ -228,8 +215,6 @@ func (r *Registry) Delete(name RegistryEntryName) error {
 	if err != nil {
 		return err
 	}
-
-	delete(r.cache, registryName)
 
 	client := config.Clients().Kubernetes()
 	return client.CoreV1().ConfigMaps(r.namespace).Delete(registryName, metav1.NewDeleteOptions(0))

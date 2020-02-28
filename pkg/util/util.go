@@ -105,6 +105,9 @@ func AsyncOnlyResponse(w http.ResponseWriter, r *http.Request) bool {
 
 // getServicePlan returns the service plan for the given plan and service offering IDs.
 func getServicePlan(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID string) (*v1.ServicePlan, error) {
+	if config.Spec.Catalog == nil {
+		return nil, fmt.Errorf("illegal configuration: empty catalog")
+	}
 	for serviceIndex, service := range config.Spec.Catalog.Services {
 		if service.ID != serviceID {
 			continue
@@ -117,7 +120,7 @@ func getServicePlan(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID s
 		}
 		return nil, fmt.Errorf("service plan %s not found in service offering %s", planID, serviceID)
 	}
-	return nil, fmt.Errorf("service offering %s not found", serviceID)
+	return nil, fmt.Errorf("service offering '%s' not found", serviceID)
 }
 
 // schemaType is the type of schema we are referring to, either for a service instance
