@@ -1,0 +1,26 @@
+name: Build and Test
+on: push
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+      with:
+        path: github.com/couchbase/service-broker
+    - name: Configure Go
+      uses: actions/setup-go@v2-beta
+      with:
+        go-version: '^1.13.3'
+    - name: Build
+      run: make
+    - name: Test
+      run: make test
+    - name: Make Code Coverage
+      run: go tool cover -html /tmp/cover.out -o /tmp/cover.html
+    - name: Upload Code Coverage Atrifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: code-coverage
+        path: /tmp/cover.html

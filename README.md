@@ -1,6 +1,9 @@
-# Couchbase Kubernetes Service Broker
+# Kubernetes Generic Service Broker
+
+![](https://github.com/spjmurray/service-broker/workflows/Build%20and%20Test/badge.svg)
 
 Open Service Broker API driven templating engine for Kubernetes.
+The Kubernetes Service Broker conforms to the [Open Service Broker Specification](https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md) version 1.13.
 
 ## What are Service Brokers?
 
@@ -22,7 +25,7 @@ This leads to a number of benefits for application developers:
 
 ## What does the Service Broker do?
 
-The Couchbase Kubernetes Service Broker was originally designed to deploy databases.
+The Kubernetes Service Broker was originally designed to deploy databases.
 Through evolution, it was possible to abstract away all the domain specific knowledge and provide a generic service broker implmenetation, that still supported our original goals.
 
 ### Security Model
