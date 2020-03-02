@@ -26,10 +26,5 @@ func init() {
 }
 
 func Resource(resource string) schema.GroupResource {
-	switch resource {
-	case "couchbaseservicebrokerconfig":
-		return schema.GroupResource{Group: GroupName, Resource: ServiceBrokerConfigKind}
-	default:
-		return schema.GroupResource{}
-	}
+	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }
