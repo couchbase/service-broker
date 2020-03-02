@@ -147,3 +147,16 @@ func TestServiceInstanceCreateWithRequiredSchemaNoParameters(t *testing.T) {
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustPutWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusBadRequest, api.ErrorValidationErrorEXT)
 }
+
+// TestServiceInstanceCreateMultiple tests the behaviour of multiple creation requests
+// for the same service instance with the same request twice, before the operation has
+// completed e.g. been acknowledged, should return a 202.
+func TestServiceInstanceCreateMultiple(t *testing.T) {
+	defer mustResetClients(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
+}
