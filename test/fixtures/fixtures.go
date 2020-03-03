@@ -11,8 +11,11 @@ const (
 	// BasicConfigurationOfferingID is the symbolic constant UUID used for the basic configuration.
 	BasicConfigurationOfferingID = `dd2cce49-a0ff-4deb-9cbf-b97301fdb87e`
 
-	// BasicConfigurationPlanID is the symbolic constant UUID used for the basic configuration.
+	// BasicConfigurationPlanID is the symbolic constant UUID used for the basic configuration plan.
 	BasicConfigurationPlanID = `3f525c60-bd66-4b91-8d18-beba57fbc0b8`
+
+	// BasicConfigurationPlanID2 is the symbolic constant UUID used for the basic configuration plan.
+	BasicConfigurationPlanID2 = `e18fce8d-1f4a-44fa-88c8-e7a52ed50f29`
 
 	// BasicSchemaParameters is a simple schema for use in parameter validation.
 	BasicSchemaParameters = `{"$schema":"http://json-schema.org/draft-04/schema#","type":"object","properties":{"test":{"type":"number","minimum":1}}}`
@@ -22,8 +25,6 @@ const (
 )
 
 var (
-	// TODO: These fixtures should be immutable, so protect them.
-
 	// basicConfiguration is the absolute minimum valid configuration allowed by the
 	// service broker configuration schema.
 	basicConfiguration = &v1.CouchbaseServiceBrokerConfigSpec{
@@ -39,6 +40,11 @@ var (
 							ID:          BasicConfigurationPlanID,
 							Description: "a test plan",
 						},
+						{
+							Name:        "test-plan-2",
+							ID:          BasicConfigurationPlanID2,
+							Description: "another test plan",
+						},
 					},
 				},
 			},
@@ -48,6 +54,11 @@ var (
 				Name:    "test-binding",
 				Service: "test-offering",
 				Plan:    "test-plan",
+			},
+			{
+				Name:    "test-binding-2",
+				Service: "test-offering",
+				Plan:    "test-plan-2",
 			},
 		},
 	}

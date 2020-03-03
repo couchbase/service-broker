@@ -208,6 +208,14 @@ func Get(path string, statusCode int, body interface{}) error {
 	return nil
 }
 
+// MustGet does a GET API call and expects a certain response and to be able to
+// unmarshal the data into the provided structure.
+func MustGet(t *testing.T, path string, statusCode int, body interface{}) {
+	if err := Get(path, statusCode, body); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // Put does a PUT API call and expects a certain response.
 func Put(path string, body interface{}, statusCode int) error {
 	raw, err := json.Marshal(body)

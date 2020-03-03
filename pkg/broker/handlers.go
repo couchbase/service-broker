@@ -150,7 +150,11 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	// Start the provisioning process in the background.
-	op := operation.New(operation.OperationKindServiceInstanceCreate, instanceID)
+	op, err := operation.New(operation.OperationKindServiceInstanceCreate, instanceID)
+	if err != nil {
+		util.JSONError(w, err)
+		return
+	}
 	go op.Run(provisioner)
 
 	// Return a response to the client.
@@ -268,7 +272,11 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	// Start the update operation in the background.
-	op := operation.New(operation.OperationKindServiceInstanceUpdate, instanceID)
+	op, err := operation.New(operation.OperationKindServiceInstanceUpdate, instanceID)
+	if err != nil {
+		util.JSONError(w, err)
+		return
+	}
 	go op.Run(updater)
 
 	// Return a response to the client.
@@ -307,7 +315,11 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	deleter := provisioners.NewServiceInstanceDeleter(instanceRegistry, instanceID)
 
 	// Start the delete operation in the background.
-	op := operation.New(operation.OperationKindServiceInstanceDelete, instanceID)
+	op, err := operation.New(operation.OperationKindServiceInstanceDelete, instanceID)
+	if err != nil {
+		util.JSONError(w, err)
+		return
+	}
 	go op.Run(deleter)
 
 	response := &api.CreateServiceInstanceResponse{
@@ -420,7 +432,11 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 	creator := provisioners.NewServiceBindingCreator(instanceRegistry, instanceID, bindingID)
 
 	// Start the provisioning process in the background.
-	op := operation.New(operation.OperationKindServiceInstanceCreate, instanceID)
+	op, err := operation.New(operation.OperationKindServiceInstanceCreate, instanceID)
+	if err != nil {
+		util.JSONError(w, err)
+		return
+	}
 	go op.Run(creator)
 
 	// Respond the operation ID to the client to start polling.

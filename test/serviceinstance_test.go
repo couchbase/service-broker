@@ -14,7 +14,7 @@ import (
 // TestServiceInstanceCreateNotAynchronous tests that the service broker rejects service
 // instance creation that isn't asynchronous.
 func TestServiceInstanceCreateNotAynchronous(t *testing.T) {
-	defer mustResetClients(t)
+	defer mustReset(t)
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.EmptyConfiguration())
 
@@ -24,7 +24,7 @@ func TestServiceInstanceCreateNotAynchronous(t *testing.T) {
 // TestServiceInstanceCreateIllegalBody tests that the service broker rejects service
 // instance creation when the body isn't JSON.
 func TestServiceInstanceCreateIllegalBody(t *testing.T) {
-	defer mustResetClients(t)
+	defer mustReset(t)
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.EmptyConfiguration())
 
@@ -35,7 +35,7 @@ func TestServiceInstanceCreateIllegalBody(t *testing.T) {
 // misconfiguration of the service catalog gracefully.  On this occasion the default
 // doesn't have any service offerings or plans defined.
 func TestServiceInstanceCreateIllegalConfiguration(t *testing.T) {
-	defer mustResetClients(t)
+	defer mustReset(t)
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.EmptyConfiguration())
 
@@ -46,7 +46,7 @@ func TestServiceInstanceCreateIllegalConfiguration(t *testing.T) {
 // TestServiceInstanceCreateIllegalQuery tests that the service broker rejects service
 // instance creation when the body isn't JSON.
 func TestServiceInstanceCreateIllegalQuery(t *testing.T) {
-	defer mustResetClients(t)
+	defer mustReset(t)
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
@@ -57,7 +57,7 @@ func TestServiceInstanceCreateIllegalQuery(t *testing.T) {
 // TestServiceInstanceCreateInvalidService tests that the service broker handles
 // an invalid service gracefully.
 func TestServiceInstanceCreateInvalidService(t *testing.T) {
-	defer mustResetClients(t)
+	defer mustReset(t)
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
@@ -69,7 +69,7 @@ func TestServiceInstanceCreateInvalidService(t *testing.T) {
 // TestServiceInstanceCreateInvalidPlan tests that the service broker handles
 // an invalid plan gracefully.
 func TestServiceInstanceCreateInvalidPlan(t *testing.T) {
-	defer mustResetClients(t)
+	defer mustReset(t)
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
@@ -81,7 +81,7 @@ func TestServiceInstanceCreateInvalidPlan(t *testing.T) {
 // TestServiceInstanceCreate tests that the service broker accepts a minimal
 // service instance creation.
 func TestServiceInstanceCreate(t *testing.T) {
-	defer mustResetClients(t)
+	defer mustReset(t)
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
@@ -92,7 +92,7 @@ func TestServiceInstanceCreate(t *testing.T) {
 // TestServiceInstanceCreateWithSchema tests that the service broker accepts a
 // minimal service instance creation with schema validation.
 func TestServiceInstanceCreateWithSchema(t *testing.T) {
-	defer mustResetClients(t)
+	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
 	configuration.Catalog.Services[0].Plans[0].Schemas = fixtures.BasicSchema()
@@ -108,7 +108,7 @@ func TestServiceInstanceCreateWithSchema(t *testing.T) {
 // TestServiceInstanceCreateWithSchemaNoParameters tests that the service broker accepts a
 // minimal service instance creation with schema validation and no parameters.
 func TestServiceInstanceCreateWithSchemaNoParameters(t *testing.T) {
-	defer mustResetClients(t)
+	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
 	configuration.Catalog.Services[0].Plans[0].Schemas = fixtures.BasicSchema()
@@ -121,7 +121,7 @@ func TestServiceInstanceCreateWithSchemaNoParameters(t *testing.T) {
 // TestServiceInstanceCreateSchemaValidationFail tests that the service broker rejects
 // schema validation failure.
 func TestServiceInstanceCreateSchemaValidationFail(t *testing.T) {
-	defer mustResetClients(t)
+	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
 	configuration.Catalog.Services[0].Plans[0].Schemas = fixtures.BasicSchema()
@@ -138,7 +138,7 @@ func TestServiceInstanceCreateSchemaValidationFail(t *testing.T) {
 // rejects a minimal service instance creation with required schema validation and no
 // parameters.
 func TestServiceInstanceCreateWithRequiredSchemaNoParameters(t *testing.T) {
-	defer mustResetClients(t)
+	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
 	configuration.Catalog.Services[0].Plans[0].Schemas = fixtures.BasicSchemaRequired()
@@ -148,15 +148,64 @@ func TestServiceInstanceCreateWithRequiredSchemaNoParameters(t *testing.T) {
 	util.MustPutWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusBadRequest, api.ErrorValidationError)
 }
 
-// TestServiceInstanceCreateMultiple tests the behaviour of multiple creation requests
+// TestServiceInstanceCreateInProgress tests the behaviour of multiple creation requests
 // for the same service instance with the same request twice, before the operation has
 // completed e.g. been acknowledged, should return a 202.
-func TestServiceInstanceCreateMultiple(t *testing.T) {
-	defer mustResetClients(t)
+func TestServiceInstanceCreateInProgress(t *testing.T) {
+	defer mustReset(t)
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
+}
+
+// TestServiceInstanceCreateInProgressMismatched tests the behaviour of multiple creation
+// requests for the same service instance with different request parameters, before the
+// operation has completed e.g. been acknowledged, should return a 409.
+func TestServiceInstanceCreateInProgressMismatched(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
+	req.PlanID = fixtures.BasicConfigurationPlanID2
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusConflict)
+}
+
+// TestServiceInstanceCreateCompleted tests the behaviour of multiple creation requests
+// for the same service instance with the same request twice, after the operation has
+// completed e.g. been acknowledged, should return a 200.
+func TestServiceInstanceCreateCompleted(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
+
+	poll := &api.PollServiceInstanceResponse{}
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation", http.StatusOK, poll)
+
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusOK)
+}
+
+// TestServiceInstanceCreateCompletedMismatched tests the behaviour of multiple creation
+// requests for the same service instance with different request parameters, before the
+// operation has completed e.g. been acknowledged, should return a 409.
+func TestServiceInstanceCreateCompletedMismatched(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
+
+	poll := &api.PollServiceInstanceResponse{}
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation", http.StatusOK, &poll)
+
+	req.PlanID = fixtures.BasicConfigurationPlanID2
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusConflict)
 }

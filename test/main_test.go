@@ -10,6 +10,7 @@ import (
 
 	"github.com/couchbase/service-broker/pkg/broker"
 	"github.com/couchbase/service-broker/pkg/client"
+	"github.com/couchbase/service-broker/pkg/operation"
 	"github.com/couchbase/service-broker/test/util"
 )
 
@@ -21,14 +22,17 @@ var (
 	clients client.Clients
 )
 
-// resetClients cleans the client of any resources that we may have registered.
-func resetClients() error {
+// reset cleans the client of any resources that we may have registered and
+// clears out any broker persistent state.
+func reset() error {
+	operation.Reset()
 	return util.ResetClients(clients)
 }
 
-// mustResetClients cleans the client of any resources that we may have registered.
-func mustResetClients(t *testing.T) {
-	if err := resetClients(); err != nil {
+// mustResetcleans the client of any resources that we may have registered and
+// clears out any broker persistent state.
+func mustReset(t *testing.T) {
+	if err := reset(); err != nil {
 		t.Fatal(err)
 	}
 }
