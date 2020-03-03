@@ -9,6 +9,7 @@ import (
 
 	"github.com/couchbase/service-broker/pkg/api"
 	"github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1"
+	"github.com/couchbase/service-broker/pkg/errors"
 
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
@@ -25,21 +26,19 @@ func HTTPResponse(w http.ResponseWriter, status int) {
 
 // JSONRequest reads the JSON body into the give structure and raises the
 // appropriate errors on error.
-func JSONRequest(w http.ResponseWriter, r *http.Request, data interface{}) bool {
+func JSONRequest(w http.ResponseWriter, r *http.Request, data interface{}) error {
 	// Parse the creation request.
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		JSONError(w, http.StatusInternalServerError, api.ErrorInternalServerErrorEXT, fmt.Errorf("unable to read body: %v", err))
-		return false
+		return fmt.Errorf("unable to read body: %v", err)
 	}
 
 	glog.V(1).Infof("JSON req: %s", string(body))
 	if err := json.Unmarshal(body, data); err != nil {
-		JSONError(w, http.StatusBadRequest, api.ErrorParameterErrorEXT, fmt.Errorf("unable to unmarshal body: %v", err))
-		return false
+		return errors.NewParameterError("unable to unmarshal body: %v", err)
 	}
 
-	return true
+	return nil
 }
 
 // JSONResponse sends generic JSON data back to the client and replies
@@ -59,8 +58,33 @@ func JSONResponse(w http.ResponseWriter, status int, data interface{}) {
 	}
 }
 
+// translateError translates from an internal error type to a HTTP status code and an API error type.
+func translateError(err error) (int, api.APIError) {
+	switch {
+	case errors.IsConfigurationError(err):
+		return http.StatusBadRequest, api.ErrorConfigurationError
+	case errors.IsQueryError(err):
+		return http.StatusBadRequest, api.ErrorQueryError
+	case errors.IsParameterError(err):
+		return http.StatusBadRequest, api.ErrorParameterError
+	case errors.IsValidationError(err):
+		return http.StatusBadRequest, api.ErrorValidationError
+	case errors.IsAsyncRequiredError(err):
+		return http.StatusUnprocessableEntity, api.ErrorAsyncRequired
+	case errors.IsResourceConflictError(err):
+		return http.StatusConflict, api.ErrorResourceConflict
+	case errors.IsResourceNotFoundError(err):
+		return http.StatusNotFound, api.ErrorResourceNotFound
+	case errors.IsResourceGoneError(err):
+		return http.StatusGone, api.ErrorResourceGone
+	default:
+		return http.StatusInternalServerError, api.ErrorInternalServerError
+	}
+}
+
 // JSONError is a helper method to return an error back to the client.
-func JSONError(w http.ResponseWriter, status int, apiError api.APIError, err error) {
+func JSONError(w http.ResponseWriter, err error) {
+	status, apiError := translateError(err)
 	e := &api.Error{
 		Error:       apiError,
 		Description: err.Error(),
@@ -71,7 +95,8 @@ func JSONError(w http.ResponseWriter, status int, apiError api.APIError, err err
 // JSONErrorUsable is a helper method to return an error back to the client,
 // it also communicates the instance is usable for example when an update goes
 // wrong.
-func JSONErrorUsable(w http.ResponseWriter, status int, apiError api.APIError, err error) {
+func JSONErrorUsable(w http.ResponseWriter, err error) {
+	status, apiError := translateError(err)
 	usable := true
 	e := &api.Error{
 		Error:          apiError,
@@ -81,29 +106,25 @@ func JSONErrorUsable(w http.ResponseWriter, status int, apiError api.APIError, e
 	JSONResponse(w, status, e)
 }
 
-// AsyncOnlyResponse is called when the handler only supports async requests.
-// It will respond with the correct status code and error message, and return
-// an error for logging.  Clients must terminate processing when false is returned.
-func AsyncOnlyResponse(w http.ResponseWriter, r *http.Request) bool {
+// AsyncRequired is called when the handler only supports async requests.
+func AsyncRequired(r *http.Request) error {
 	// Parse any query parameters.
 	query, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
-		JSONError(w, http.StatusBadRequest, api.ErrorQueryErrorEXT, fmt.Errorf("malformed query data: %v", err))
-		return false
+		return errors.NewQueryError("malformed query data: %v", err)
 	}
 
 	if acceptsIncomplete, ok := query["accepts_incomplete"]; !ok || acceptsIncomplete[0] != "true" {
-		JSONError(w, http.StatusUnprocessableEntity, api.ErrorAsyncRequired, fmt.Errorf("client must support asynchronous instance creation"))
-		return false
+		return errors.NewAsyncRequiredError("client must support asynchronous instance creation")
 	}
 
-	return true
+	return nil
 }
 
 // getServicePlan returns the service plan for the given plan and service offering IDs.
 func getServicePlan(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID string) (*v1.ServicePlan, error) {
 	if config.Spec.Catalog == nil {
-		return nil, fmt.Errorf("illegal configuration: empty catalog")
+		return nil, errors.NewConfigurationError("service catalog not defined")
 	}
 	for serviceIndex, service := range config.Spec.Catalog.Services {
 		if service.ID != serviceID {
@@ -115,9 +136,9 @@ func getServicePlan(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID s
 			}
 			return &config.Spec.Catalog.Services[serviceIndex].Plans[planIndex], nil
 		}
-		return nil, fmt.Errorf("service plan %s not found in service offering %s", planID, serviceID)
+		return nil, errors.NewParameterError("service plan %s not defined for service offering %s", planID, serviceID)
 	}
-	return nil, fmt.Errorf("service offering '%s' not found", serviceID)
+	return nil, errors.NewParameterError("service offering '%s' not defined", serviceID)
 }
 
 // ValidateServicePlan checks the paramters are valid for the configuration.
@@ -188,7 +209,7 @@ func getSchema(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID string
 func ValidateParameters(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID string, t schemaType, o schemaOperation, parametersRaw *runtime.RawExtension) error {
 	schemaRaw, err := getSchema(config, serviceID, planID, t, o)
 	if err != nil {
-		return fmt.Errorf("unable to lookup schema: %v", err)
+		return err
 	}
 	if schemaRaw != nil {
 		// Default to an empty object, that way we can detect when required
@@ -200,16 +221,16 @@ func ValidateParameters(config *v1.CouchbaseServiceBrokerConfig, serviceID, plan
 
 		schema := &spec.Schema{}
 		if err := json.Unmarshal(schemaRaw.Parameters.Raw, schema); err != nil {
-			return fmt.Errorf("schema unmarshal failed: %v", err)
+			return errors.NewParameterError("schema unmarshal failed: %v", err)
 		}
 
 		var parameters interface{}
 		if err := json.Unmarshal(data, &parameters); err != nil {
-			return fmt.Errorf("parameters unmarshal failed: %v", err)
+			return errors.NewParameterError("parameters unmarshal failed: %v", err)
 		}
 
 		if err := validate.AgainstSchema(schema, parameters, strfmt.NewFormats()); err != nil {
-			return fmt.Errorf("schema validation failed: %v", err)
+			return errors.NewValidationError("schema validation failed: %v", err)
 		}
 	}
 	return nil

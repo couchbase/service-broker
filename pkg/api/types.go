@@ -7,11 +7,6 @@ import (
 )
 
 // APIError is returned when a service broker error is encountered.
-// Errors suffixed with an "EXT" are custom extensions and are for
-// extended debugging and testing above and byond the OSB specification.
-// All JSON errors returned by the service broker will have an error
-// field to test that the correct error is being raised for a specific
-// test.
 type APIError string
 
 const (
@@ -31,31 +26,34 @@ const (
 	// the Service Broker's Catalog.
 	ErrorMaintenanceInfoConflict APIError = "MaintenanceInfoConflict"
 
-	// ErrorInternalServerErrorEXT means that something that shouldn't ever break has.
-	ErrorInternalServerErrorEXT APIError = "InternalServerErrorEXT"
+	// ErrorInternalServerError means that something that shouldn't ever break has.
+	ErrorInternalServerError APIError = "InternalServerError"
 
-	// ErrorQueryErrorEXT means that the user specified query is inavlid.
-	ErrorQueryErrorEXT APIError = "QueryErrorEXT"
+	// ErrorConfigurationError means that the broker has been misconfigured.
+	ErrorConfigurationError APIError = "ConfigurationError"
 
-	// ErrorParameterErrorEXT means that the user specified parameters are
+	// ErrorQueryError means that the user specified query is inavlid.
+	ErrorQueryError APIError = "QueryError"
+
+	// ErrorParameterError means that the user specified parameters are
 	// invalid.
-	ErrorParameterErrorEXT APIError = "ParameterErrorEXT"
+	ErrorParameterError APIError = "ParameterError"
 
-	// ErrorValidationErrorEXT means that the supplied parameters failed JSON schema
+	// ErrorValidationError means that the supplied parameters failed JSON schema
 	// validation.
-	ErrorValidationErrorEXT APIError = "ValidationErrorEXT"
+	ErrorValidationError APIError = "ValidationError"
 
-	// ErrorResourceConflictEXT means that an attempt to create a resource has resulted
+	// ErrorResourceConflict means that an attempt to create a resource has resulted
 	// in a conflict with an existing one.
-	ErrorResourceConflictEXT APIError = "ResourceConflictEXT"
+	ErrorResourceConflict APIError = "ResourceConflict"
 
-	// ErrorResourceNotFoundEXT means that an attempt has been made to access a resource
+	// ErrorResourceNotFound means that an attempt has been made to access a resource
 	// that does not extst.
-	ErrorResourceNotFoundEXT APIError = "ResourceNotFoundEXT"
+	ErrorResourceNotFound APIError = "ResourceNotFound"
 
-	// ErrorResourceGoneEXT means that a delete request has failed because the
+	// ErrorResourceGone means that a delete request has failed because the
 	// requested resource does not exist.
-	ErrorResourceGoneEXT APIError = "ResourceGoneEXT"
+	ErrorResourceGone APIError = "ResourceGone"
 )
 
 // PollState is returned when an asynchronous request is polled.
