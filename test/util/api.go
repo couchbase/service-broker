@@ -384,9 +384,127 @@ func MustPutWithError(t *testing.T, path string, body interface{}, statusCode in
 	}
 }
 
+// Delete does a DELETE call and expects a certain response.
+func Delete(path string, statusCode int) error {
+	request, err := DefaultRequest(http.MethodDelete, path)
+	if err != nil {
+		return err
+	}
+	client, err := DefaultClient()
+	if err != nil {
+		return err
+	}
+	response, err := DoRequest(client, request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if err := VerifyStatusCode(response, statusCode); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MustDelete does a DELETE call and expects a certain response.
+func MustDelete(t *testing.T, path string, statusCode int) {
+	if err := Delete(path, statusCode); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// DeleteWithBody does a DELETE call and expects a certain response with a
+// JSON formatted body.
+func DeleteWithBody(path string, statusCode int, body interface{}) error {
+	request, err := DefaultRequest(http.MethodDelete, path)
+	if err != nil {
+		return err
+	}
+	client, err := DefaultClient()
+	if err != nil {
+		return err
+	}
+	response, err := DoRequest(client, request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if err := VerifyStatusCode(response, statusCode); err != nil {
+		return err
+	}
+	if err := MatchHeader(response, "Content-Type", "application/json"); err != nil {
+		return err
+	}
+	raw, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(raw, body); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MustDeleteWithBody does a DELETE call and expects a certain response with a
+// JSON formatted body.
+func MustDeleteWithBody(t *testing.T, path string, statusCode int, body interface{}) {
+	if err := DeleteWithBody(path, statusCode, body); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// DeleteWithError does a DELETE call and expects a certain response
+// with a JSON formatted error with the specified type.
+func DeleteWithError(path string, statusCode int, apiError api.APIError) error {
+	request, err := DefaultRequest(http.MethodDelete, path)
+	if err != nil {
+		return err
+	}
+	client, err := DefaultClient()
+	if err != nil {
+		return err
+	}
+	response, err := DoRequest(client, request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if err := VerifyStatusCode(response, statusCode); err != nil {
+		return err
+	}
+	if err := MatchHeader(response, "Content-Type", "application/json"); err != nil {
+		return err
+	}
+	raw, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return err
+	}
+	e := &api.Error{}
+	if err := json.Unmarshal(raw, e); err != nil {
+		return err
+	}
+	if e.Error != apiError {
+		return fmt.Errorf("expected error %s does not match %s", apiError, e.Error)
+	}
+	return nil
+}
+
+// MustDeleteWithError does a DELETE call and expects a certain response
+// with a JSON formatted error with the specified type.
+func MustDeleteWithError(t *testing.T, path string, statusCode int, apiError api.APIError) {
+	if err := DeleteWithError(path, statusCode, apiError); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // PollServiceInstanceQuery creates a query string for use with the service instance polling
 // API.  It is generated from the original service instance creation request and the response
 // containing the operation ID.
 func PollServiceInstanceQuery(req *api.CreateServiceInstanceRequest, rsp *api.CreateServiceInstanceResponse) string {
 	return fmt.Sprintf("service_id=%s&plan_id=%s&operation=%s", req.ServiceID, req.PlanID, rsp.Operation)
+}
+
+// DeleteServiceInstanceQuery creates a query string for use with the service instance polling
+// API.  It is generated from the original service instance creation request.
+func DeleteServiceInstanceQuery(req *api.CreateServiceInstanceRequest) string {
+	return fmt.Sprintf("service_id=%s&plan_id=%s&accepts_incomplete=true", req.ServiceID, req.PlanID)
 }

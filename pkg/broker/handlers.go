@@ -303,6 +303,15 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
+	if _, err := instanceRegistry.Get(registry.ServiceInstanceRegistryName(instanceID)); err != nil {
+		if k8s_errors.IsNotFound(err) {
+			util.JSONError(w, errors.NewResourceGoneError("service instance does not exist"))
+			return
+		}
+		util.JSONError(w, fmt.Errorf("failed to lookup resigstry instance: %v", err))
+		return
+	}
+
 	serviceID, err := util.GetSingleParameter(r, "service_id")
 	if err != nil {
 		util.JSONError(w, err)
@@ -311,15 +320,6 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	planID, err := util.GetSingleParameter(r, "plan_id")
 	if err != nil {
 		util.JSONError(w, err)
-		return
-	}
-
-	if _, err := instanceRegistry.Get(registry.ServiceInstanceRegistryName(instanceID)); err != nil {
-		if k8s_errors.IsNotFound(err) {
-			util.JSONError(w, errors.NewResourceGoneError("service instance does not exist"))
-			return
-		}
-		util.JSONError(w, fmt.Errorf("failed to lookup resigstry instance: %v", err))
 		return
 	}
 

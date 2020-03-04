@@ -256,3 +256,43 @@ func TestServiceInstancePollIllegalOperationID(t *testing.T) {
 	rsp.Operation = "illegal"
 	util.MustGetWithError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusBadRequest, api.ErrorQueryError)
 }
+
+// TestServiceInstanceDeleteNotAsynchronous tests that a service instance delete must
+// be an aysnchronous operation.
+func TestServiceInstanceDeleteNotAsynchronous(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	util.MustDeleteWithError(t, "/v2/service_instances/pinkiepie", http.StatusUnprocessableEntity, api.ErrorAsyncRequired)
+}
+
+// TestServiceInstanceDeleteIllegalInstance tests  service instance deletion when there
+// isn't a corresponding service instance.
+func TestServiceInstanceDeleteIllegalInstance(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	util.MustDeleteWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusGone, api.ErrorResourceGone)
+}
+
+// TestServiceInstanceDelete tests that service instance deletion works.
+func TestServiceInstanceDelete(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPutWithResponse(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted, rsp)
+
+	poll := &api.PollServiceInstanceResponse{}
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusOK, poll)
+
+	deleteRsp := &api.CreateServiceInstanceResponse{}
+	util.MustDeleteWithBody(t, "/v2/service_instances/pinkiepie?"+util.DeleteServiceInstanceQuery(req), http.StatusAccepted, deleteRsp)
+
+	poll = &api.PollServiceInstanceResponse{}
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, deleteRsp), http.StatusOK, poll)
+}
