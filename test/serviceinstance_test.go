@@ -211,3 +211,48 @@ func TestServiceInstanceCreateCompletedMismatched(t *testing.T) {
 	req.PlanID = fixtures.BasicConfigurationPlanID2
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusConflict)
 }
+
+// TestServiceInstancePollIllegalServiceID tests that the service ID supplied to a service
+// instance polling operation must match that of the instance's service ID.
+func TestServiceInstancePollIllegalServiceID(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPutWithResponse(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted, rsp)
+
+	req.ServiceID = "illegal"
+	util.MustGetWithError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusBadRequest, api.ErrorQueryError)
+}
+
+// TestServiceInstancePollIllegalServiceID tests that the plan ID supplied to a service
+// instance polling operation must match that of the instance's plan ID.
+func TestServiceInstancePollIllegalPlanID(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPutWithResponse(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted, rsp)
+
+	req.PlanID = "illegal"
+	util.MustGetWithError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusBadRequest, api.ErrorQueryError)
+}
+
+// TestServiceInstancePollIllegalServiceID tests that the operation ID supplied to a service
+// instance polling operation must match that of the current operation.
+func TestServiceInstancePollIllegalOperationID(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPutWithResponse(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted, rsp)
+
+	rsp.Operation = "illegal"
+	util.MustGetWithError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusBadRequest, api.ErrorQueryError)
+}

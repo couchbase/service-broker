@@ -376,15 +376,15 @@ func handleReadServiceInstanceStatus(w http.ResponseWriter, r *http.Request, par
 	}
 
 	if serviceID != op.ServiceID {
-		util.JSONError(w, errors.NewParameterError("provided service ID %s does not match %s", serviceID, op.ServiceID))
+		util.JSONError(w, errors.NewQueryError("provided service ID %s does not match %s", serviceID, op.ServiceID))
 		return
 	}
 	if planID != op.PlanID {
-		util.JSONError(w, errors.NewParameterError("provided plan ID %s does not match %s", planID, op.PlanID))
+		util.JSONError(w, errors.NewQueryError("provided plan ID %s does not match %s", planID, op.PlanID))
 		return
 	}
 	if operationID != op.ID {
-		util.JSONError(w, errors.NewParameterError("provided operation %s does not match operation %s", operationID, op.ID))
+		util.JSONError(w, errors.NewQueryError("provided operation %s does not match operation %s", operationID, op.ID))
 		return
 	}
 

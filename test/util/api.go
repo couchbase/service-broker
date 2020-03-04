@@ -216,6 +216,50 @@ func MustGet(t *testing.T, path string, statusCode int, body interface{}) {
 	}
 }
 
+// GetWithError does a GET API call and expects a certain response and JSON
+// formatted error with a specific error code.
+func GetWithError(path string, statusCode int, apiError api.APIError) error {
+	request, err := DefaultRequest(http.MethodGet, path)
+	if err != nil {
+		return err
+	}
+	client, err := DefaultClient()
+	if err != nil {
+		return err
+	}
+	response, err := DoRequest(client, request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if err := VerifyStatusCode(response, statusCode); err != nil {
+		return err
+	}
+	if err := MatchHeader(response, "Content-Type", "application/json"); err != nil {
+		return err
+	}
+	raw, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return err
+	}
+	e := &api.Error{}
+	if err := json.Unmarshal(raw, e); err != nil {
+		return err
+	}
+	if e.Error != apiError {
+		return fmt.Errorf("expected error %s does not match %s", apiError, e.Error)
+	}
+	return nil
+}
+
+// MustGetWithError does a GET API call and expects a certain response and JSON
+// formatted error with a specific error code.
+func MustGetWithError(t *testing.T, path string, statusCode int, apiError api.APIError) {
+	if err := GetWithError(path, statusCode, apiError); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // Put does a PUT API call and expects a certain response.
 func Put(path string, body interface{}, statusCode int) error {
 	raw, err := json.Marshal(body)
