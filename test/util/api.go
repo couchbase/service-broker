@@ -175,11 +175,20 @@ func MatchHeader(response *http.Response, name, value string) error {
 	return fmt.Errorf("expected header %s does not exist", name)
 }
 
-// Get does a GET API call and expects a certain response and to be able to
-// unmarshal the data into the provided structure.  All communication from the
-// broker should be in JSON, so encode this check.
-func Get(path string, statusCode int, body interface{}) error {
-	request, err := DefaultRequest(http.MethodGet, path)
+// basicOperation does a generic HTTP call with the given method and path.
+// Request and response paramters are serialized to/from JSON.  The response
+// status is checked and some basic sanity testing done on the payload.
+// The request and response parameters are optional and may be nil.
+func basicOperation(method, path string, statusCode int, req interface{}, resp interface{}) error {
+	var buffer io.Reader
+	if req != nil {
+		raw, err := json.Marshal(req)
+		if err != nil {
+			return err
+		}
+		buffer = bytes.NewBuffer(raw)
+	}
+	request, err := DefaultRequestWithBody(method, path, buffer)
 	if err != nil {
 		return err
 	}
@@ -195,55 +204,28 @@ func Get(path string, statusCode int, body interface{}) error {
 	if err := VerifyStatusCode(response, statusCode); err != nil {
 		return err
 	}
-	if err := MatchHeader(response, "Content-Type", "application/json"); err != nil {
-		return err
-	}
-	raw, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return err
-	}
-	if err := json.Unmarshal(raw, body); err != nil {
-		return err
+	if resp != nil {
+		if err := MatchHeader(response, "Content-Type", "application/json"); err != nil {
+			return err
+		}
+		raw, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return err
+		}
+		if err := json.Unmarshal(raw, resp); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-// MustGet does a GET API call and expects a certain response and to be able to
-// unmarshal the data into the provided structure.
-func MustGet(t *testing.T, path string, statusCode int, body interface{}) {
-	if err := Get(path, statusCode, body); err != nil {
-		t.Fatal(err)
-	}
-}
-
-// GetWithError does a GET API call and expects a certain response and JSON
-// formatted error with a specific error code.
-func GetWithError(path string, statusCode int, apiError api.APIError) error {
-	request, err := DefaultRequest(http.MethodGet, path)
-	if err != nil {
-		return err
-	}
-	client, err := DefaultClient()
-	if err != nil {
-		return err
-	}
-	response, err := DoRequest(client, request)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-	if err := VerifyStatusCode(response, statusCode); err != nil {
-		return err
-	}
-	if err := MatchHeader(response, "Content-Type", "application/json"); err != nil {
-		return err
-	}
-	raw, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return err
-	}
+// basicOperationAndError does a generic HTTP call with the given method and path.
+// Request parameteres are serialized to JSON.  The response is implicitly expected
+// to be a service broker error.  The response status and error code are tested for
+// expected correctness.
+func basicOperationAndError(method, path string, statusCode int, req interface{}, apiError api.APIError) error {
 	e := &api.Error{}
-	if err := json.Unmarshal(raw, e); err != nil {
+	if err := basicOperation(method, path, statusCode, req, e); err != nil {
 		return err
 	}
 	if e.Error != apiError {
@@ -252,246 +234,92 @@ func GetWithError(path string, statusCode int, apiError api.APIError) error {
 	return nil
 }
 
-// MustGetWithError does a GET API call and expects a certain response and JSON
-// formatted error with a specific error code.
-func MustGetWithError(t *testing.T, path string, statusCode int, apiError api.APIError) {
-	if err := GetWithError(path, statusCode, apiError); err != nil {
+// Get does a GET API call and expects a certain response.
+func Get(path string, statusCode int, response interface{}) error {
+	if err := basicOperation(http.MethodGet, path, statusCode, nil, response); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MustGet does a GET API call and expects a certain response.
+func MustGet(t *testing.T, path string, statusCode int, response interface{}) {
+	if err := Get(path, statusCode, response); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// GetAndError does a GET API call and expects a certain response with a valid JSON error.
+func GetAndError(path string, statusCode int, apiError api.APIError) error {
+	if err := basicOperationAndError(http.MethodGet, path, statusCode, nil, apiError); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MustGetAndError does a GET API call and expects a certain response with a valid JSON error.
+func MustGetAndError(t *testing.T, path string, statusCode int, apiError api.APIError) {
+	if err := GetAndError(path, statusCode, apiError); err != nil {
 		t.Fatal(err)
 	}
 }
 
 // Put does a PUT API call and expects a certain response.
-func Put(path string, body interface{}, statusCode int) error {
-	raw, err := json.Marshal(body)
-	if err != nil {
-		return err
-	}
-	buffer := bytes.NewBuffer(raw)
-	request, err := DefaultRequestWithBody(http.MethodPut, path, buffer)
-	if err != nil {
-		return err
-	}
-	client, err := DefaultClient()
-	if err != nil {
-		return err
-	}
-	response, err := DoRequest(client, request)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-	if err := VerifyStatusCode(response, statusCode); err != nil {
+func Put(path string, statusCode int, request, response interface{}) error {
+	if err := basicOperation(http.MethodPut, path, statusCode, request, response); err != nil {
 		return err
 	}
 	return nil
 }
 
 // MustPut does a PUT API call and expects a certain response.
-func MustPut(t *testing.T, path string, body interface{}, statusCode int) {
-	if err := Put(path, body, statusCode); err != nil {
+func MustPut(t *testing.T, path string, statusCode int, request, response interface{}) {
+	if err := Put(path, statusCode, request, response); err != nil {
 		t.Fatal(err)
 	}
 }
 
-// PutWithResponse does a PUT API call and expects a certain response.  It also
-// expects a JSON formatted response object.
-func PutWithResponse(path string, body interface{}, statusCode int, rsp interface{}) error {
-	raw, err := json.Marshal(body)
-	if err != nil {
-		return err
-	}
-	buffer := bytes.NewBuffer(raw)
-	request, err := DefaultRequestWithBody(http.MethodPut, path, buffer)
-	if err != nil {
-		return err
-	}
-	client, err := DefaultClient()
-	if err != nil {
-		return err
-	}
-	response, err := DoRequest(client, request)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-	if err := VerifyStatusCode(response, statusCode); err != nil {
-		return err
-	}
-	if err := MatchHeader(response, "Content-Type", "application/json"); err != nil {
-		return err
-	}
-	raw, err = ioutil.ReadAll(response.Body)
-	if err != nil {
-		return err
-	}
-	if err := json.Unmarshal(raw, rsp); err != nil {
+// PutAndError does a PUT API call and expects a certain response with a valid JSON error.
+func PutAndError(path string, statusCode int, request interface{}, apiError api.APIError) error {
+	if err := basicOperationAndError(http.MethodPut, path, statusCode, request, apiError); err != nil {
 		return err
 	}
 	return nil
 }
 
-// MustPutWithResponse does a PUT API call and expects a certain response.  It also
-// expects a JSON formatted response object.
-func MustPutWithResponse(t *testing.T, path string, body interface{}, statusCode int, rsp interface{}) {
-	if err := PutWithResponse(path, body, statusCode, rsp); err != nil {
+// MustPutAndError does a PUT API call and expects a certain response with a valid JSON error.
+func MustPutAndError(t *testing.T, path string, statusCode int, request interface{}, apiError api.APIError) {
+	if err := PutAndError(path, statusCode, request, apiError); err != nil {
 		t.Fatal(err)
 	}
 }
 
-// PutWithError does a PUT API call and expects a certain response.
-func PutWithError(path string, body interface{}, statusCode int, apiError api.APIError) error {
-	raw, err := json.Marshal(body)
-	if err != nil {
-		return err
-	}
-	buffer := bytes.NewBuffer(raw)
-	request, err := DefaultRequestWithBody(http.MethodPut, path, buffer)
-	if err != nil {
-		return err
-	}
-	client, err := DefaultClient()
-	if err != nil {
-		return err
-	}
-	response, err := DoRequest(client, request)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-	if err := VerifyStatusCode(response, statusCode); err != nil {
-		return err
-	}
-	if err := MatchHeader(response, "Content-Type", "application/json"); err != nil {
-		return err
-	}
-	if raw, err = ioutil.ReadAll(response.Body); err != nil {
-		return err
-	}
-	e := &api.Error{}
-	if err := json.Unmarshal(raw, e); err != nil {
-		return err
-	}
-	if e.Error != apiError {
-		return fmt.Errorf("expected error %s does not match %s", apiError, e.Error)
-	}
-	return nil
-}
-
-// MustPutWithError does a PUT API call and expects a certain response.
-func MustPutWithError(t *testing.T, path string, body interface{}, statusCode int, apiError api.APIError) {
-	if err := PutWithError(path, body, statusCode, apiError); err != nil {
-		t.Fatal(err)
-	}
-}
-
-// Delete does a DELETE call and expects a certain response.
-func Delete(path string, statusCode int) error {
-	request, err := DefaultRequest(http.MethodDelete, path)
-	if err != nil {
-		return err
-	}
-	client, err := DefaultClient()
-	if err != nil {
-		return err
-	}
-	response, err := DoRequest(client, request)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-	if err := VerifyStatusCode(response, statusCode); err != nil {
+// Delete does a DELETE API call and expects a certain response.
+func Delete(path string, statusCode int, response interface{}) error {
+	if err := basicOperation(http.MethodDelete, path, statusCode, nil, response); err != nil {
 		return err
 	}
 	return nil
 }
 
-// MustDelete does a DELETE call and expects a certain response.
-func MustDelete(t *testing.T, path string, statusCode int) {
-	if err := Delete(path, statusCode); err != nil {
+// MustDelete does a DELETE API call and expects a certain response.
+func MustDelete(t *testing.T, path string, statusCode int, response interface{}) {
+	if err := Delete(path, statusCode, response); err != nil {
 		t.Fatal(err)
 	}
 }
 
-// DeleteWithBody does a DELETE call and expects a certain response with a
-// JSON formatted body.
-func DeleteWithBody(path string, statusCode int, body interface{}) error {
-	request, err := DefaultRequest(http.MethodDelete, path)
-	if err != nil {
-		return err
-	}
-	client, err := DefaultClient()
-	if err != nil {
-		return err
-	}
-	response, err := DoRequest(client, request)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-	if err := VerifyStatusCode(response, statusCode); err != nil {
-		return err
-	}
-	if err := MatchHeader(response, "Content-Type", "application/json"); err != nil {
-		return err
-	}
-	raw, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return err
-	}
-	if err := json.Unmarshal(raw, body); err != nil {
+// DeleteAndError does a DELETE API call and expects a certain response with a valid JSON error.
+func DeleteAndError(path string, statusCode int, apiError api.APIError) error {
+	if err := basicOperationAndError(http.MethodDelete, path, statusCode, nil, apiError); err != nil {
 		return err
 	}
 	return nil
 }
 
-// MustDeleteWithBody does a DELETE call and expects a certain response with a
-// JSON formatted body.
-func MustDeleteWithBody(t *testing.T, path string, statusCode int, body interface{}) {
-	if err := DeleteWithBody(path, statusCode, body); err != nil {
-		t.Fatal(err)
-	}
-}
-
-// DeleteWithError does a DELETE call and expects a certain response
-// with a JSON formatted error with the specified type.
-func DeleteWithError(path string, statusCode int, apiError api.APIError) error {
-	request, err := DefaultRequest(http.MethodDelete, path)
-	if err != nil {
-		return err
-	}
-	client, err := DefaultClient()
-	if err != nil {
-		return err
-	}
-	response, err := DoRequest(client, request)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-	if err := VerifyStatusCode(response, statusCode); err != nil {
-		return err
-	}
-	if err := MatchHeader(response, "Content-Type", "application/json"); err != nil {
-		return err
-	}
-	raw, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return err
-	}
-	e := &api.Error{}
-	if err := json.Unmarshal(raw, e); err != nil {
-		return err
-	}
-	if e.Error != apiError {
-		return fmt.Errorf("expected error %s does not match %s", apiError, e.Error)
-	}
-	return nil
-}
-
-// MustDeleteWithError does a DELETE call and expects a certain response
-// with a JSON formatted error with the specified type.
-func MustDeleteWithError(t *testing.T, path string, statusCode int, apiError api.APIError) {
-	if err := DeleteWithError(path, statusCode, apiError); err != nil {
+// MustDeleteAndError does a DELETE API call and expects a certain response with a valid JSON error.
+func MustDeleteAndError(t *testing.T, path string, statusCode int, apiError api.APIError) {
+	if err := DeleteAndError(path, statusCode, apiError); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -18,7 +18,7 @@ func TestServiceInstanceCreateNotAynchronous(t *testing.T) {
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.EmptyConfiguration())
 
-	util.MustPutWithError(t, "/v2/service_instances/pinkiepie", ``, http.StatusUnprocessableEntity, api.ErrorAsyncRequired)
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie", http.StatusUnprocessableEntity, nil, api.ErrorAsyncRequired)
 }
 
 // TestServiceInstanceCreateIllegalBody tests that the service broker rejects service
@@ -28,7 +28,7 @@ func TestServiceInstanceCreateIllegalBody(t *testing.T) {
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.EmptyConfiguration())
 
-	util.MustPutWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", `illegal`, http.StatusBadRequest, api.ErrorParameterError)
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, `illegal`, api.ErrorParameterError)
 }
 
 // TestServiceInstanceCreateIllegalConfiguration tests that the service broker handles
@@ -40,7 +40,7 @@ func TestServiceInstanceCreateIllegalConfiguration(t *testing.T) {
 	util.MustReplaceBrokerConfig(t, clients, fixtures.EmptyConfiguration())
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPutWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusBadRequest, api.ErrorConfigurationError)
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorConfigurationError)
 }
 
 // TestServiceInstanceCreateIllegalQuery tests that the service broker rejects service
@@ -51,7 +51,7 @@ func TestServiceInstanceCreateIllegalQuery(t *testing.T) {
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPutWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true&%illegal", req, http.StatusBadRequest, api.ErrorQueryError)
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true&%illegal", http.StatusBadRequest, req, api.ErrorQueryError)
 }
 
 // TestServiceInstanceCreateInvalidService tests that the service broker handles
@@ -63,7 +63,7 @@ func TestServiceInstanceCreateInvalidService(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	req.ServiceID = "illegal"
-	util.MustPutWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusBadRequest, api.ErrorParameterError)
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorParameterError)
 }
 
 // TestServiceInstanceCreateInvalidPlan tests that the service broker handles
@@ -75,7 +75,7 @@ func TestServiceInstanceCreateInvalidPlan(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	req.PlanID = "illegal"
-	util.MustPutWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusBadRequest, api.ErrorParameterError)
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorParameterError)
 }
 
 // TestServiceInstanceCreate tests that the service broker accepts a minimal
@@ -86,7 +86,7 @@ func TestServiceInstanceCreate(t *testing.T) {
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, nil)
 }
 
 // TestServiceInstanceCreateWithSchema tests that the service broker accepts a
@@ -102,7 +102,7 @@ func TestServiceInstanceCreateWithSchema(t *testing.T) {
 	req.Parameters = &runtime.RawExtension{
 		Raw: []byte(`{"test":1}`),
 	}
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, nil)
 }
 
 // TestServiceInstanceCreateWithSchemaNoParameters tests that the service broker accepts a
@@ -115,7 +115,7 @@ func TestServiceInstanceCreateWithSchemaNoParameters(t *testing.T) {
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, nil)
 }
 
 // TestServiceInstanceCreateSchemaValidationFail tests that the service broker rejects
@@ -131,7 +131,7 @@ func TestServiceInstanceCreateSchemaValidationFail(t *testing.T) {
 	req.Parameters = &runtime.RawExtension{
 		Raw: []byte(`{"test":"string"}`),
 	}
-	util.MustPutWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusBadRequest, api.ErrorValidationError)
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorValidationError)
 }
 
 // TestServiceInstanceCreateWithRequiredSchemaNoParameters tests that the service broker
@@ -145,7 +145,7 @@ func TestServiceInstanceCreateWithRequiredSchemaNoParameters(t *testing.T) {
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPutWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusBadRequest, api.ErrorValidationError)
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorValidationError)
 }
 
 // TestServiceInstanceCreateInProgress tests the behaviour of multiple creation requests
@@ -157,8 +157,8 @@ func TestServiceInstanceCreateInProgress(t *testing.T) {
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, nil)
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, nil)
 }
 
 // TestServiceInstanceCreateInProgressMismatched tests the behaviour of multiple creation
@@ -170,9 +170,9 @@ func TestServiceInstanceCreateInProgressMismatched(t *testing.T) {
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, nil)
 	req.PlanID = fixtures.BasicConfigurationPlanID2
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusConflict)
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusConflict, req, nil)
 }
 
 // TestServiceInstanceCreateCompleted tests the behaviour of multiple creation requests
@@ -185,12 +185,12 @@ func TestServiceInstanceCreateCompleted(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	rsp := &api.CreateServiceInstanceResponse{}
-	util.MustPutWithResponse(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted, rsp)
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
 	poll := &api.PollServiceInstanceResponse{}
 	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusOK, poll)
 
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusOK)
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusOK, req, nil)
 }
 
 // TestServiceInstanceCreateCompletedMismatched tests the behaviour of multiple creation
@@ -203,13 +203,13 @@ func TestServiceInstanceCreateCompletedMismatched(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	rsp := &api.CreateServiceInstanceResponse{}
-	util.MustPutWithResponse(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted, rsp)
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
 	poll := &api.PollServiceInstanceResponse{}
 	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusOK, poll)
 
 	req.PlanID = fixtures.BasicConfigurationPlanID2
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusConflict)
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusConflict, req, api.ErrorResourceConflict)
 }
 
 // TestServiceInstancePollIllegalServiceID tests that the service ID supplied to a service
@@ -221,10 +221,10 @@ func TestServiceInstancePollIllegalServiceID(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	rsp := &api.CreateServiceInstanceResponse{}
-	util.MustPutWithResponse(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted, rsp)
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
 	req.ServiceID = "illegal"
-	util.MustGetWithError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusBadRequest, api.ErrorQueryError)
+	util.MustGetAndError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusBadRequest, api.ErrorQueryError)
 }
 
 // TestServiceInstancePollIllegalServiceID tests that the plan ID supplied to a service
@@ -236,10 +236,10 @@ func TestServiceInstancePollIllegalPlanID(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	rsp := &api.CreateServiceInstanceResponse{}
-	util.MustPutWithResponse(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted, rsp)
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
 	req.PlanID = "illegal"
-	util.MustGetWithError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusBadRequest, api.ErrorQueryError)
+	util.MustGetAndError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusBadRequest, api.ErrorQueryError)
 }
 
 // TestServiceInstancePollIllegalServiceID tests that the operation ID supplied to a service
@@ -251,10 +251,10 @@ func TestServiceInstancePollIllegalOperationID(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	rsp := &api.CreateServiceInstanceResponse{}
-	util.MustPutWithResponse(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted, rsp)
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
 	rsp.Operation = "illegal"
-	util.MustGetWithError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusBadRequest, api.ErrorQueryError)
+	util.MustGetAndError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusBadRequest, api.ErrorQueryError)
 }
 
 // TestServiceInstanceDeleteNotAsynchronous tests that a service instance delete must
@@ -264,7 +264,7 @@ func TestServiceInstanceDeleteNotAsynchronous(t *testing.T) {
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
-	util.MustDeleteWithError(t, "/v2/service_instances/pinkiepie", http.StatusUnprocessableEntity, api.ErrorAsyncRequired)
+	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie", http.StatusUnprocessableEntity, api.ErrorAsyncRequired)
 }
 
 // TestServiceInstanceDeleteIllegalInstance tests  service instance deletion when there
@@ -274,7 +274,7 @@ func TestServiceInstanceDeleteIllegalInstance(t *testing.T) {
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
-	util.MustDeleteWithError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusGone, api.ErrorResourceGone)
+	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusGone, api.ErrorResourceGone)
 }
 
 // TestServiceInstanceDelete tests that service instance deletion works.
@@ -285,13 +285,13 @@ func TestServiceInstanceDelete(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	rsp := &api.CreateServiceInstanceResponse{}
-	util.MustPutWithResponse(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted, rsp)
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
 	poll := &api.PollServiceInstanceResponse{}
 	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusOK, poll)
 
 	deleteRsp := &api.CreateServiceInstanceResponse{}
-	util.MustDeleteWithBody(t, "/v2/service_instances/pinkiepie?"+util.DeleteServiceInstanceQuery(req), http.StatusAccepted, deleteRsp)
+	util.MustDelete(t, "/v2/service_instances/pinkiepie?"+util.DeleteServiceInstanceQuery(req), http.StatusAccepted, deleteRsp)
 
 	poll = &api.PollServiceInstanceResponse{}
 	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, deleteRsp), http.StatusOK, poll)
