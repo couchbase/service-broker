@@ -16,7 +16,7 @@ import (
 
 func main() {
 	// Start the server.
-	glog.Infof("%s %s", version.Application, version.Version)
+	glog.Infof("%s v%s (git commit %s)", version.Application, version.Version, version.GitCommit)
 
 	// Runtime configuration.
 	var tokenPath string
