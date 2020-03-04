@@ -188,7 +188,7 @@ func TestServiceInstanceCreateCompleted(t *testing.T) {
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
 	poll := &api.PollServiceInstanceResponse{}
-	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusOK, poll)
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, poll)
 
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusOK, req, nil)
 }
@@ -206,7 +206,7 @@ func TestServiceInstanceCreateCompletedMismatched(t *testing.T) {
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
 	poll := &api.PollServiceInstanceResponse{}
-	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusOK, poll)
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, poll)
 
 	req.PlanID = fixtures.BasicConfigurationPlanID2
 	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusConflict, req, api.ErrorResourceConflict)
@@ -224,7 +224,7 @@ func TestServiceInstancePollIllegalServiceID(t *testing.T) {
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
 	req.ServiceID = "illegal"
-	util.MustGetAndError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusBadRequest, api.ErrorQueryError)
+	util.MustGetAndError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusBadRequest, api.ErrorQueryError)
 }
 
 // TestServiceInstancePollIllegalServiceID tests that the plan ID supplied to a service
@@ -239,7 +239,7 @@ func TestServiceInstancePollIllegalPlanID(t *testing.T) {
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
 	req.PlanID = "illegal"
-	util.MustGetAndError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusBadRequest, api.ErrorQueryError)
+	util.MustGetAndError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusBadRequest, api.ErrorQueryError)
 }
 
 // TestServiceInstancePollIllegalServiceID tests that the operation ID supplied to a service
@@ -254,7 +254,7 @@ func TestServiceInstancePollIllegalOperationID(t *testing.T) {
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
 	rsp.Operation = "illegal"
-	util.MustGetAndError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusBadRequest, api.ErrorQueryError)
+	util.MustGetAndError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusBadRequest, api.ErrorQueryError)
 }
 
 // TestServiceInstanceDeleteNotAsynchronous tests that a service instance delete must
@@ -288,13 +288,13 @@ func TestServiceInstanceDelete(t *testing.T) {
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
 	poll := &api.PollServiceInstanceResponse{}
-	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusOK, poll)
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, poll)
 
 	deleteRsp := &api.CreateServiceInstanceResponse{}
-	util.MustDelete(t, "/v2/service_instances/pinkiepie?"+util.DeleteServiceInstanceQuery(req), http.StatusAccepted, deleteRsp)
+	util.MustDelete(t, "/v2/service_instances/pinkiepie?"+util.DeleteServiceInstanceQuery(req).Encode(), http.StatusAccepted, deleteRsp)
 
 	poll = &api.PollServiceInstanceResponse{}
-	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, deleteRsp), http.StatusOK, poll)
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, deleteRsp).Encode(), http.StatusOK, poll)
 }
 
 // TestServiceInstanceDeleteServiceIDRequired tests delete requests without service_id are
@@ -309,10 +309,11 @@ func TestServiceInstanceDeleteServiceIDRequired(t *testing.T) {
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
 	poll := &api.PollServiceInstanceResponse{}
-	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusOK, poll)
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, poll)
 
-	query := "accepts_incomplete=true&plan_id=" + req.PlanID
-	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?"+query, http.StatusBadRequest, api.ErrorQueryError)
+	query := util.DeleteServiceInstanceQuery(req)
+	query.Del("service_id")
+	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?"+query.Encode(), http.StatusBadRequest, api.ErrorQueryError)
 }
 
 // TestServiceInstanceDeleteServiceIDInvalid tests delete requests with the wrong service_id are
@@ -327,10 +328,11 @@ func TestServiceInstanceDeleteServiceIDInvalid(t *testing.T) {
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
 	poll := &api.PollServiceInstanceResponse{}
-	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusOK, poll)
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, poll)
 
-	query := "accepts_incomplete=true&service_id=illegal&plan_id=" + req.PlanID
-	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?"+query, http.StatusBadRequest, api.ErrorQueryError)
+	query := util.DeleteServiceInstanceQuery(req)
+	query.Set("service_id", "illegal")
+	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?"+query.Encode(), http.StatusBadRequest, api.ErrorQueryError)
 }
 
 // TestServiceInstanceDeletePlanIDRequired tests delete requests without plan_id are
@@ -345,10 +347,11 @@ func TestServiceInstanceDeletePlanIDRequired(t *testing.T) {
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
 	poll := &api.PollServiceInstanceResponse{}
-	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusOK, poll)
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, poll)
 
-	query := "accepts_incomplete=true&service_id=" + req.ServiceID
-	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?"+query, http.StatusBadRequest, api.ErrorQueryError)
+	query := util.DeleteServiceInstanceQuery(req)
+	query.Del("plan_id")
+	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?"+query.Encode(), http.StatusBadRequest, api.ErrorQueryError)
 }
 
 // TestServiceInstanceDeletePlanIDInvalid tests delete requests with the wrong plan_id are
@@ -363,8 +366,24 @@ func TestServiceInstanceDeletePlanIDInvalid(t *testing.T) {
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
 	poll := &api.PollServiceInstanceResponse{}
-	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusOK, poll)
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, poll)
 
-	query := "accepts_incomplete=true&plan_id=illegal&service_id=" + req.ServiceID
-	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?"+query, http.StatusBadRequest, api.ErrorQueryError)
+	query := util.DeleteServiceInstanceQuery(req)
+	query.Set("plan_id", "illegal")
+	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?"+query.Encode(), http.StatusBadRequest, api.ErrorQueryError)
+}
+
+func TestServiceInstanceRead(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
+
+	poll := &api.PollServiceInstanceResponse{}
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, poll)
+
+	util.MustGet(t, "/v2/service_instances/pinkiepie?"+util.ReadServiceInstanceQuery(req).Encode(), http.StatusOK, nil)
 }

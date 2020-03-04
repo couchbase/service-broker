@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -327,12 +328,29 @@ func MustDeleteAndError(t *testing.T, path string, statusCode int, apiError api.
 // PollServiceInstanceQuery creates a query string for use with the service instance polling
 // API.  It is generated from the original service instance creation request and the response
 // containing the operation ID.
-func PollServiceInstanceQuery(req *api.CreateServiceInstanceRequest, rsp *api.CreateServiceInstanceResponse) string {
-	return fmt.Sprintf("service_id=%s&plan_id=%s&operation=%s", req.ServiceID, req.PlanID, rsp.Operation)
+func PollServiceInstanceQuery(req *api.CreateServiceInstanceRequest, rsp *api.CreateServiceInstanceResponse) url.Values {
+	values := url.Values{}
+	values.Add("service_id", req.ServiceID)
+	values.Add("plan_id", req.PlanID)
+	values.Add("operation", rsp.Operation)
+	return values
 }
 
 // DeleteServiceInstanceQuery creates a query string for use with the service instance polling
 // API.  It is generated from the original service instance creation request.
-func DeleteServiceInstanceQuery(req *api.CreateServiceInstanceRequest) string {
-	return fmt.Sprintf("service_id=%s&plan_id=%s&accepts_incomplete=true", req.ServiceID, req.PlanID)
+func DeleteServiceInstanceQuery(req *api.CreateServiceInstanceRequest) url.Values {
+	values := url.Values{}
+	values.Add("accepts_incomplete", "true")
+	values.Add("service_id", req.ServiceID)
+	values.Add("plan_id", req.PlanID)
+	return values
+}
+
+// ReadServiceInstanceQuery creates a query string for use with the service instance get
+// API.  It is generated from the original service instance creation request.
+func ReadServiceInstanceQuery(req *api.CreateServiceInstanceRequest) url.Values {
+	values := url.Values{}
+	values.Add("service_id", req.ServiceID)
+	values.Add("plan_id", req.PlanID)
+	return values
 }

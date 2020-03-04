@@ -174,17 +174,53 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 
+	// Check if the instance exists.
 	registryEntry, err := instanceRegistry.Get(registry.ServiceInstanceRegistryName(instanceID))
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		util.JSONErrorUsable(w, fmt.Errorf("failed to lookup registry entry: %v", err))
+		return
+	}
+
+	// Not found, return a 404
+	if registryEntry == nil {
+		util.JSONError(w, errors.NewResourceNotFoundError("service instance does not exist"))
+		return
+	}
+
+	serviceID, err := util.GetSingleParameter(r, "service_id")
 	if err != nil {
-		util.JSONError(w, fmt.Errorf("failed to lookup registry entry: %v", err))
+		util.JSONError(w, err)
+		return
+	}
+	planID, err := util.GetSingleParameter(r, "plan_id")
+	if err != nil {
+		util.JSONError(w, err)
+		return
+	}
+
+	serviceInstanceServiceID, err := registryEntry.Get(registry.ServiceOfferingKey)
+	if err != nil {
+		util.JSONError(w, err)
+		return
+	}
+	if serviceID != serviceInstanceServiceID {
+		util.JSONError(w, errors.NewQueryError("specified service ID %s does not match %s", serviceID, serviceInstanceServiceID))
+		return
+	}
+	serviceInstancePlanID, err := registryEntry.Get(registry.ServicePlanKey)
+	if err != nil {
+		util.JSONError(w, err)
+		return
+	}
+	if planID != serviceInstancePlanID {
+		util.JSONError(w, errors.NewQueryError("specified plan ID %s does not match %s", planID, serviceInstancePlanID))
 		return
 	}
 
 	// If the instance does not exist or an operation is still in progress return
 	// a 404.
-	_, ok := operation.Get(instanceID)
-	if k8s_errors.IsNotFound(err) || ok {
-		util.JSONError(w, fmt.Errorf("failed to lookup registry entry: %v", err))
+	if _, ok := operation.Get(instanceID); ok {
+		util.JSONError(w, errors.NewParameterError("operation in progress"))
 		return
 	}
 
@@ -202,8 +238,8 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 
 	dashboardURL, _ := registryEntry.Get(registry.RegistryKeyDashboardURL)
 	response := &api.GetServiceInstanceResponse{
-		ServiceID:    request.ServiceID,
-		PlanID:       request.PlanID,
+		ServiceID:    serviceInstanceServiceID,
+		PlanID:       serviceInstancePlanID,
 		DashboardURL: dashboardURL,
 		Parameters:   request.Parameters,
 	}
