@@ -188,7 +188,7 @@ func (handler *openServiceBrokerHandler) ServeHTTP(w http.ResponseWriter, r *htt
 
 	// Print out request logging information.
 	// DO NOT print out headers at info level as that will leak credentials into the log stream.
-	glog.Infof(`HTTP req: "%s %s %s" %s `, r.Method, r.URL.Path, r.Proto, r.RemoteAddr)
+	glog.Infof(`HTTP req: "%s %v %s" %s `, r.Method, r.URL, r.Proto, r.RemoteAddr)
 	for name, values := range r.Header {
 		for _, value := range values {
 			glog.V(1).Infof(`HTTP hdr: "%s: %s"`, name, value)
