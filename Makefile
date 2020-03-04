@@ -36,7 +36,7 @@ $(CRDGEN_FILE): $(APISRC)
 	go run sigs.k8s.io/controller-tools/cmd/controller-gen crd paths=./pkg/apis/... output:dir=./example
 
 container: build
-	docker build -f Dockerfile -t couchbase/service-broker:0.0.0 .
+	docker build -f Dockerfile -t couchbase/service-broker:$(VERSION) .
 
 test: ${GENAPI}
 	go vet ./...
