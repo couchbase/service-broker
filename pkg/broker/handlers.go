@@ -303,7 +303,8 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	if _, err := instanceRegistry.Get(registry.ServiceInstanceRegistryName(instanceID)); err != nil {
+	registryEntry, err := instanceRegistry.Get(registry.ServiceInstanceRegistryName(instanceID))
+	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			util.JSONError(w, errors.NewResourceGoneError("service instance does not exist"))
 			return
@@ -320,6 +321,25 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	planID, err := util.GetSingleParameter(r, "plan_id")
 	if err != nil {
 		util.JSONError(w, err)
+		return
+	}
+
+	serviceInstanceServiceID, err := registryEntry.Get(registry.ServiceOfferingKey)
+	if err != nil {
+		util.JSONError(w, err)
+		return
+	}
+	if serviceID != serviceInstanceServiceID {
+		util.JSONError(w, errors.NewQueryError("specified service ID %s does not match %s", serviceID, serviceInstanceServiceID))
+		return
+	}
+	serviceInstancePlanID, err := registryEntry.Get(registry.ServicePlanKey)
+	if err != nil {
+		util.JSONError(w, err)
+		return
+	}
+	if planID != serviceInstancePlanID {
+		util.JSONError(w, errors.NewQueryError("specified plan ID %s does not match %s", planID, serviceInstancePlanID))
 		return
 	}
 

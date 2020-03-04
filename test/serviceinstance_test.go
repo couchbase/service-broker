@@ -296,3 +296,75 @@ func TestServiceInstanceDelete(t *testing.T) {
 	poll = &api.PollServiceInstanceResponse{}
 	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, deleteRsp), http.StatusOK, poll)
 }
+
+// TestServiceInstanceDeleteServiceIDRequired tests delete requests without service_id are
+// rejected.
+func TestServiceInstanceDeleteServiceIDRequired(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
+
+	poll := &api.PollServiceInstanceResponse{}
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusOK, poll)
+
+	query := "accepts_incomplete=true&plan_id=" + req.PlanID
+	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?"+query, http.StatusBadRequest, api.ErrorQueryError)
+}
+
+// TestServiceInstanceDeleteServiceIDInvalid tests delete requests with the wrong service_id are
+// rejected.
+func TestServiceInstanceDeleteServiceIDInvalid(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
+
+	poll := &api.PollServiceInstanceResponse{}
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusOK, poll)
+
+	query := "accepts_incomplete=true&service_id=illegal&plan_id=" + req.PlanID
+	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?"+query, http.StatusBadRequest, api.ErrorQueryError)
+}
+
+// TestServiceInstanceDeletePlanIDRequired tests delete requests without plan_id are
+// rejected.
+func TestServiceInstanceDeletePlanIDRequired(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
+
+	poll := &api.PollServiceInstanceResponse{}
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusOK, poll)
+
+	query := "accepts_incomplete=true&service_id=" + req.ServiceID
+	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?"+query, http.StatusBadRequest, api.ErrorQueryError)
+}
+
+// TestServiceInstanceDeletePlanIDInvalid tests delete requests with the wrong plan_id are
+// rejected.
+func TestServiceInstanceDeletePlanIDInvalid(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
+
+	poll := &api.PollServiceInstanceResponse{}
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusOK, poll)
+
+	query := "accepts_incomplete=true&plan_id=illegal&service_id=" + req.ServiceID
+	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?"+query, http.StatusBadRequest, api.ErrorQueryError)
+}
