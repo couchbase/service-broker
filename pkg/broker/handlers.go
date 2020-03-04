@@ -42,7 +42,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 	// Parse the creation request.
 	request := &api.CreateServiceInstanceRequest{}
-	if err := util.JSONRequest(w, r, request); err != nil {
+	if err := util.JSONRequest(r, request); err != nil {
 		util.JSONError(w, err)
 		return
 	}
@@ -150,7 +150,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	// Start the provisioning process in the background.
-	op, err := operation.New(operation.OperationKindServiceInstanceCreate, instanceID)
+	op, err := operation.New(operation.OperationKindServiceInstanceCreate, instanceID, request.ServiceID, request.PlanID)
 	if err != nil {
 		util.JSONError(w, err)
 		return
@@ -246,7 +246,7 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 	// Parse the update request.
 	request := &api.UpdateServiceInstanceRequest{}
-	if err := util.JSONRequest(w, r, request); err != nil {
+	if err := util.JSONRequest(r, request); err != nil {
 		util.JSONError(w, err)
 		return
 	}
@@ -272,7 +272,7 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	// Start the update operation in the background.
-	op, err := operation.New(operation.OperationKindServiceInstanceUpdate, instanceID)
+	op, err := operation.New(operation.OperationKindServiceInstanceUpdate, instanceID, request.ServiceID, request.PlanID)
 	if err != nil {
 		util.JSONError(w, err)
 		return
@@ -303,6 +303,17 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
+	serviceID, err := util.GetSingleParameter(r, "service_id")
+	if err != nil {
+		util.JSONError(w, err)
+		return
+	}
+	planID, err := util.GetSingleParameter(r, "plan_id")
+	if err != nil {
+		util.JSONError(w, err)
+		return
+	}
+
 	if _, err := instanceRegistry.Get(registry.ServiceInstanceRegistryName(instanceID)); err != nil {
 		if k8s_errors.IsNotFound(err) {
 			util.JSONError(w, errors.NewResourceGoneError("service instance does not exist"))
@@ -315,7 +326,7 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	deleter := provisioners.NewServiceInstanceDeleter(instanceRegistry, instanceID)
 
 	// Start the delete operation in the background.
-	op, err := operation.New(operation.OperationKindServiceInstanceDelete, instanceID)
+	op, err := operation.New(operation.OperationKindServiceInstanceDelete, instanceID, serviceID, planID)
 	if err != nil {
 		util.JSONError(w, err)
 		return
@@ -336,8 +347,6 @@ func handleReadServiceInstanceStatus(w http.ResponseWriter, r *http.Request, par
 		return
 	}
 
-	// TODO: Check all parameters
-
 	op, ok := operation.Get(instanceID)
 	if !ok {
 		// While we should return an error here, the service catalog doesn't like getting
@@ -346,6 +355,36 @@ func handleReadServiceInstanceStatus(w http.ResponseWriter, r *http.Request, par
 			State: api.PollStateSucceeded,
 		}
 		util.JSONResponse(w, http.StatusOK, response)
+		return
+	}
+
+	// TODO: service and plan IDs are optional
+	serviceID, err := util.GetSingleParameter(r, "service_id")
+	if err != nil {
+		util.JSONError(w, err)
+		return
+	}
+	planID, err := util.GetSingleParameter(r, "plan_id")
+	if err != nil {
+		util.JSONError(w, err)
+		return
+	}
+	operationID, err := util.GetSingleParameter(r, "operation")
+	if err != nil {
+		util.JSONError(w, err)
+		return
+	}
+
+	if serviceID != op.ServiceID {
+		util.JSONError(w, errors.NewParameterError("provided service ID %s does not match %s", serviceID, op.ServiceID))
+		return
+	}
+	if planID != op.PlanID {
+		util.JSONError(w, errors.NewParameterError("provided plan ID %s does not match %s", planID, op.PlanID))
+		return
+	}
+	if operationID != op.ID {
+		util.JSONError(w, errors.NewParameterError("provided operation %s does not match operation %s", operationID, op.ID))
 		return
 	}
 
@@ -397,7 +436,7 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 
 	// Parse and validate the request.
 	request := &api.CreateServiceBindingRequest{}
-	if err := util.JSONRequest(w, r, request); err != nil {
+	if err := util.JSONRequest(r, request); err != nil {
 		util.JSONError(w, err)
 		return
 	}
@@ -432,7 +471,7 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 	creator := provisioners.NewServiceBindingCreator(instanceRegistry, instanceID, bindingID)
 
 	// Start the provisioning process in the background.
-	op, err := operation.New(operation.OperationKindServiceInstanceCreate, instanceID)
+	op, err := operation.New(operation.OperationKindServiceInstanceCreate, instanceID, request.ServiceID, request.PlanID)
 	if err != nil {
 		util.JSONError(w, err)
 		return

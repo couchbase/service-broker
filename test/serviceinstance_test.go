@@ -184,10 +184,11 @@ func TestServiceInstanceCreateCompleted(t *testing.T) {
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPutWithResponse(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted, rsp)
 
 	poll := &api.PollServiceInstanceResponse{}
-	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation", http.StatusOK, poll)
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusOK, poll)
 
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusOK)
 }
@@ -201,10 +202,11 @@ func TestServiceInstanceCreateCompletedMismatched(t *testing.T) {
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted)
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPutWithResponse(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusAccepted, rsp)
 
 	poll := &api.PollServiceInstanceResponse{}
-	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation", http.StatusOK, &poll)
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp), http.StatusOK, poll)
 
 	req.PlanID = fixtures.BasicConfigurationPlanID2
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", req, http.StatusConflict)

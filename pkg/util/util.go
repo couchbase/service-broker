@@ -26,7 +26,7 @@ func HTTPResponse(w http.ResponseWriter, status int) {
 
 // JSONRequest reads the JSON body into the give structure and raises the
 // appropriate errors on error.
-func JSONRequest(w http.ResponseWriter, r *http.Request, data interface{}) error {
+func JSONRequest(r *http.Request, data interface{}) error {
 	// Parse the creation request.
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -106,9 +106,27 @@ func JSONErrorUsable(w http.ResponseWriter, err error) {
 	JSONResponse(w, status, e)
 }
 
+// GetSingleParameter gets a named parameter from the request URL.  Returns an
+// error if it doesn't exist or there is any abiguity.
+func GetSingleParameter(r *http.Request, name string) (string, error) {
+	query, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
+		return "", errors.NewQueryError("malformed query data: %v", err)
+	}
+	values, ok := query[name]
+	if !ok {
+		return "", errors.NewQueryError("query parameter %s not found", name)
+	}
+	if len(values) != 1 {
+		return "", errors.NewQueryError("query parameter %s not unique", name)
+	}
+	return values[0], nil
+}
+
 // AsyncRequired is called when the handler only supports async requests.
+// Don't use GetSingleParameter as we need to selectively return the correct
+// status codes.
 func AsyncRequired(r *http.Request) error {
-	// Parse any query parameters.
 	query, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
 		return errors.NewQueryError("malformed query data: %v", err)

@@ -28,6 +28,12 @@ type Operation struct {
 	// ID is a unique identifier for the operation.
 	ID string
 
+	// ServiceID is the identity of the service related to the operation.
+	ServiceID string
+
+	// PlanID is the identity of the plan related to the operation.
+	PlanID string
+
 	// Status is used to asynchronously poll for completion and read
 	// the operation's error status.
 	Status chan error
@@ -49,11 +55,13 @@ func Delete(instanceID string) {
 }
 
 // New creates a new aysnchronous operation for an instance ID.
-func New(kind OperationKind, instanceID string) (*Operation, error) {
+func New(kind OperationKind, instanceID, serviceID, planID string) (*Operation, error) {
 	operation := &Operation{
-		Kind:   kind,
-		ID:     uuid.New().String(),
-		Status: make(chan error),
+		Kind:      kind,
+		ID:        uuid.New().String(),
+		ServiceID: serviceID,
+		PlanID:    planID,
+		Status:    make(chan error),
 	}
 	if _, ok := operations[instanceID]; ok {
 		return nil, fmt.Errorf("operation already exists for instance")

@@ -249,6 +249,51 @@ func MustPut(t *testing.T, path string, body interface{}, statusCode int) {
 	}
 }
 
+// PutWithResponse does a PUT API call and expects a certain response.  It also
+// expects a JSON formatted response object.
+func PutWithResponse(path string, body interface{}, statusCode int, rsp interface{}) error {
+	raw, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	buffer := bytes.NewBuffer(raw)
+	request, err := DefaultRequestWithBody(http.MethodPut, path, buffer)
+	if err != nil {
+		return err
+	}
+	client, err := DefaultClient()
+	if err != nil {
+		return err
+	}
+	response, err := DoRequest(client, request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if err := VerifyStatusCode(response, statusCode); err != nil {
+		return err
+	}
+	if err := MatchHeader(response, "Content-Type", "application/json"); err != nil {
+		return err
+	}
+	raw, err = ioutil.ReadAll(response.Body)
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(raw, rsp); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MustPutWithResponse does a PUT API call and expects a certain response.  It also
+// expects a JSON formatted response object.
+func MustPutWithResponse(t *testing.T, path string, body interface{}, statusCode int, rsp interface{}) {
+	if err := PutWithResponse(path, body, statusCode, rsp); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // PutWithError does a PUT API call and expects a certain response.
 func PutWithError(path string, body interface{}, statusCode int, apiError api.APIError) error {
 	raw, err := json.Marshal(body)
@@ -293,4 +338,11 @@ func MustPutWithError(t *testing.T, path string, body interface{}, statusCode in
 	if err := PutWithError(path, body, statusCode, apiError); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// PollServiceInstanceQuery creates a query string for use with the service instance polling
+// API.  It is generated from the original service instance creation request and the response
+// containing the operation ID.
+func PollServiceInstanceQuery(req *api.CreateServiceInstanceRequest, rsp *api.CreateServiceInstanceResponse) string {
+	return fmt.Sprintf("service_id=%s&plan_id=%s&operation=%s", req.ServiceID, req.PlanID, rsp.Operation)
 }
