@@ -12,8 +12,15 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/couchbase/service-broker/pkg/api"
+)
+
+const (
+	// pollTimeout is how long to poll for provisioning completion
+	// before giving up.
+	pollTimeout = 30 * time.Second
 )
 
 // MustBasicRequest creates a HTTP request object for the requested method
@@ -392,4 +399,34 @@ func ReadServiceInstanceQuery(req *api.CreateServiceInstanceRequest) url.Values 
 	values.Add("plan_id", req.PlanID)
 
 	return values
+}
+
+// MustCreateServiceInstance wraps up service instance creation.
+func MustCreateServiceInstance(t *testing.T, name string, req *api.CreateServiceInstanceRequest) *api.CreateServiceInstanceResponse {
+	rsp := &api.CreateServiceInstanceResponse{}
+	MustPut(t, "/v2/service_instances/"+name+"?accepts_incomplete=true", http.StatusAccepted, req, rsp)
+
+	// All create operations are asynchronous and must have an operation string.
+	Assert(t, rsp.Operation != "")
+
+	return rsp
+}
+
+// MustPollServiceInstanceForCompletion wraps up service instance poll.
+func MustPollServiceInstanceForCompletion(t *testing.T, name string, rsp *api.CreateServiceInstanceResponse) {
+	callback := func() bool {
+		poll := &api.PollServiceInstanceResponse{}
+		MustGet(t, "/v2/service_instances/"+name+"/last_operation?operation="+rsp.Operation, http.StatusOK, poll)
+
+		Assert(t, poll.State != api.PollStateFailed)
+
+		return poll.State == api.PollStateSucceeded
+	}
+	MustWaitFor(t, callback, pollTimeout)
+}
+
+// MustCreateServiceInstanceSuccessfully wraps up service instance creation and polling.
+func MustCreateServiceInstanceSuccessfully(t *testing.T, name string, req *api.CreateServiceInstanceRequest) {
+	rsp := MustCreateServiceInstance(t, name, req)
+	MustPollServiceInstanceForCompletion(t, name, rsp)
 }

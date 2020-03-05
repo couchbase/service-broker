@@ -8,6 +8,9 @@ import (
 )
 
 const (
+	// ServiceInstanceName is a name to use for a service instance.
+	ServiceInstanceName = "pinkiepie"
+
 	// IllegalID is an illegal ID and must not be used as a service or plan ID.
 	IllegalID = "illegal"
 
