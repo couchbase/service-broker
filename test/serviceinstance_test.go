@@ -175,10 +175,9 @@ func TestServiceInstanceCreateInProgressMismatched(t *testing.T) {
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusConflict, req, nil)
 }
 
-// TestServiceInstanceCreateCompleted tests the behaviour of multiple creation requests
-// for the same service instance with the same request twice, after the operation has
-// completed e.g. been acknowledged, should return a 200.
-func TestServiceInstanceCreateCompleted(t *testing.T) {
+// TestServiceInstancePoll tests polling a completed service instance creation
+// is ok
+func TestServiceInstancePoll(t *testing.T) {
 	defer mustReset(t)
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
@@ -187,16 +186,12 @@ func TestServiceInstanceCreateCompleted(t *testing.T) {
 	rsp := &api.CreateServiceInstanceResponse{}
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
-	poll := &api.PollServiceInstanceResponse{}
-	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, poll)
-
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusOK, req, nil)
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, nil)
 }
 
-// TestServiceInstanceCreateCompletedMismatched tests the behaviour of multiple creation
-// requests for the same service instance with different request parameters, before the
-// operation has completed e.g. been acknowledged, should return a 409.
-func TestServiceInstanceCreateCompletedMismatched(t *testing.T) {
+// TestServiceInstancePollServiceIDOptional tests that the service ID supplied to a service
+// instance polling operation is optional.
+func TestServiceInstancePollServiceIDOptional(t *testing.T) {
 	defer mustReset(t)
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
@@ -205,11 +200,25 @@ func TestServiceInstanceCreateCompletedMismatched(t *testing.T) {
 	rsp := &api.CreateServiceInstanceResponse{}
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
-	poll := &api.PollServiceInstanceResponse{}
-	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, poll)
+	query := util.PollServiceInstanceQuery(req, rsp)
+	query.Del("service_id")
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+query.Encode(), http.StatusOK, nil)
+}
 
-	req.PlanID = fixtures.BasicConfigurationPlanID2
-	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusConflict, req, api.ErrorResourceConflict)
+// TestServiceInstancePollPlanIDOptional tests that the plan ID supplied to a service
+// instance polling operation is optional.
+func TestServiceInstancePollPlanIDOptional(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
+
+	query := util.PollServiceInstanceQuery(req, rsp)
+	query.Del("plan_id")
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+query.Encode(), http.StatusOK, nil)
 }
 
 // TestServiceInstancePollIllegalServiceID tests that the service ID supplied to a service
@@ -255,6 +264,43 @@ func TestServiceInstancePollIllegalOperationID(t *testing.T) {
 
 	rsp.Operation = "illegal"
 	util.MustGetAndError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusBadRequest, api.ErrorQueryError)
+}
+
+// TestServiceInstanceCreateCompleted tests the behaviour of multiple creation requests
+// for the same service instance with the same request twice, after the operation has
+// completed e.g. been acknowledged, should return a 200.
+func TestServiceInstanceCreateCompleted(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
+
+	poll := &api.PollServiceInstanceResponse{}
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, poll)
+
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusOK, req, nil)
+}
+
+// TestServiceInstanceCreateCompletedMismatched tests the behaviour of multiple creation
+// requests for the same service instance with different request parameters, before the
+// operation has completed e.g. been acknowledged, should return a 409.
+func TestServiceInstanceCreateCompletedMismatched(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
+
+	poll := &api.PollServiceInstanceResponse{}
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, poll)
+
+	req.PlanID = fixtures.BasicConfigurationPlanID2
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusConflict, req, api.ErrorResourceConflict)
 }
 
 // TestServiceInstanceDeleteNotAsynchronous tests that a service instance delete must
@@ -373,6 +419,7 @@ func TestServiceInstanceDeletePlanIDInvalid(t *testing.T) {
 	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?"+query.Encode(), http.StatusBadRequest, api.ErrorQueryError)
 }
 
+// TestServiceInstanceRead tests that we can read an existing service instance.
 func TestServiceInstanceRead(t *testing.T) {
 	defer mustReset(t)
 
@@ -386,4 +433,91 @@ func TestServiceInstanceRead(t *testing.T) {
 	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, poll)
 
 	util.MustGet(t, "/v2/service_instances/pinkiepie?"+util.ReadServiceInstanceQuery(req).Encode(), http.StatusOK, nil)
+}
+
+// TestServiceInstanceReadServiceIDOptional tests that we can read an existing service instance
+// and the service_id parameter is optional.
+func TestServiceInstanceReadServiceIDOptional(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
+
+	poll := &api.PollServiceInstanceResponse{}
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, poll)
+
+	query := util.ReadServiceInstanceQuery(req)
+	query.Del("service_id")
+	util.MustGet(t, "/v2/service_instances/pinkiepie?"+query.Encode(), http.StatusOK, nil)
+}
+
+// TestServiceInstanceReadPlanIDOptional tests that we can read an existing service instance
+// and the plan_id parameter is optional.
+func TestServiceInstanceReadPlanIDOptional(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
+
+	poll := &api.PollServiceInstanceResponse{}
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, poll)
+
+	query := util.ReadServiceInstanceQuery(req)
+	query.Del("plan_id")
+	util.MustGet(t, "/v2/service_instances/pinkiepie?"+query.Encode(), http.StatusOK, nil)
+}
+
+// TestServiceInstanceReadServiceIDInvalid tests that we can read an existing service instance
+// and the service_id parameter is llegal.
+func TestServiceInstanceReadServiceIDInvalid(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
+
+	poll := &api.PollServiceInstanceResponse{}
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, poll)
+
+	query := util.ReadServiceInstanceQuery(req)
+	query.Set("service_id", fixtures.IllegalID)
+	util.MustGetAndError(t, "/v2/service_instances/pinkiepie?"+query.Encode(), http.StatusBadRequest, api.ErrorQueryError)
+}
+
+// TestServiceInstanceReadPlanIDIllegal tests that we can read an existing service instance
+// and the plan_id parameter is illegal.
+func TestServiceInstanceReadPlanIDIllegal(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
+
+	poll := &api.PollServiceInstanceResponse{}
+	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusOK, poll)
+
+	query := util.ReadServiceInstanceQuery(req)
+	query.Set("plan_id", fixtures.IllegalID)
+	util.MustGetAndError(t, "/v2/service_instances/pinkiepie?"+query.Encode(), http.StatusBadRequest, api.ErrorQueryError)
+}
+
+// TestServiceInstanceReadIllegalServiceInstance tests that a read on an illegal service
+// instance is rejected.
+func TestServiceInstanceReadIllegalServiceInstance(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustGetAndError(t, "/v2/service_instances/pinkiepie?"+util.ReadServiceInstanceQuery(req).Encode(), http.StatusNotFound, api.ErrorResourceNotFound)
 }
