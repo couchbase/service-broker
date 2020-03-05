@@ -14,6 +14,11 @@ import (
 	"github.com/couchbase/service-broker/test/util"
 )
 
+const (
+	// errorCode is what to return on application error.
+	errorCode = 1
+)
+
 var (
 	// clients are a global set of clients for test cases to use.
 	// They are initialzed so that the server will start, and can be
@@ -46,21 +51,21 @@ func TestMain(m *testing.M) {
 	cert, err := tls.X509KeyPair([]byte(util.Cert), []byte(util.Key))
 	if err != nil {
 		fmt.Println("failed to initialize TLS:", err)
-		os.Exit(1)
+		os.Exit(errorCode)
 	}
 
 	// Create fake clients we can use to mock Kubernetes and have complete
-	// controll over.
+	// control over.
 	clients, err = util.NewClients()
 	if err != nil {
 		fmt.Println("failed to initialize clients:", err)
-		os.Exit(1)
+		os.Exit(errorCode)
 	}
 
 	// Configure the server.
 	if err := broker.ConfigureServer(clients, util.Namespace, util.Token); err != nil {
 		fmt.Println("failed to configure service broker server:", err)
-		os.Exit(1)
+		os.Exit(errorCode)
 	}
 
 	// Start the server.

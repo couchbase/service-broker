@@ -14,13 +14,22 @@ import (
 	"github.com/golang/glog"
 )
 
+const (
+	// errorCode is what to return on application error.
+	errorCode = 1
+)
+
 func main() {
 	// Start the server.
 	glog.Infof("%s v%s (git commit %s)", version.Application, version.Version, version.GitCommit)
 
-	// Runtime configuration.
+	// tokenPath is the location of the file containing the bearer token for authentication.
 	var tokenPath string
+
+	// tlsCertificatePath is the location of the file containing the TLS server certifcate.
 	var tlsCertificatePath string
+
+	// tlsPrivateKeyPath is the location of the file containing the TLS private key.
 	var tlsPrivateKeyPath string
 
 	flag.StringVar(&tokenPath, "token", "/var/run/secrets/couchbase.com/service-broker/token", "Bearer token for API authentication")
@@ -32,35 +41,37 @@ func main() {
 	namespace, ok := os.LookupEnv("NAMESPACE")
 	if !ok {
 		glog.Fatal(fmt.Errorf("NAMESPACE environment variable must be set"))
-		os.Exit(1)
+		os.Exit(errorCode)
 	}
 
 	// Load up explicit configuration.
 	token, err := ioutil.ReadFile(tokenPath)
 	if err != nil {
 		glog.Fatal(err)
-		os.Exit(1)
+		os.Exit(errorCode)
 	}
+
 	cert, err := tls.LoadX509KeyPair(tlsCertificatePath, tlsPrivateKeyPath)
 	if err != nil {
 		glog.Fatal(err)
-		os.Exit(1)
+		os.Exit(errorCode)
 	}
 
 	// Initialize the clients.
 	clients, err := client.New()
 	if err != nil {
 		glog.Fatal(err)
-		os.Exit(1)
+		os.Exit(errorCode)
 	}
 
 	// Start the server.
 	if err := broker.ConfigureServer(clients, namespace, string(token)); err != nil {
 		glog.Fatal(err)
-		os.Exit(1)
+		os.Exit(errorCode)
 	}
+
 	if err := broker.RunServer(cert); err != nil {
 		glog.Fatal(err)
-		os.Exit(1)
+		os.Exit(errorCode)
 	}
 }

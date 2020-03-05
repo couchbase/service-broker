@@ -4,8 +4,8 @@ import (
 	"github.com/couchbase/service-broker/pkg/registry"
 )
 
-// serviceBindingCreator caches various data associated with deleting a service instance.
-type serviceBindingCreator struct {
+// ServiceBindingCreator caches various data associated with deleting a service instance.
+type ServiceBindingCreator struct {
 	// registry is the instance registry.
 	registry *registry.Registry
 
@@ -17,8 +17,8 @@ type serviceBindingCreator struct {
 }
 
 // NewServiceBindingCreator returns a new controller capable of deleting a service instance.
-func NewServiceBindingCreator(registry *registry.Registry, instanceID, bindingID string) *serviceBindingCreator {
-	return &serviceBindingCreator{
+func NewServiceBindingCreator(registry *registry.Registry, instanceID, bindingID string) *ServiceBindingCreator {
+	return &ServiceBindingCreator{
 		registry:   registry,
 		instanceID: instanceID,
 		bindingID:  bindingID,
@@ -26,6 +26,6 @@ func NewServiceBindingCreator(registry *registry.Registry, instanceID, bindingID
 }
 
 // Run performs asynchronous update tasks.
-func (d *serviceBindingCreator) Run() error {
+func (d *ServiceBindingCreator) Run() error {
 	return nil
 }

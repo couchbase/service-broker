@@ -62,6 +62,7 @@ func New() (Clients, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	mapper := restmapper.NewDiscoveryRESTMapper(groupresources)
 
 	clients := &clientsImpl{

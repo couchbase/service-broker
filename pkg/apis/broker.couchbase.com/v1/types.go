@@ -18,7 +18,7 @@ type CouchbaseServiceBrokerConfig struct {
 // CouchbaseServiceBrokerConfigSpec defines the top level service broker configuration
 // data structure.
 type CouchbaseServiceBrokerConfigSpec struct {
-	// Catalog is the service catalog defintiion and is required.
+	// Catalog is the service catalog definition and is required.
 	Catalog *ServiceCatalog `json:"catalog"`
 
 	// Templates is a set of resource templates that can be rendered by the service broker and is required.

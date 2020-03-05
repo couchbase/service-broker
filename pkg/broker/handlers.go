@@ -53,10 +53,12 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		util.JSONError(w, fmt.Errorf("request missing instance_id parameter"))
 		return
 	}
+
 	if err := util.ValidateServicePlan(config.Config(), request.ServiceID, request.PlanID); err != nil {
 		util.JSONError(w, err)
 		return
 	}
+
 	if err := util.ValidateParameters(config.Config(), request.ServiceID, request.PlanID, util.SchemaTypeServiceInstance, util.SchemaOperationCreate, request.Parameters); err != nil {
 		util.JSONError(w, err)
 		return
@@ -78,32 +80,40 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 			util.JSONError(w, fmt.Errorf("unable to get service instance request from registry: %v", err))
 			return
 		}
+
 		prevRequest := &api.CreateServiceInstanceRequest{}
+
 		if err := json.Unmarshal([]byte(prevRequestRaw), prevRequest); err != nil {
 			util.JSONError(w, fmt.Errorf("unable to unmarshal previous instance request: %v", err))
 			return
 		}
+
 		if reflect.DeepEqual(request, prevRequest) {
 			dashboardURL, _ := registryEntry.Get(registry.RegistryKeyDashboardURL)
+
 			op, ok := operation.Get(instanceID)
 			if !ok {
 				response := &api.CreateServiceInstanceResponse{
 					DashboardURL: dashboardURL,
 				}
 				util.JSONResponse(w, http.StatusOK, response)
+
 				return
 			}
 
-			if op.Kind == operation.OperationKindServiceInstanceCreate {
+			if op.Type == operation.TypeServiceInstanceCreate {
 				response := &api.CreateServiceInstanceResponse{
 					DashboardURL: dashboardURL,
 					Operation:    op.ID,
 				}
 				util.JSONResponse(w, http.StatusAccepted, response)
+
 				return
 			}
 		}
+
 		util.JSONError(w, errors.NewResourceConflictError("request conflicts with existing service instance"))
+
 		return
 	}
 
@@ -122,14 +132,17 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		util.JSONError(w, fmt.Errorf("failed to marshal instance data: %v", err))
 		return
 	}
+
 	if err := registryEntry.Set(registry.ServiceInstanceRequestKey, string(requestJSON)); err != nil {
 		util.JSONError(w, fmt.Errorf("failed to set registry entry value %s: %v", registry.ServiceInstanceRequestKey, err))
 		return
 	}
+
 	if err := registryEntry.Set(registry.ServiceOfferingKey, request.ServiceID); err != nil {
 		util.JSONError(w, fmt.Errorf("failed to set registry entry value %s: %v", registry.ServiceOfferingKey, err))
 		return
 	}
+
 	if err := registryEntry.Set(registry.ServicePlanKey, request.PlanID); err != nil {
 		util.JSONError(w, fmt.Errorf("failed to set registry entry value %s: %v", registry.ServicePlanKey, err))
 		return
@@ -144,21 +157,24 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		util.JSONError(w, fmt.Errorf("failed to create provisioner: %v", err))
 		return
 	}
+
 	if err := provisioner.PrepareServiceInstance(); err != nil {
 		util.JSONError(w, fmt.Errorf("failed to prepare service instance: %v", err))
 		return
 	}
 
 	// Start the provisioning process in the background.
-	op, err := operation.New(operation.OperationKindServiceInstanceCreate, instanceID, request.ServiceID, request.PlanID)
+	op, err := operation.New(operation.TypeServiceInstanceCreate, instanceID, request.ServiceID, request.PlanID)
 	if err != nil {
 		util.JSONError(w, err)
 		return
 	}
+
 	go op.Run(provisioner)
 
 	// Return a response to the client.
 	dashboardURL, _ := registryEntry.Get(registry.RegistryKeyDashboardURL)
+
 	response := &api.CreateServiceInstanceResponse{
 		DashboardURL: dashboardURL,
 		Operation:    op.ID,
@@ -192,6 +208,7 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 		util.JSONError(w, err)
 		return
 	}
+
 	planID, err := util.GetSingleParameter(r, "plan_id")
 	if err != nil {
 		util.JSONError(w, err)
@@ -203,15 +220,18 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 		util.JSONError(w, err)
 		return
 	}
+
 	if serviceID != serviceInstanceServiceID {
 		util.JSONError(w, errors.NewQueryError("specified service ID %s does not match %s", serviceID, serviceInstanceServiceID))
 		return
 	}
+
 	serviceInstancePlanID, err := registryEntry.Get(registry.ServicePlanKey)
 	if err != nil {
 		util.JSONError(w, err)
 		return
 	}
+
 	if planID != serviceInstancePlanID {
 		util.JSONError(w, errors.NewQueryError("specified plan ID %s does not match %s", planID, serviceInstancePlanID))
 		return
@@ -237,6 +257,7 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 	}
 
 	dashboardURL, _ := registryEntry.Get(registry.RegistryKeyDashboardURL)
+
 	response := &api.GetServiceInstanceResponse{
 		ServiceID:    serviceInstanceServiceID,
 		PlanID:       serviceInstancePlanID,
@@ -292,6 +313,7 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		util.JSONError(w, err)
 		return
 	}
+
 	if err := util.ValidateParameters(config.Config(), request.ServiceID, planID, util.SchemaTypeServiceInstance, util.SchemaOperationUpdate, request.Parameters); err != nil {
 		util.JSONErrorUsable(w, err)
 		return
@@ -302,25 +324,29 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		util.JSONErrorUsable(w, err)
 		return
 	}
+
 	if err := updater.PrepareResources(); err != nil {
 		util.JSONErrorUsable(w, err)
 		return
 	}
 
 	// Start the update operation in the background.
-	op, err := operation.New(operation.OperationKindServiceInstanceUpdate, instanceID, request.ServiceID, request.PlanID)
+	op, err := operation.New(operation.TypeServiceInstanceUpdate, instanceID, request.ServiceID, request.PlanID)
 	if err != nil {
 		util.JSONError(w, err)
 		return
 	}
+
 	go op.Run(updater)
 
 	// Return a response to the client.
 	dashboardURL, _ := registryEntry.Get(registry.RegistryKeyDashboardURL)
+
 	response := &api.UpdateServiceInstanceResponse{
 		DashboardURL: dashboardURL,
 		Operation:    op.ID,
 	}
+
 	util.JSONResponse(w, http.StatusAccepted, response)
 }
 
@@ -345,7 +371,9 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 			util.JSONError(w, errors.NewResourceGoneError("service instance does not exist"))
 			return
 		}
+
 		util.JSONError(w, fmt.Errorf("failed to lookup resigstry instance: %v", err))
+
 		return
 	}
 
@@ -354,6 +382,7 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		util.JSONError(w, err)
 		return
 	}
+
 	planID, err := util.GetSingleParameter(r, "plan_id")
 	if err != nil {
 		util.JSONError(w, err)
@@ -365,15 +394,18 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		util.JSONError(w, err)
 		return
 	}
+
 	if serviceID != serviceInstanceServiceID {
 		util.JSONError(w, errors.NewQueryError("specified service ID %s does not match %s", serviceID, serviceInstanceServiceID))
 		return
 	}
+
 	serviceInstancePlanID, err := registryEntry.Get(registry.ServicePlanKey)
 	if err != nil {
 		util.JSONError(w, err)
 		return
 	}
+
 	if planID != serviceInstancePlanID {
 		util.JSONError(w, errors.NewQueryError("specified plan ID %s does not match %s", planID, serviceInstancePlanID))
 		return
@@ -382,11 +414,12 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	deleter := provisioners.NewServiceInstanceDeleter(instanceRegistry, instanceID)
 
 	// Start the delete operation in the background.
-	op, err := operation.New(operation.OperationKindServiceInstanceDelete, instanceID, serviceID, planID)
+	op, err := operation.New(operation.TypeServiceInstanceDelete, instanceID, serviceID, planID)
 	if err != nil {
 		util.JSONError(w, err)
 		return
 	}
+
 	go op.Run(deleter)
 
 	response := &api.CreateServiceInstanceResponse{
@@ -410,21 +443,24 @@ func handleReadServiceInstanceStatus(w http.ResponseWriter, r *http.Request, par
 		response := &api.PollServiceInstanceResponse{
 			State: api.PollStateSucceeded,
 		}
+
 		util.JSONResponse(w, http.StatusOK, response)
+
 		return
 	}
 
-	// TODO: service and plan IDs are optional
 	serviceID, err := util.GetSingleParameter(r, "service_id")
 	if err != nil {
 		util.JSONError(w, err)
 		return
 	}
+
 	planID, err := util.GetSingleParameter(r, "plan_id")
 	if err != nil {
 		util.JSONError(w, err)
 		return
 	}
+
 	operationID, err := util.GetSingleParameter(r, "operation")
 	if err != nil {
 		util.JSONError(w, err)
@@ -435,28 +471,37 @@ func handleReadServiceInstanceStatus(w http.ResponseWriter, r *http.Request, par
 		util.JSONError(w, errors.NewQueryError("provided service ID %s does not match %s", serviceID, op.ServiceID))
 		return
 	}
+
 	if planID != op.PlanID {
 		util.JSONError(w, errors.NewQueryError("provided plan ID %s does not match %s", planID, op.PlanID))
 		return
 	}
+
 	if operationID != op.ID {
 		util.JSONError(w, errors.NewQueryError("provided operation %s does not match operation %s", operationID, op.ID))
 		return
 	}
 
-	// Poll the provisioner process for status updates.
+	// status is the API state of the operation.
 	var status api.PollState
+
+	// description is a description of why the operation is in that state.
 	var description string
+
+	// Poll the provisioner process for status updates.
 	select {
 	case err := <-op.Status:
 		// Free memory.  Is it safer just to garbage collect?  Yes.
 		operation.Delete(instanceID)
+
 		if err != nil {
 			status = api.PollStateFailed
 			description = err.Error()
 			glog.Error(err)
+
 			break
 		}
+
 		status = api.PollStateSucceeded
 	default:
 		status = api.PollStateInProgress
@@ -484,6 +529,7 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 		util.JSONError(w, fmt.Errorf("request missing instance_id parameter"))
 		return
 	}
+
 	bindingID := params.ByName("binding_id")
 	if bindingID == "" {
 		util.JSONError(w, fmt.Errorf("request missing binding_id parameter"))
@@ -496,10 +542,12 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 		util.JSONError(w, err)
 		return
 	}
+
 	if err := util.ValidateServicePlan(config.Config(), request.ServiceID, request.PlanID); err != nil {
 		util.JSONError(w, err)
 		return
 	}
+
 	if err := util.ValidateParameters(config.Config(), request.ServiceID, request.PlanID, util.SchemaTypeServiceBinding, util.SchemaOperationCreate, request.Parameters); err != nil {
 		util.JSONError(w, err)
 		return
@@ -518,8 +566,7 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 		return
 	}
 
-	_, err = instanceRegistry.New(registry.ServiceBindingRegistryName(instanceID, bindingID))
-	if err != nil {
+	if _, err = instanceRegistry.New(registry.ServiceBindingRegistryName(instanceID, bindingID)); err != nil {
 		util.JSONError(w, fmt.Errorf("failed to create registry entry for request: %v", err))
 		return
 	}
@@ -527,11 +574,12 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 	creator := provisioners.NewServiceBindingCreator(instanceRegistry, instanceID, bindingID)
 
 	// Start the provisioning process in the background.
-	op, err := operation.New(operation.OperationKindServiceInstanceCreate, instanceID, request.ServiceID, request.PlanID)
+	op, err := operation.New(operation.TypeServiceInstanceCreate, instanceID, request.ServiceID, request.PlanID)
 	if err != nil {
 		util.JSONError(w, err)
 		return
 	}
+
 	go op.Run(creator)
 
 	// Respond the operation ID to the client to start polling.

@@ -6,54 +6,54 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// APIError is returned when a service broker error is encountered.
-type APIError string
+// ErrorType is returned when a service broker error is encountered.
+type ErrorType string
 
 const (
 	// ErrorAsyncRequired meand this request requires client support for asynchronous
 	// service operations.
-	ErrorAsyncRequired APIError = "AsyncRequired"
+	ErrorAsyncRequired ErrorType = "AsyncRequired"
 
 	// ErrorConcurrencyError means the Service Broker does not support concurrent
 	// requests that mutate the same resource.
-	ErrorConcurrencyError APIError = "ConcurrencyError"
+	ErrorConcurrencyError ErrorType = "ConcurrencyError"
 
 	// ErrorRequiresApp means the request body is missing the app_guid field.
-	ErrorRequiresApp APIError = "RequiresApp"
+	ErrorRequiresApp ErrorType = "RequiresApp"
 
 	// ErrorMaintenanceInfoConflict means the maintenance_info.version field provided
 	// in the request does not match the maintenance_info.version field provided in
 	// the Service Broker's Catalog.
-	ErrorMaintenanceInfoConflict APIError = "MaintenanceInfoConflict"
+	ErrorMaintenanceInfoConflict ErrorType = "MaintenanceInfoConflict"
 
 	// ErrorInternalServerError means that something that shouldn't ever break has.
-	ErrorInternalServerError APIError = "InternalServerError"
+	ErrorInternalServerError ErrorType = "InternalServerError"
 
 	// ErrorConfigurationError means that the broker has been misconfigured.
-	ErrorConfigurationError APIError = "ConfigurationError"
+	ErrorConfigurationError ErrorType = "ConfigurationError"
 
 	// ErrorQueryError means that the user specified query is inavlid.
-	ErrorQueryError APIError = "QueryError"
+	ErrorQueryError ErrorType = "QueryError"
 
 	// ErrorParameterError means that the user specified parameters are
 	// invalid.
-	ErrorParameterError APIError = "ParameterError"
+	ErrorParameterError ErrorType = "ParameterError"
 
 	// ErrorValidationError means that the supplied parameters failed JSON schema
 	// validation.
-	ErrorValidationError APIError = "ValidationError"
+	ErrorValidationError ErrorType = "ValidationError"
 
 	// ErrorResourceConflict means that an attempt to create a resource has resulted
 	// in a conflict with an existing one.
-	ErrorResourceConflict APIError = "ResourceConflict"
+	ErrorResourceConflict ErrorType = "ResourceConflict"
 
 	// ErrorResourceNotFound means that an attempt has been made to access a resource
 	// that does not extst.
-	ErrorResourceNotFound APIError = "ResourceNotFound"
+	ErrorResourceNotFound ErrorType = "ResourceNotFound"
 
 	// ErrorResourceGone means that a delete request has failed because the
 	// requested resource does not exist.
-	ErrorResourceGone APIError = "ResourceGone"
+	ErrorResourceGone ErrorType = "ResourceGone"
 )
 
 // PollState is returned when an asynchronous request is polled.
@@ -74,7 +74,7 @@ const (
 type Error struct {
 	// A single word in camel case that uniquely identifies the error condition.
 	// If present, MUST be a non-empty string.
-	Error APIError `json:"error,omitempty"`
+	Error ErrorType `json:"error,omitempty"`
 
 	// A user-facing error message explaining why the request failed.
 	// If present, MUST be a non-empty string.

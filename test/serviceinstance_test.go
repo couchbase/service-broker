@@ -62,7 +62,7 @@ func TestServiceInstanceCreateInvalidService(t *testing.T) {
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	req.ServiceID = "illegal"
+	req.ServiceID = fixtures.IllegalID
 	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorParameterError)
 }
 
@@ -74,7 +74,7 @@ func TestServiceInstanceCreateInvalidPlan(t *testing.T) {
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	req.PlanID = "illegal"
+	req.PlanID = fixtures.IllegalID
 	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorParameterError)
 }
 
@@ -223,7 +223,7 @@ func TestServiceInstancePollIllegalServiceID(t *testing.T) {
 	rsp := &api.CreateServiceInstanceResponse{}
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
-	req.ServiceID = "illegal"
+	req.ServiceID = fixtures.IllegalID
 	util.MustGetAndError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusBadRequest, api.ErrorQueryError)
 }
 
@@ -238,7 +238,7 @@ func TestServiceInstancePollIllegalPlanID(t *testing.T) {
 	rsp := &api.CreateServiceInstanceResponse{}
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusAccepted, req, rsp)
 
-	req.PlanID = "illegal"
+	req.PlanID = fixtures.IllegalID
 	util.MustGetAndError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusBadRequest, api.ErrorQueryError)
 }
 

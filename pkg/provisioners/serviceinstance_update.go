@@ -17,8 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// serviceInstanceUpdater caches various data associated with updating a service instance.
-type serviceInstanceUpdater struct {
+// ServiceInstanceUpdater caches various data associated with updating a service instance.
+type ServiceInstanceUpdater struct {
 	// registry is the instance registry.
 	registry *registry.Registry
 
@@ -37,13 +37,13 @@ type serviceInstanceUpdater struct {
 }
 
 // NewServiceInstanceUpdater returns a new controler capable of updaing a service instance.
-func NewServiceInstanceUpdater(registry *registry.Registry, instanceID string, request *api.UpdateServiceInstanceRequest) (*serviceInstanceUpdater, error) {
+func NewServiceInstanceUpdater(registry *registry.Registry, instanceID string, request *api.UpdateServiceInstanceRequest) (*ServiceInstanceUpdater, error) {
 	namespace, err := getNamespace(request.Context)
 	if err != nil {
 		return nil, err
 	}
 
-	u := &serviceInstanceUpdater{
+	u := &ServiceInstanceUpdater{
 		registry:   registry,
 		instanceID: instanceID,
 		namespace:  namespace,
@@ -53,12 +53,13 @@ func NewServiceInstanceUpdater(registry *registry.Registry, instanceID string, r
 	return u, nil
 }
 
-func (u *serviceInstanceUpdater) PrepareResources() error {
+func (u *ServiceInstanceUpdater) PrepareResources() error {
 	// Use the cached versions, as the request parameters may not be set.
 	registryEntry, err := u.registry.Get(registry.ServiceInstanceRegistryName(u.instanceID))
 	if err != nil {
 		return err
 	}
+
 	planID, err := registryEntry.Get(registry.ServicePlanKey)
 	if err != nil {
 		return fmt.Errorf("unable to lookup service instance plan ID: %v", err)
@@ -66,7 +67,7 @@ func (u *serviceInstanceUpdater) PrepareResources() error {
 
 	// Collate and render our templates.
 	glog.Infof("looking up bindings for service %s, plan %s", u.request.ServiceID, planID)
-	// TODO: derrive this from the service instance
+
 	templateBindings, err := getTemplateBindings(u.request.ServiceID, planID)
 	if err != nil {
 		return err
@@ -74,6 +75,7 @@ func (u *serviceInstanceUpdater) PrepareResources() error {
 
 	// Prepare the client code
 	client := config.Clients().Dynamic()
+
 	for _, templateName := range templateBindings.ServiceInstance.Templates {
 		glog.Infof("getting resource for template %s", templateName)
 
@@ -101,6 +103,7 @@ func (u *serviceInstanceUpdater) PrepareResources() error {
 		}
 
 		gvk := object.GroupVersionKind()
+
 		mapping, err := config.Clients().RESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version)
 		if err != nil {
 			return err
@@ -123,8 +126,8 @@ func (u *serviceInstanceUpdater) PrepareResources() error {
 		// Apply the parameters.  Only affect parameters that are defined
 		// in the request, so be sure not to apply any defaults as they may
 		// cause the resource to do something that was not intended.
-		for _, parameter := range template.Parameters {
-			value, err := resolveParameter(&parameter, u.instanceID, u.request.Parameters, false)
+		for index, parameter := range template.Parameters {
+			value, err := resolveParameter(&template.Parameters[index], u.instanceID, u.request.Parameters, false)
 			if err != nil {
 				return err
 			}
@@ -134,21 +137,27 @@ func (u *serviceInstanceUpdater) PrepareResources() error {
 			}
 
 			patches := []string{}
+
 			for _, path := range parameter.Destination.Paths {
 				valueJSON, err := json.Marshal(value)
 				if err != nil {
 					glog.Errorf("marshal of value failed: %v", err)
 					return err
 				}
+
 				patches = append(patches, fmt.Sprintf(`{"op":"add","path":"%s","value":%s}`, path, string(valueJSON)))
 			}
+
 			patchSet := "[" + strings.Join(patches, ",") + "]"
+
 			glog.Infof("applying patchset %s", patchSet)
+
 			patch, err := jsonpatch.DecodePatch([]byte(patchSet))
 			if err != nil {
 				glog.Errorf("decode of JSON patch failed: %v", err)
 				return err
 			}
+
 			objectRaw, err = patch.Apply(objectRaw)
 			if err != nil {
 				glog.Errorf("apply of JSON patch failed: %v", err)
@@ -168,6 +177,7 @@ func (u *serviceInstanceUpdater) PrepareResources() error {
 		}
 
 		glog.Infof("new resource: %s", string(objectRaw))
+
 		u.resources = append(u.resources, objectNew)
 	}
 
@@ -175,15 +185,17 @@ func (u *serviceInstanceUpdater) PrepareResources() error {
 }
 
 // Run performs asynchronous update tasks.
-func (u *serviceInstanceUpdater) Run() error {
+func (u *ServiceInstanceUpdater) Run() error {
 	glog.Info("updating resources")
 
 	// Prepare the client code
 	client := config.Clients().Dynamic()
+
 	for _, resource := range u.resources {
 		glog.Infof("updating resource %s/%s %s", resource.GetAPIVersion(), resource.GetKind(), resource.GetName())
 
 		gvk := resource.GroupVersionKind()
+
 		mapping, err := config.Clients().RESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version)
 		if err != nil {
 			return err
@@ -193,5 +205,6 @@ func (u *serviceInstanceUpdater) Run() error {
 			return err
 		}
 	}
+
 	return nil
 }

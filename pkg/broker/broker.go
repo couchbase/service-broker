@@ -12,6 +12,7 @@ import (
 	"github.com/couchbase/service-broker/pkg/apis"
 	"github.com/couchbase/service-broker/pkg/client"
 	"github.com/couchbase/service-broker/pkg/config"
+	"github.com/couchbase/service-broker/pkg/log"
 	"github.com/couchbase/service-broker/pkg/registry"
 	"github.com/couchbase/service-broker/pkg/util"
 
@@ -32,6 +33,7 @@ func getHeader(r *http.Request, name string) ([]string, error) {
 			return r.Header[headerName], nil
 		}
 	}
+
 	return nil, fmt.Errorf("no header found for %s", name)
 }
 
@@ -42,18 +44,22 @@ func getHeaderSingle(r *http.Request, name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if len(headers) != 1 {
+
+	requiredHeaders := 1
+	if len(headers) != requiredHeaders {
 		return "", fmt.Errorf("multiple headers found for %s", name)
 	}
+
 	return headers[0], nil
 }
 
 // handleReadiness returns 503 until the configuration is correct.
-func handleReadiness(w http.ResponseWriter, r *http.Request) error {
+func handleReadiness(w http.ResponseWriter) error {
 	if config.Config() == nil {
 		util.HTTPResponse(w, http.StatusServiceUnavailable)
 		return fmt.Errorf("service not ready")
 	}
+
 	return nil
 }
 
@@ -64,10 +70,12 @@ func handleBrokerBearerToken(w http.ResponseWriter, r *http.Request) error {
 		util.HTTPResponse(w, http.StatusUnauthorized)
 		return err
 	}
-	if header != "Bearer "+string(config.Token()) {
+
+	if header != "Bearer "+config.Token() {
 		util.HTTPResponse(w, http.StatusUnauthorized)
 		return fmt.Errorf("authorization failed")
 	}
+
 	return nil
 }
 
@@ -78,15 +86,18 @@ func handleBrokerAPIHeader(w http.ResponseWriter, r *http.Request) error {
 		util.HTTPResponse(w, http.StatusBadRequest)
 		return err
 	}
+
 	apiVersion, err := strconv.ParseFloat(header, 64)
 	if err != nil {
 		util.HTTPResponse(w, http.StatusBadRequest)
 		return fmt.Errorf("malformed X-Broker-Api-Version header: %v", err)
 	}
+
 	if apiVersion < minBrokerAPIVersion {
 		util.HTTPResponse(w, http.StatusPreconditionFailed)
 		return fmt.Errorf("unsupported X-Broker-Api-Version header %v, requires at least %.2f", header, minBrokerAPIVersion)
 	}
+
 	return nil
 }
 
@@ -96,15 +107,18 @@ func handleContentTypeHeader(w http.ResponseWriter, r *http.Request) error {
 	if r.ContentLength == 0 {
 		return nil
 	}
+
 	header, err := getHeaderSingle(r, "Content-Type")
 	if err != nil {
 		util.HTTPResponse(w, http.StatusBadRequest)
 		return err
 	}
+
 	if header != "application/json" {
 		util.HTTPResponse(w, http.StatusBadRequest)
 		return fmt.Errorf("invalid Content-Type header")
 	}
+
 	return nil
 }
 
@@ -114,12 +128,15 @@ func handleRequestHeaders(w http.ResponseWriter, r *http.Request) error {
 	if err := handleBrokerBearerToken(w, r); err != nil {
 		return err
 	}
+
 	if err := handleBrokerAPIHeader(w, r); err != nil {
 		return err
 	}
+
 	if err := handleContentTypeHeader(w, r); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -133,6 +150,7 @@ type openServiceBrokerHandler struct {
 // NewOpenServiceBrokerHandler initializes the main router with the Open Service Broker API.
 func NewOpenServiceBrokerHandler() http.Handler {
 	router := httprouter.New()
+
 	router.GET("/readyz", handleReadyz)
 	router.GET("/v2/catalog", handleReadCatalog)
 	router.PUT("/v2/service_instances/:instance_id", handleCreateServiceInstance)
@@ -145,6 +163,7 @@ func NewOpenServiceBrokerHandler() http.Handler {
 	router.PATCH("/v2/service_instances/:instance_id/service_bindings/:binding_id", handleUpdateServiceBinding)
 	router.DELETE("/v2/service_instances/:instance_id/service_bindings/:binding_id", handleDeleteServiceBinding)
 	router.GET("/v2/service_instances/:instance_id/service_bindings/:binding_id/last_operation", handleReadServiceBindingStatus)
+
 	return &openServiceBrokerHandler{Handler: router}
 }
 
@@ -189,18 +208,20 @@ func (handler *openServiceBrokerHandler) ServeHTTP(w http.ResponseWriter, r *htt
 	// Print out request logging information.
 	// DO NOT print out headers at info level as that will leak credentials into the log stream.
 	glog.Infof(`HTTP req: "%s %v %s" %s `, r.Method, r.URL, r.Proto, r.RemoteAddr)
+
 	for name, values := range r.Header {
 		for _, value := range values {
-			glog.V(1).Infof(`HTTP hdr: "%s: %s"`, name, value)
+			glog.V(log.LevelDebug).Infof(`HTTP hdr: "%s: %s"`, name, value)
 		}
 	}
+
 	defer func() {
 		glog.Infof(`HTTP rsp: "%d %s" %v`, writer.status, http.StatusText(writer.status), time.Since(start))
 	}()
 
 	// Indicate that the service is not ready until configured.
-	if err := handleReadiness(writer, r); err != nil {
-		glog.V(1).Info(err)
+	if err := handleReadiness(writer); err != nil {
+		glog.V(log.LevelDebug).Info(err)
 		return
 	}
 
@@ -208,7 +229,7 @@ func (handler *openServiceBrokerHandler) ServeHTTP(w http.ResponseWriter, r *htt
 	if r.URL.Path != "/readyz" {
 		// Process headers, API versions, content types.
 		if err := handleRequestHeaders(writer, r); err != nil {
-			glog.V(1).Info(err)
+			glog.V(log.LevelDebug).Info(err)
 			return
 		}
 	}

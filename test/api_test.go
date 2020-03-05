@@ -11,10 +11,13 @@ import (
 // TestReadiness tests a TLS readiness probe succeeds with no other headers.
 func TestReadiness(t *testing.T) {
 	defer mustReset(t)
+
 	request := util.MustBasicRequest(t, http.MethodGet, "/readyz")
 	client := util.MustDefaultClient(t)
+
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
+
 	util.MustVerifyStatusCode(t, response, http.StatusOK)
 }
 
@@ -22,11 +25,15 @@ func TestReadiness(t *testing.T) {
 // results in the server becoming unavailable.
 func TestReadinessUnconfigured(t *testing.T) {
 	defer mustReset(t)
+
 	util.MustDeleteServiceBrokerConfig(t, clients)
+
 	request := util.MustBasicRequest(t, http.MethodGet, "/readyz")
 	client := util.MustDefaultClient(t)
+
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
+
 	util.MustVerifyStatusCode(t, response, http.StatusServiceUnavailable)
 	util.MustCreateServiceBrokerConfig(t, clients, util.DefaultBrokerConfig)
 }
@@ -34,10 +41,13 @@ func TestReadinessUnconfigured(t *testing.T) {
 // TestConnect tests basic connection to the service broker.
 func TestConnect(t *testing.T) {
 	defer mustReset(t)
+
 	request := util.MustDefaultRequest(t, http.MethodGet, "/v2/catalog")
 	client := util.MustDefaultClient(t)
+
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
+
 	util.MustVerifyStatusCode(t, response, http.StatusOK)
 }
 
@@ -45,9 +55,12 @@ func TestConnect(t *testing.T) {
 // TLS transport.
 func TestConnectNoTLS(t *testing.T) {
 	defer mustReset(t)
+
 	request := util.MustDefaultRequest(t, http.MethodGet, "/v2/catalog")
+
 	client := util.MustDefaultClient(t)
 	client.Transport = nil
+
 	util.MustNotDoRequest(t, client, request)
 }
 
@@ -56,11 +69,15 @@ func TestConnectNoTLS(t *testing.T) {
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#api-version-header
 func TestConnectNoAPIVersion(t *testing.T) {
 	defer mustReset(t)
+
 	request := util.MustDefaultRequest(t, http.MethodGet, "/v2/catalog")
 	request.Header.Del("X-Broker-API-Version")
+
 	client := util.MustDefaultClient(t)
+
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
+
 	util.MustVerifyStatusCode(t, response, http.StatusBadRequest)
 }
 
@@ -68,11 +85,15 @@ func TestConnectNoAPIVersion(t *testing.T) {
 // headers due to ambiguity.
 func TestConnectMultipleAPIVersion(t *testing.T) {
 	defer mustReset(t)
+
 	request := util.MustDefaultRequest(t, http.MethodGet, "/v2/catalog")
 	request.Header.Add("X-Broker-API-Version", "2.13")
+
 	client := util.MustDefaultClient(t)
+
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
+
 	util.MustVerifyStatusCode(t, response, http.StatusBadRequest)
 }
 
@@ -80,11 +101,15 @@ func TestConnectMultipleAPIVersion(t *testing.T) {
 // header.
 func TestConnectInvalidAPIVersion(t *testing.T) {
 	defer mustReset(t)
+
 	request := util.MustDefaultRequest(t, http.MethodGet, "/v2/catalog")
 	request.Header.Set("X-Broker-API-Version", "dave")
+
 	client := util.MustDefaultClient(t)
+
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
+
 	util.MustVerifyStatusCode(t, response, http.StatusBadRequest)
 }
 
@@ -93,31 +118,41 @@ func TestConnectInvalidAPIVersion(t *testing.T) {
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#api-version-header
 func TestConnectAPIVersionTooOld(t *testing.T) {
 	defer mustReset(t)
+
 	request := util.MustDefaultRequest(t, http.MethodGet, "/v2/catalog")
 	request.Header.Set("X-Broker-API-Version", "2.12")
+
 	client := util.MustDefaultClient(t)
+
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
+
 	util.MustVerifyStatusCode(t, response, http.StatusPreconditionFailed)
 }
 
 // TestConnectPathNotFound tests that illegal paths return a 404.
 func TestConnectPathNotFound(t *testing.T) {
 	defer mustReset(t)
+
 	request := util.MustDefaultRequest(t, http.MethodGet, "/batman")
 	client := util.MustDefaultClient(t)
+
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
+
 	util.MustVerifyStatusCode(t, response, http.StatusNotFound)
 }
 
 // TestConnectMethodNotFound tests that illegal paths return a 405.
 func TestConnectMethodNotFound(t *testing.T) {
 	defer mustReset(t)
+
 	request := util.MustDefaultRequest(t, http.MethodPost, "/v2/catalog")
 	client := util.MustDefaultClient(t)
+
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
+
 	util.MustVerifyStatusCode(t, response, http.StatusMethodNotAllowed)
 }
 
@@ -125,11 +160,15 @@ func TestConnectMethodNotFound(t *testing.T) {
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#platform-to-service-broker-authentication
 func TestConnectNoAuthorization(t *testing.T) {
 	defer mustReset(t)
+
 	request := util.MustDefaultRequest(t, http.MethodGet, "/v2/catalog")
 	request.Header.Del("Authorization")
+
 	client := util.MustDefaultClient(t)
+
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
+
 	util.MustVerifyStatusCode(t, response, http.StatusUnauthorized)
 }
 
@@ -137,22 +176,30 @@ func TestConnectNoAuthorization(t *testing.T) {
 // headers due to ambiguity.
 func TestConnectMultipleAuthorization(t *testing.T) {
 	defer mustReset(t)
+
 	request := util.MustDefaultRequest(t, http.MethodGet, "/v2/catalog")
 	request.Header.Add("Authorization", "She-ra")
+
 	client := util.MustDefaultClient(t)
+
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
+
 	util.MustVerifyStatusCode(t, response, http.StatusUnauthorized)
 }
 
 // TestConnectInvalidAuthorization tests we reject requests with an invalid Authorization header.
 func TestConnectInvalidAuthorization(t *testing.T) {
 	defer mustReset(t)
+
 	request := util.MustDefaultRequest(t, http.MethodGet, "/v2/catalog")
 	request.Header.Set("Authorization", "Bearer She-ra")
+
 	client := util.MustDefaultClient(t)
+
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
+
 	util.MustVerifyStatusCode(t, response, http.StatusUnauthorized)
 }
 
@@ -160,12 +207,16 @@ func TestConnectInvalidAuthorization(t *testing.T) {
 // over everything else.
 func TestConnectAuthorizationPrecedence(t *testing.T) {
 	defer mustReset(t)
+
 	request := util.MustDefaultRequest(t, http.MethodGet, "/batman")
 	request.Header.Del("Authorization")
 	request.Header.Del("X-Broker-API-Version")
+
 	client := util.MustDefaultClient(t)
+
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
+
 	util.MustVerifyStatusCode(t, response, http.StatusUnauthorized)
 }
 
@@ -175,10 +226,13 @@ func TestConnectAuthorizationPrecedence(t *testing.T) {
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#content-type
 func TestConnectWithBody(t *testing.T) {
 	defer mustReset(t)
+
 	request := util.MustDefaultRequestWithBody(t, http.MethodGet, "/v2/catalog", bytes.NewBufferString("{}"))
 	client := util.MustDefaultClient(t)
+
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
+
 	util.MustVerifyStatusCode(t, response, http.StatusOK)
 }
 
@@ -187,11 +241,15 @@ func TestConnectWithBody(t *testing.T) {
 // however content type checking occurrs regardless.
 func TestConnectNoContentType(t *testing.T) {
 	defer mustReset(t)
+
 	request := util.MustDefaultRequestWithBody(t, http.MethodGet, "/v2/catalog", bytes.NewBufferString("{}"))
 	request.Header.Del("Content-Type")
+
 	client := util.MustDefaultClient(t)
+
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
+
 	util.MustVerifyStatusCode(t, response, http.StatusBadRequest)
 }
 
@@ -200,11 +258,15 @@ func TestConnectNoContentType(t *testing.T) {
 // however content type checking occurrs regardless.
 func TestConnectMultipleContentType(t *testing.T) {
 	defer mustReset(t)
+
 	request := util.MustDefaultRequestWithBody(t, http.MethodGet, "/v2/catalog", bytes.NewBufferString("{}"))
 	request.Header.Add("Content-Type", "text/plain")
+
 	client := util.MustDefaultClient(t)
+
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
+
 	util.MustVerifyStatusCode(t, response, http.StatusBadRequest)
 }
 
@@ -214,10 +276,14 @@ func TestConnectMultipleContentType(t *testing.T) {
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#content-type
 func TestConnectInvalidContentType(t *testing.T) {
 	defer mustReset(t)
+
 	request := util.MustDefaultRequestWithBody(t, http.MethodGet, "/v2/catalog", bytes.NewBufferString("{}"))
 	request.Header.Set("Content-Type", "text/plain")
+
 	client := util.MustDefaultClient(t)
+
 	response := util.MustDoRequest(t, client, request)
 	defer response.Body.Close()
+
 	util.MustVerifyStatusCode(t, response, http.StatusBadRequest)
 }

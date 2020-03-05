@@ -12,9 +12,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	// configUpdateTimeout is how long to wait before declaring a configuration
+	// update as failed.
+	configUpdateTimeout = 10 * time.Second
+)
+
 // MustDeleteServiceBrokerConfig deletes the service broker configuration file.
 func MustDeleteServiceBrokerConfig(t *testing.T, clients client.Clients) {
-	if err := clients.Broker().BrokerV1().CouchbaseServiceBrokerConfigs(Namespace).Delete("couchbase-service-broker", metav1.NewDeleteOptions(0)); err != nil {
+	if err := clients.Broker().BrokerV1().CouchbaseServiceBrokerConfigs(Namespace).Delete(config.ConfigurationName, metav1.NewDeleteOptions(0)); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -28,11 +34,13 @@ func MustCreateServiceBrokerConfig(t *testing.T, clients client.Clients, config 
 
 // MustUpdateBrokerConfig updates the service broker configuration with a typesafe callback.
 func MustUpdateBrokerConfig(t *testing.T, clients client.Clients, callback func(*v1.CouchbaseServiceBrokerConfig)) {
-	config, err := clients.Broker().BrokerV1().CouchbaseServiceBrokerConfigs(Namespace).Get("couchbase-service-broker", metav1.GetOptions{})
+	config, err := clients.Broker().BrokerV1().CouchbaseServiceBrokerConfigs(Namespace).Get(config.ConfigurationName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	callback(config)
+
 	if _, err := clients.Broker().BrokerV1().CouchbaseServiceBrokerConfigs(Namespace).Update(config); err != nil {
 		t.Fatal(err)
 	}
@@ -42,11 +50,13 @@ func MustUpdateBrokerConfig(t *testing.T, clients client.Clients, callback func(
 // for the broker to acquire the write lock and update the configuration to
 // make it live.
 func MustReplaceBrokerConfig(t *testing.T, clients client.Clients, spec *v1.CouchbaseServiceBrokerConfigSpec) {
-	configuration, err := clients.Broker().BrokerV1().CouchbaseServiceBrokerConfigs(Namespace).Get("couchbase-service-broker", metav1.GetOptions{})
+	configuration, err := clients.Broker().BrokerV1().CouchbaseServiceBrokerConfigs(Namespace).Get(config.ConfigurationName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	configuration.Spec = *spec
+
 	if _, err := clients.Broker().BrokerV1().CouchbaseServiceBrokerConfigs(Namespace).Update(configuration); err != nil {
 		t.Fatal(err)
 	}
@@ -54,9 +64,11 @@ func MustReplaceBrokerConfig(t *testing.T, clients client.Clients, spec *v1.Couc
 	callback := func() bool {
 		config.Lock()
 		defer config.Unlock()
+
 		return reflect.DeepEqual(&config.Config().Spec, spec)
 	}
-	if err := WaitFor(callback, 10*time.Second); err != nil {
+
+	if err := WaitFor(callback, configUpdateTimeout); err != nil {
 		t.Fatal(err)
 	}
 }

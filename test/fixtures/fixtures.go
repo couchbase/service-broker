@@ -8,6 +8,9 @@ import (
 )
 
 const (
+	// IllegalID is an illegal ID and must not be used as a service or plan ID.
+	IllegalID = "illegal"
+
 	// BasicConfigurationOfferingID is the symbolic constant UUID used for the basic configuration.
 	BasicConfigurationOfferingID = `dd2cce49-a0ff-4deb-9cbf-b97301fdb87e`
 

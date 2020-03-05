@@ -8,10 +8,15 @@ import (
 	informerv1 "github.com/couchbase/service-broker/generated/informers/externalversions/broker.couchbase.com/v1"
 	"github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1"
 	"github.com/couchbase/service-broker/pkg/client"
+	"github.com/couchbase/service-broker/pkg/log"
+	"github.com/golang/glog"
 
 	"k8s.io/client-go/tools/cache"
+)
 
-	"github.com/golang/glog"
+const (
+	// ConfigurationName is the configuration resource name.
+	ConfigurationName = "couchbase-service-broker"
 )
 
 type configuration struct {
@@ -42,17 +47,18 @@ var c *configuration
 
 // createHandler add the service broker configuration when the underlying
 // resource is created.
-// TODO: This is not atomic.
 func createHandler(obj interface{}) {
 	brokerConfiguration, ok := obj.(*v1.CouchbaseServiceBrokerConfig)
 	if !ok {
 		glog.Error("unexpected object type in config add")
 		return
 	}
-	if brokerConfiguration.Name != "couchbase-service-broker" {
-		glog.V(1).Info("unexpected object name in config delete:", brokerConfiguration.Name)
+
+	if brokerConfiguration.Name != ConfigurationName {
+		glog.V(log.LevelDebug).Info("unexpected object name in config delete:", brokerConfiguration.Name)
 		return
 	}
+
 	glog.Info("service broker configuration created, service ready")
 
 	c.lock.Lock()
@@ -62,17 +68,18 @@ func createHandler(obj interface{}) {
 
 // updateHandler modifies the service broker configuration when the underlying
 // resource updates.
-// TODO: This is not atomic.
 func updateHandler(oldObj, newObj interface{}) {
 	brokerConfiguration, ok := newObj.(*v1.CouchbaseServiceBrokerConfig)
 	if !ok {
 		glog.Error("unexpected object type in config update")
 		return
 	}
-	if brokerConfiguration.Name != "couchbase-service-broker" {
-		glog.V(1).Info("unexpected object name in config update:", brokerConfiguration.Name)
+
+	if brokerConfiguration.Name != ConfigurationName {
+		glog.V(log.LevelDebug).Info("unexpected object name in config update:", brokerConfiguration.Name)
 		return
 	}
+
 	glog.Info("service broker configuration updated")
 
 	c.lock.Lock()
@@ -82,17 +89,18 @@ func updateHandler(oldObj, newObj interface{}) {
 
 // deleteHandler deletes the service broker configuration when the underlying
 // resource is deleted.
-// TODO: This is not atomic.
 func deleteHandler(obj interface{}) {
 	brokerConfiguration, ok := obj.(*v1.CouchbaseServiceBrokerConfig)
 	if !ok {
 		glog.Error("unexpected object type in config delete")
 		return
 	}
-	if brokerConfiguration.Name != "couchbase-service-broker" {
-		glog.V(1).Info("unexpected object name in config delete:", brokerConfiguration.Name)
+
+	if brokerConfiguration.Name != ConfigurationName {
+		glog.V(log.LevelDebug).Info("unexpected object name in config delete:", brokerConfiguration.Name)
 		return
 	}
+
 	glog.Info("service broker configuration deleted, service unready")
 
 	c.lock.Lock()
@@ -122,7 +130,9 @@ func Configure(clients client.Clients, namespace, token string) error {
 	informer.AddEventHandler(handlers)
 
 	stop := make(chan struct{})
+
 	go informer.Run(stop)
+
 	if !cache.WaitForCacheSync(stop, informer.HasSynced) {
 		return fmt.Errorf("service broker config shared informer failed to syncronize")
 	}

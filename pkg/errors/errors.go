@@ -21,6 +21,7 @@ func IsConfigurationError(err error) bool {
 	if _, ok := err.(*configurationError); !ok {
 		return false
 	}
+
 	return true
 }
 
@@ -45,6 +46,7 @@ func IsQueryError(err error) bool {
 	if _, ok := err.(*queryError); !ok {
 		return false
 	}
+
 	return true
 }
 
@@ -69,6 +71,7 @@ func IsParameterError(err error) bool {
 	if _, ok := err.(*parameterError); !ok {
 		return false
 	}
+
 	return true
 }
 
@@ -93,6 +96,7 @@ func IsValidationError(err error) bool {
 	if _, ok := err.(*validationError); !ok {
 		return false
 	}
+
 	return true
 }
 
@@ -117,6 +121,7 @@ func IsAsyncRequiredError(err error) bool {
 	if _, ok := err.(*asyncRequiredError); !ok {
 		return false
 	}
+
 	return true
 }
 
@@ -140,6 +145,7 @@ func IsResourceConflictError(err error) bool {
 	if _, ok := err.(*resourceConflictError); !ok {
 		return false
 	}
+
 	return true
 }
 
@@ -163,6 +169,7 @@ func IsResourceNotFoundError(err error) bool {
 	if _, ok := err.(*resourceNotFoundError); !ok {
 		return false
 	}
+
 	return true
 }
 
@@ -186,6 +193,7 @@ func IsResourceGoneError(err error) bool {
 	if _, ok := err.(*resourceGoneError); !ok {
 		return false
 	}
+
 	return true
 }
 

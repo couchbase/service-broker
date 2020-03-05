@@ -6,24 +6,24 @@ import (
 	"github.com/google/uuid"
 )
 
-// OperationKind is the type of operation being performed.
-type OperationKind string
+// Type is the type of operation being performed.
+type Type string
 
 const (
-	// OperationKindServiceInstanceCreate is used when a service instance is being created.
-	OperationKindServiceInstanceCreate OperationKind = "serviceInstanceCreate"
+	// TypeServiceInstanceCreate is used when a service instance is being created.
+	TypeServiceInstanceCreate Type = "serviceInstanceCreate"
 
-	// OperationKindServiceInstanceUpdate is used when a service instance is being updated.
-	OperationKindServiceInstanceUpdate OperationKind = "serviceInstanceUpdate"
+	// TypeServiceInstanceUpdate is used when a service instance is being updated.
+	TypeServiceInstanceUpdate Type = "serviceInstanceUpdate"
 
-	// OperationKindServiceInstanceDelete is used when a service instance is being deleted.
-	OperationKindServiceInstanceDelete OperationKind = "serviceInstanceDelete"
+	// TypeServiceInstanceDelete is used when a service instance is being deleted.
+	TypeServiceInstanceDelete Type = "serviceInstanceDelete"
 )
 
-// Operation represents an asyncronous operation.
+// Operation represents an asynchronous operation.
 type Operation struct {
-	// Kind is the type of operation being performed.
-	Kind OperationKind
+	// Type is the type of operation being performed.
+	Type Type
 
 	// ID is a unique identifier for the operation.
 	ID string
@@ -40,7 +40,6 @@ type Operation struct {
 }
 
 // operations is the global cache of operations.
-// TODO: Persist as a configmap?
 var operations = map[string]*Operation{}
 
 // Get returns the operation associated with an instance ID.
@@ -55,18 +54,21 @@ func Delete(instanceID string) {
 }
 
 // New creates a new aysnchronous operation for an instance ID.
-func New(kind OperationKind, instanceID, serviceID, planID string) (*Operation, error) {
+func New(t Type, instanceID, serviceID, planID string) (*Operation, error) {
 	operation := &Operation{
-		Kind:      kind,
+		Type:      t,
 		ID:        uuid.New().String(),
 		ServiceID: serviceID,
 		PlanID:    planID,
 		Status:    make(chan error),
 	}
+
 	if _, ok := operations[instanceID]; ok {
 		return nil, fmt.Errorf("operation already exists for instance")
 	}
+
 	operations[instanceID] = operation
+
 	return operation, nil
 }
 

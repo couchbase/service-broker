@@ -78,6 +78,7 @@ func NewClients() (client.Clients, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	mapper := restmapper.NewDiscoveryRESTMapper(groupresources)
 
 	clients := &clientsImpl{
@@ -115,6 +116,7 @@ func ResetClients(clients client.Clients) error {
 	if err != nil {
 		return err
 	}
+
 	mapper := restmapper.NewDiscoveryRESTMapper(groupresources)
 
 	c.kubernetes = kubernetes

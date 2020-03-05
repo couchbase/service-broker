@@ -10,7 +10,7 @@ import (
 	"github.com/couchbase/service-broker/pkg/api"
 	"github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1"
 	"github.com/couchbase/service-broker/pkg/errors"
-
+	"github.com/couchbase/service-broker/pkg/log"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
@@ -33,7 +33,8 @@ func JSONRequest(r *http.Request, data interface{}) error {
 		return fmt.Errorf("unable to read body: %v", err)
 	}
 
-	glog.V(1).Infof("JSON req: %s", string(body))
+	glog.V(log.LevelDebug).Infof("JSON req: %s", string(body))
+
 	if err := json.Unmarshal(body, data); err != nil {
 		return errors.NewParameterError("unable to unmarshal body: %v", err)
 	}
@@ -50,16 +51,19 @@ func JSONResponse(w http.ResponseWriter, status int, data interface{}) {
 		HTTPResponse(w, http.StatusInternalServerError)
 	}
 
-	glog.V(1).Infof("JSON rsp: %s", string(resp))
+	glog.V(log.LevelDebug).Infof("JSON rsp: %s", string(resp))
+
 	w.Header().Set("Content-Type", "application/json")
+
 	HTTPResponse(w, status)
+
 	if _, err := w.Write(resp); err != nil {
 		glog.Errorf("error writing response: %v", err)
 	}
 }
 
 // translateError translates from an internal error type to a HTTP status code and an API error type.
-func translateError(err error) (int, api.APIError) {
+func translateError(err error) (int, api.ErrorType) {
 	switch {
 	case errors.IsConfigurationError(err):
 		return http.StatusBadRequest, api.ErrorConfigurationError
@@ -113,13 +117,17 @@ func GetSingleParameter(r *http.Request, name string) (string, error) {
 	if err != nil {
 		return "", errors.NewQueryError("malformed query data: %v", err)
 	}
+
 	values, ok := query[name]
 	if !ok {
 		return "", errors.NewQueryError("query parameter %s not found", name)
 	}
-	if len(values) != 1 {
+
+	requiredParameters := 1
+	if len(values) != requiredParameters {
 		return "", errors.NewQueryError("query parameter %s not unique", name)
 	}
+
 	return values[0], nil
 }
 
@@ -144,26 +152,32 @@ func getServicePlan(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID s
 	if config.Spec.Catalog == nil {
 		return nil, errors.NewConfigurationError("service catalog not defined")
 	}
+
 	for serviceIndex, service := range config.Spec.Catalog.Services {
 		if service.ID != serviceID {
 			continue
 		}
+
 		for planIndex, plan := range service.Plans {
 			if plan.ID != planID {
 				continue
 			}
+
 			return &config.Spec.Catalog.Services[serviceIndex].Plans[planIndex], nil
 		}
+
 		return nil, errors.NewParameterError("service plan %s not defined for service offering %s", planID, serviceID)
 	}
+
 	return nil, errors.NewParameterError("service offering '%s' not defined", serviceID)
 }
 
-// ValidateServicePlan checks the paramters are valid for the configuration.
+// ValidateServicePlan checks the parameters are valid for the configuration.
 func ValidateServicePlan(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID string) error {
 	if _, err := getServicePlan(config, serviceID, planID); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -200,6 +214,7 @@ func getSchema(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID string
 		if plan.Schemas.ServiceInstance == nil {
 			return nil, nil
 		}
+
 		switch o {
 		case SchemaOperationCreate:
 			return plan.Schemas.ServiceInstance.Create, nil
@@ -212,6 +227,7 @@ func getSchema(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID string
 		if plan.Schemas.ServiceBinding == nil {
 			return nil, nil
 		}
+
 		switch o {
 		case SchemaOperationCreate:
 			return plan.Schemas.ServiceBinding.Create, nil
@@ -229,6 +245,7 @@ func ValidateParameters(config *v1.CouchbaseServiceBrokerConfig, serviceID, plan
 	if err != nil {
 		return err
 	}
+
 	if schemaRaw != nil {
 		// Default to an empty object, that way we can detect when required
 		// fields are missing.
@@ -251,5 +268,6 @@ func ValidateParameters(config *v1.CouchbaseServiceBrokerConfig, serviceID, plan
 			return errors.NewValidationError("schema validation failed: %v", err)
 		}
 	}
+
 	return nil
 }

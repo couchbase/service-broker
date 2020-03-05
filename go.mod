@@ -9,6 +9,7 @@ require (
 	github.com/go-openapi/strfmt v0.19.3
 	github.com/go-openapi/validate v0.19.5
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
+	github.com/golangci/golangci-lint v1.23.8 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/julienschmidt/httprouter v1.2.0
 	k8s.io/api v0.17.2

@@ -35,9 +35,11 @@ func TestCatalogUpdate(t *testing.T) {
 		if err := util.Get("/v2/catalog", http.StatusOK, catalog); err != nil {
 			return false
 		}
+
 		if len(catalog.Services) != 1 || catalog.Services[0].Name != "fluttershy" {
 			return false
 		}
+
 		return true
 	}
 	util.MustWaitFor(t, validator, time.Minute)

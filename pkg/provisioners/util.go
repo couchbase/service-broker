@@ -21,6 +21,7 @@ import (
 func getNamespace(context *runtime.RawExtension) (string, error) {
 	if context != nil {
 		var ctx interface{}
+
 		if err := json.Unmarshal(context.Raw, &ctx); err != nil {
 			glog.Errorf("unmarshal of client context failed: %v", err)
 			return "", err
@@ -31,16 +32,20 @@ func getNamespace(context *runtime.RawExtension) (string, error) {
 			glog.Errorf("failed to parse JSON pointer: %v", err)
 			return "", err
 		}
+
 		v, _, err := pointer.Get(ctx)
 		if err == nil {
 			namespace, ok := v.(string)
 			if ok {
 				return namespace, nil
 			}
+
 			glog.Errorf("request context namespace not a string")
+
 			return "", fmt.Errorf("request context namespace not a string")
 		}
 	}
+
 	return config.Namespace(), nil
 }
 
@@ -53,9 +58,11 @@ func getServiceAndPlanNames(serviceID, planID string) (string, string, error) {
 					return service.Name, plan.Name, nil
 				}
 			}
+
 			return "", "", fmt.Errorf("unable to locate plan for ID %s", planID)
 		}
 	}
+
 	return "", "", fmt.Errorf("unable to locate service for ID %s", serviceID)
 }
 
@@ -66,11 +73,13 @@ func getTemplateBindings(serviceID, planID string) (*v1.CouchbaseServiceBrokerCo
 	if err != nil {
 		return nil, err
 	}
+
 	for index, binding := range config.Config().Spec.Bindings {
 		if binding.Service == service && binding.Plan == plan {
 			return &config.Config().Spec.Bindings[index], nil
 		}
 	}
+
 	return nil, fmt.Errorf("unable to locate template bindings for service plan %s/%s", service, plan)
 }
 
@@ -81,6 +90,7 @@ func getTemplate(name string) (*v1.CouchbaseServiceBrokerConfigTemplate, error) 
 			return &config.Config().Spec.Templates[index], nil
 		}
 	}
+
 	return nil, fmt.Errorf("unable to locate template for %s", name)
 }
 
@@ -89,6 +99,7 @@ func resolveParameter(parameter *v1.CouchbaseServiceBrokerConfigTemplateParamete
 	// You cannot have multiple parameter sources.  Metadata takes
 	// precedence over request parameters.
 	var value interface{}
+
 	switch {
 	case parameter.Source.Metadata != nil:
 		// Metadata parameters are explicitly mapped to values associated
@@ -120,6 +131,7 @@ func resolveParameter(parameter *v1.CouchbaseServiceBrokerConfigTemplateParamete
 			default:
 				return nil, fmt.Errorf("undefined default parameter")
 			}
+
 			glog.Infof("using parameter default %v", value)
 		}
 		// Parameters reference parameters specified by the client in response to
@@ -137,17 +149,21 @@ func resolveParameter(parameter *v1.CouchbaseServiceBrokerConfigTemplateParamete
 		}
 
 		glog.Infof("interrogating path %s", parameter.Source.Parameter.Path)
+
 		pointer, err := jsonpointer.New(parameter.Source.Parameter.Path)
 		if err != nil {
 			glog.Errorf("failed to parse JSON pointer: %v", err)
 			return nil, err
 		}
+
 		v, _, err := pointer.Get(parametersUnstructured)
 		if err != nil {
 			glog.Infof("client parameter not set, skipping: %v", err)
 			break
 		}
+
 		glog.Infof("using parameter %v", v)
+
 		value = v
 	default:
 		return nil, fmt.Errorf("source parameter type not specified")
@@ -162,7 +178,9 @@ func resolveParameter(parameter *v1.CouchbaseServiceBrokerConfigTemplateParamete
 			glog.Errorf("value unset but parameter is required")
 			return nil, fmt.Errorf("parameter %s is required", parameter.Name)
 		}
+
 		glog.Infof("value unset, skipping")
+
 		return nil, nil
 	}
 
@@ -174,6 +192,7 @@ func resolveParameter(parameter *v1.CouchbaseServiceBrokerConfigTemplateParamete
 			glog.Errorf("prefix is set but value is not a string")
 			return nil, fmt.Errorf("prefix is set but value is not a string")
 		}
+
 		value = *parameter.Source.Prefix + v
 	case parameter.Source.Suffix != nil:
 		v, ok := value.(string)
@@ -181,6 +200,7 @@ func resolveParameter(parameter *v1.CouchbaseServiceBrokerConfigTemplateParamete
 			glog.Errorf("suffix is set but value is not a string")
 			return nil, fmt.Errorf("suffix is set but value is not a string")
 		}
+
 		value = v + *parameter.Source.Suffix
 	case parameter.Source.Format != nil:
 		value = fmt.Sprintf(*parameter.Source.Format, value)
@@ -201,8 +221,8 @@ func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, instanceI
 	// Now for the fun bit.  Work through each defined parameter and apply it to
 	// the object.  This basically works like JSON patch++, automatically filling
 	// in parent objects and arrays as necessary.
-	for _, parameter := range t.Parameters {
-		value, err := resolveParameter(&parameter, instanceID, parameters, true)
+	for index, parameter := range t.Parameters {
+		value, err := resolveParameter(&t.Parameters[index], instanceID, parameters, true)
 		if err != nil {
 			return nil, err
 		}
@@ -213,29 +233,37 @@ func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, instanceI
 
 		// Set each destination path using JSON patch.
 		patches := []string{}
+
 		for _, path := range parameter.Destination.Paths {
 			valueJSON, err := json.Marshal(value)
 			if err != nil {
 				glog.Errorf("marshal of value failed: %v", err)
 				return nil, err
 			}
+
 			patches = append(patches, fmt.Sprintf(`{"op":"add","path":"%s","value":%s}`, path, string(valueJSON)))
 		}
+
 		patchSet := "[" + strings.Join(patches, ",") + "]"
+
 		glog.Infof("applying patchset %s", patchSet)
+
 		patch, err := jsonpatch.DecodePatch([]byte(patchSet))
 		if err != nil {
 			glog.Errorf("decode of JSON patch failed: %v", err)
 			return nil, err
 		}
+
 		object, err := patch.Apply(t.Template.Raw)
 		if err != nil {
 			glog.Errorf("apply of JSON patch failed: %v", err)
 			return nil, err
 		}
+
 		t.Template.Raw = object
 	}
 
 	glog.Infof("rendered template %s", string(t.Template.Raw))
+
 	return t, nil
 }

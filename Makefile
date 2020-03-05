@@ -39,7 +39,7 @@ container: build
 	docker build -f Dockerfile -t couchbase/service-broker:$(VERSION) .
 
 test: ${GENAPI}
-	go vet ./...
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint run
 	go test -v -race -cover -coverpkg github.com/couchbase/service-broker/pkg/... -coverprofile=$(COVER_FILE) ./test
 
 cover:

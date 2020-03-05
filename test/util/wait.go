@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+const (
+	// retryPeriod is how often to poll a WaitFunc.
+	retryPeriod = 10 * time.Millisecond
+)
+
 // WaitFunc is a callback that stops a wait when true.
 type WaitFunc func() bool
 
@@ -20,6 +25,7 @@ var ServerRunning = func() bool {
 	if err != nil {
 		return false
 	}
+
 	request.Header.Set("X-Broker-API-Version", "2.13")
 	request.Header.Set("Authorization", "Bearer "+Token)
 
@@ -53,7 +59,7 @@ func WaitFor(f WaitFunc, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	tick := time.NewTicker(10 * time.Millisecond)
+	tick := time.NewTicker(retryPeriod)
 	defer tick.Stop()
 
 	for !f() {

@@ -4,8 +4,8 @@ import (
 	"github.com/couchbase/service-broker/pkg/registry"
 )
 
-// serviceInstanceDeleter caches various data associated with deleting a service instance.
-type serviceInstanceDeleter struct {
+// ServiceInstanceDeleter caches various data associated with deleting a service instance.
+type ServiceInstanceDeleter struct {
 	// registry is the instance registry.
 	registry *registry.Registry
 
@@ -14,14 +14,14 @@ type serviceInstanceDeleter struct {
 }
 
 // NewServiceInstanceDeleter returns a new controller capable of deleting a service instance.
-func NewServiceInstanceDeleter(registry *registry.Registry, instanceID string) *serviceInstanceDeleter {
-	return &serviceInstanceDeleter{
+func NewServiceInstanceDeleter(registry *registry.Registry, instanceID string) *ServiceInstanceDeleter {
+	return &ServiceInstanceDeleter{
 		registry:   registry,
 		instanceID: instanceID,
 	}
 }
 
 // Run performs asynchronous update tasks.
-func (d *serviceInstanceDeleter) Run() error {
+func (d *ServiceInstanceDeleter) Run() error {
 	return d.registry.Delete(registry.ServiceInstanceRegistryName(d.instanceID))
 }
