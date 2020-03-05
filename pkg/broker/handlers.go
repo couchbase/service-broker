@@ -203,13 +203,15 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 
-	serviceID, err := util.GetSingleParameter(r, "service_id")
+	// service_id is optional and provoded as a hint.
+	serviceID, serviceIDProvided, err := util.MayGetSingleParameter(r, "service_id")
 	if err != nil {
 		util.JSONError(w, err)
 		return
 	}
 
-	planID, err := util.GetSingleParameter(r, "plan_id")
+	// plan_id is optional and provoded as a hint.
+	planID, planIDProvided, err := util.MayGetSingleParameter(r, "plan_id")
 	if err != nil {
 		util.JSONError(w, err)
 		return
@@ -221,18 +223,18 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 
-	if serviceID != serviceInstanceServiceID {
-		util.JSONError(w, errors.NewQueryError("specified service ID %s does not match %s", serviceID, serviceInstanceServiceID))
-		return
-	}
-
 	serviceInstancePlanID, err := registryEntry.Get(registry.ServicePlanKey)
 	if err != nil {
 		util.JSONError(w, err)
 		return
 	}
 
-	if planID != serviceInstancePlanID {
+	if serviceIDProvided && serviceID != serviceInstanceServiceID {
+		util.JSONError(w, errors.NewQueryError("specified service ID %s does not match %s", serviceID, serviceInstanceServiceID))
+		return
+	}
+
+	if planIDProvided && planID != serviceInstancePlanID {
 		util.JSONError(w, errors.NewQueryError("specified plan ID %s does not match %s", planID, serviceInstancePlanID))
 		return
 	}
@@ -395,14 +397,14 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	if serviceID != serviceInstanceServiceID {
-		util.JSONError(w, errors.NewQueryError("specified service ID %s does not match %s", serviceID, serviceInstanceServiceID))
-		return
-	}
-
 	serviceInstancePlanID, err := registryEntry.Get(registry.ServicePlanKey)
 	if err != nil {
 		util.JSONError(w, err)
+		return
+	}
+
+	if serviceID != serviceInstanceServiceID {
+		util.JSONError(w, errors.NewQueryError("specified service ID %s does not match %s", serviceID, serviceInstanceServiceID))
 		return
 	}
 
@@ -438,6 +440,7 @@ func handleReadServiceInstanceStatus(w http.ResponseWriter, r *http.Request, par
 
 	op, ok := operation.Get(instanceID)
 	if !ok {
+		// The operation should be persistent, hence this hack.
 		// While we should return an error here, the service catalog doesn't like getting
 		// a non-yay or nay response.
 		response := &api.PollServiceInstanceResponse{
@@ -449,30 +452,38 @@ func handleReadServiceInstanceStatus(w http.ResponseWriter, r *http.Request, par
 		return
 	}
 
-	serviceID, err := util.GetSingleParameter(r, "service_id")
+	// service_id is optional and provoded as a hint.
+	serviceID, serviceIDProvided, err := util.MayGetSingleParameter(r, "service_id")
 	if err != nil {
 		util.JSONError(w, err)
 		return
 	}
 
-	planID, err := util.GetSingleParameter(r, "plan_id")
+	// plan_id is optional and provided as a hint.
+	planID, planIDProvided, err := util.MayGetSingleParameter(r, "plan_id")
 	if err != nil {
 		util.JSONError(w, err)
 		return
 	}
 
+	// operation is optional, however the broker only implements asynchronous
+	// operations at present, so require it unconditionally.
 	operationID, err := util.GetSingleParameter(r, "operation")
 	if err != nil {
 		util.JSONError(w, err)
 		return
 	}
 
-	if serviceID != op.ServiceID {
+	// While not specified, we check that the provided service ID matches the one
+	// we expect.  It may be indicative of a client error.
+	if serviceIDProvided && serviceID != op.ServiceID {
 		util.JSONError(w, errors.NewQueryError("provided service ID %s does not match %s", serviceID, op.ServiceID))
 		return
 	}
 
-	if planID != op.PlanID {
+	// While not specified, we check that the provided plan ID matches the one
+	// we expect.  It may be indicative of a client error.
+	if planIDProvided && planID != op.PlanID {
 		util.JSONError(w, errors.NewQueryError("provided plan ID %s does not match %s", planID, op.PlanID))
 		return
 	}

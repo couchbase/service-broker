@@ -110,25 +110,40 @@ func JSONErrorUsable(w http.ResponseWriter, err error) {
 	JSONResponse(w, status, e)
 }
 
-// GetSingleParameter gets a named parameter from the request URL.  Returns an
-// error if it doesn't exist or there is any abiguity.
-func GetSingleParameter(r *http.Request, name string) (string, error) {
+// MayGetSingleParameter gets a named parameter from the request URL.  Returns false
+// if it doesn't exist and an error if there is any abiguity.
+func MayGetSingleParameter(r *http.Request, name string) (string, bool, error) {
 	query, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
-		return "", errors.NewQueryError("malformed query data: %v", err)
+		return "", false, errors.NewQueryError("malformed query data: %v", err)
 	}
 
 	values, ok := query[name]
 	if !ok {
-		return "", errors.NewQueryError("query parameter %s not found", name)
+		return "", false, nil
 	}
 
 	requiredParameters := 1
 	if len(values) != requiredParameters {
-		return "", errors.NewQueryError("query parameter %s not unique", name)
+		return "", true, errors.NewQueryError("query parameter %s not unique", name)
 	}
 
-	return values[0], nil
+	return values[0], true, nil
+}
+
+// GetSingleParameter gets a named parameter from the request URL.  Returns an
+// error if it doesn't exist or there is any abiguity.
+func GetSingleParameter(r *http.Request, name string) (string, error) {
+	value, exists, err := MayGetSingleParameter(r, name)
+	if err != nil {
+		return "", err
+	}
+
+	if !exists {
+		return "", errors.NewQueryError("query parameter %s not found", name)
+	}
+
+	return value, nil
 }
 
 // AsyncRequired is called when the handler only supports async requests.
