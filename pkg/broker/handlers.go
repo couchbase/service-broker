@@ -283,6 +283,13 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
+	// Parse the update request.
+	request := &api.UpdateServiceInstanceRequest{}
+	if err := util.JSONRequest(r, request); err != nil {
+		util.JSONError(w, err)
+		return
+	}
+
 	// Check if the instance already exists.
 	registryEntry, err := instanceRegistry.Get(registry.ServiceInstanceRegistryName(instanceID))
 	if err != nil && !k8s_errors.IsNotFound(err) {
@@ -303,15 +310,12 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	// Parse the update request.
-	request := &api.UpdateServiceInstanceRequest{}
-	if err := util.JSONRequest(r, request); err != nil {
-		util.JSONError(w, err)
-		return
+	if request.PlanID != "" {
+		planID = request.PlanID
 	}
 
 	// Check parameters.
-	if err := util.ValidateServicePlan(config.Config(), request.ServiceID, request.PlanID); err != nil {
+	if err := util.ValidateServicePlan(config.Config(), request.ServiceID, planID); err != nil {
 		util.JSONError(w, err)
 		return
 	}
@@ -333,7 +337,7 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	// Start the update operation in the background.
-	op, err := operation.New(operation.TypeServiceInstanceUpdate, instanceID, request.ServiceID, request.PlanID)
+	op, err := operation.New(operation.TypeServiceInstanceUpdate, instanceID, request.ServiceID, planID)
 	if err != nil {
 		util.JSONError(w, err)
 		return

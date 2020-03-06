@@ -365,6 +365,38 @@ func MustDeleteAndError(t *testing.T, path string, statusCode int, apiError api.
 	}
 }
 
+// Patch does a PATCH API call and expects a certain response.
+func Patch(path string, statusCode int, request, response interface{}) error {
+	if err := basicOperation(http.MethodPatch, path, statusCode, request, response); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// MustPatch does a PATCH API call and expects a certain response.
+func MustPatch(t *testing.T, path string, statusCode int, request, response interface{}) {
+	if err := Patch(path, statusCode, request, response); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// PatchAndError does a PATCH API call and expects a certain response with a valid JSON error.
+func PatchAndError(path string, statusCode int, request interface{}, apiError api.ErrorType) error {
+	if err := basicOperationAndError(http.MethodPatch, path, statusCode, request, apiError); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// MustPatchAndError does a PATCH API call and expects a certain response with a valid JSON error.
+func MustPatchAndError(t *testing.T, path string, statusCode int, request interface{}, apiError api.ErrorType) {
+	if err := PatchAndError(path, statusCode, request, apiError); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // PollServiceInstanceQuery creates a query string for use with the service instance polling
 // API.  It is generated from the original service instance creation request and the response
 // containing the operation ID.
@@ -428,5 +460,22 @@ func MustPollServiceInstanceForCompletion(t *testing.T, name string, rsp *api.Cr
 // MustCreateServiceInstanceSuccessfully wraps up service instance creation and polling.
 func MustCreateServiceInstanceSuccessfully(t *testing.T, name string, req *api.CreateServiceInstanceRequest) {
 	rsp := MustCreateServiceInstance(t, name, req)
+	MustPollServiceInstanceForCompletion(t, name, rsp)
+}
+
+// MustUpdateServiceInstance wraps up service instance creation.
+func MustUpdateServiceInstance(t *testing.T, name string, req *api.UpdateServiceInstanceRequest) *api.CreateServiceInstanceResponse {
+	rsp := &api.CreateServiceInstanceResponse{}
+	MustPatch(t, "/v2/service_instances/"+name+"?accepts_incomplete=true", http.StatusAccepted, req, rsp)
+
+	// All create operations are asynchronous and must have an operation string.
+	Assert(t, rsp.Operation != "")
+
+	return rsp
+}
+
+// MustUpdateServiceInstanceSuccessfully wraps up service instance update and polling.
+func MustUpdateServiceInstanceSuccessfully(t *testing.T, name string, req *api.UpdateServiceInstanceRequest) {
+	rsp := MustUpdateServiceInstance(t, name, req)
 	MustPollServiceInstanceForCompletion(t, name, rsp)
 }

@@ -463,3 +463,16 @@ func TestServiceInstanceReadIllegalServiceInstance(t *testing.T) {
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustGetAndError(t, "/v2/service_instances/pinkiepie?"+util.ReadServiceInstanceQuery(req).Encode(), http.StatusNotFound, api.ErrorResourceNotFound)
 }
+
+// TestServiceInstanceUpdate tests a service instance can be updated.
+func TestServiceInstanceUpdate(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	update := fixtures.BasicServiceInstanceUpdateRequest()
+	util.MustUpdateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, update)
+}

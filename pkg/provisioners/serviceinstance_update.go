@@ -73,6 +73,10 @@ func (u *ServiceInstanceUpdater) PrepareResources() error {
 		return err
 	}
 
+	if templateBindings.ServiceInstance == nil {
+		return nil
+	}
+
 	// Prepare the client code
 	client := config.Clients().Dynamic()
 

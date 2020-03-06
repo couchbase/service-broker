@@ -97,6 +97,12 @@ var (
 		ServiceID: BasicConfigurationOfferingID,
 		PlanID:    BasicConfigurationPlanID,
 	}
+
+	// basicServiceInstanceUpdateRequest is the absolute minimum valid service instance update
+	// request to use against the basicConfiguration.
+	basicServiceInstanceUpdateRequest = api.UpdateServiceInstanceRequest{
+		ServiceID: BasicConfigurationOfferingID,
+	}
 )
 
 // EmptyConfiguration returns an empty configuration, useful for testing when users
@@ -125,4 +131,10 @@ func BasicSchemaRequired() *v1.Schemas {
 // request to use against the basicConfiguration.
 func BasicServiceInstanceCreateRequest() *api.CreateServiceInstanceRequest {
 	return basicServiceInstanceCreateRequest.DeepCopy()
+}
+
+// BasicServiceInstanceUpdateRequest is the absolute minimum valid service instance update
+// request to use against the basicConfiguration.
+func BasicServiceInstanceUpdateRequest() *api.UpdateServiceInstanceRequest {
+	return basicServiceInstanceUpdateRequest.DeepCopy()
 }
