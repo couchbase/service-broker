@@ -49,6 +49,45 @@ The Service Broker is flexible enough so that resources created to realize a ser
 The Service Broker is deployed in its own namespace to keep its own configuration and runtime data separate and secured from other users.
 Depending on how you wish to configure the Service Broker, it may only require permissions to create resources in its own namespace, or if provisioning resources in other namespaces, cluster wide permissions.
 
+## Installation
+
+Ensure the [Kubernetes Service Catalog is installed](https://svc-cat.io/docs/install/).
+
+Install the custom resource definition:
+
+```bash
+$ kubectl create -f example/broker.couchbase.com_couchbaseservicebrokerconfigs.yaml
+```
+
+Select a configuration template to use.
+These define the permissions that are required by the service broker to deploy the service instances as defined in the configuration:
+
+```bash
+$ kubectl create -f example/configurations/couchbase-server.yaml
+```
+
+Install the service broker, ensuring the service broker deployment is running:
+
+```bash
+$ kubectl create -f example/broker.yaml
+$ kubectl wait --for=condition=Available deployment/couchbase-service-broker
+```
+
+Register the service broker with the service catalog, ensuring it is ready:
+
+```bash
+$ kubectl create -f example/clusterservicebroker.yaml
+$ svcat get brokers
+```
+
+Finally you can test the broker configuration by creating a service instance:
+
+```bash
+$ kubectl create -f example/configurations/serviceinstance.yaml
+```
+
+## Architecture
+
 ### Templating Engine
 
 The core of the Service Broker is a flexible and generic templating engine.
@@ -67,19 +106,19 @@ All tests must pass, and do so consistently.
 Tests can be run with the following command:
 
 ```bash
-make test
+$ make test
 ```
 
 You can run individual tests or groups of tests while debugging with the following command:
 
 ```bash
-go test -v -race ./test -run TestConnect -args -logtostderr -v 1
+$ go test -v -race ./test -run TestConnect -args -logtostderr -v 1
 ```
 
-Code coverage is run as part of the test command and -- although not enforced -- should be checked:
+Code coverage is run as part of the test command and -- although not enforced, it is watched -- should be checked:
 
 ```bask
-make cover
+$ make cover
 ```
 
-Any code that is added (and not auto-generated) should be covered by testing.
+Any code that is added (and not auto-generated) must be covered by testing.

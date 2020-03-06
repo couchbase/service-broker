@@ -20,9 +20,6 @@ const (
 )
 
 func main() {
-	// Start the server.
-	glog.Infof("%s v%s (git commit %s)", version.Application, version.Version, version.GitCommit)
-
 	// tokenPath is the location of the file containing the bearer token for authentication.
 	var tokenPath string
 
@@ -36,6 +33,9 @@ func main() {
 	flag.StringVar(&tlsCertificatePath, "tls-certificate", "/var/run/secrets/couchbase.com/service-broker/tls-certificate", "Path to the server TLS certificate")
 	flag.StringVar(&tlsPrivateKeyPath, "tls-private-key", "/var/run/secrets/couchbase.com/service-broker/tls-private-key", "Path to the server TLS key")
 	flag.Parse()
+
+	// Start the server.
+	glog.Infof("%s v%s (git commit %s)", version.Application, version.Version, version.GitCommit)
 
 	// Parse implicit configuration.
 	namespace, ok := os.LookupEnv("NAMESPACE")

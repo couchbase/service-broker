@@ -1,0 +1,405 @@
+# Broker requires roles to perform certain tasks.
+# The Broker requires at least permission to get its configuration file.
+# The Broker requires permission to create/delete any resource defined
+# as a template, as well as any permission granted with templated roles
+# or cluster roles.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: couchbase-service-broker
+rules:
+- apiGroups:
+  - broker.couchbase.com
+  resources:
+  - couchbaseservicebrokerconfigs
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - couchbase.com
+  resources:
+  - couchbaseclusters
+  - couchbasebuckets
+  - couchbaseephemeralbuckets
+  - couchbasememcachedbuckets
+  - couchbasereplications
+  - couchbaseusers
+  - couchbasegroups
+  - couchbaseroles
+  - couchbaserolebindings
+  - couchbasebackups
+  - couchbasebackuprestores
+  verbs:
+  - "*"
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - events
+  - secrets
+  - nodes
+  - pods
+  - pods/exec
+  - services
+  - persistentvolumeclaims
+  - secrets
+  - serviceaccounts
+  - configmaps
+  verbs:
+  - "*"
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  - cronjobs
+  verbs:
+  - "*"
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - "*"
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
+  - clusterroles
+  - clusterrolebindings
+  verbs:
+  - "*"
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - "*"
+---
+# The main Broker configuration.  This defines what classes and plans a client
+# can see, along with what can be configured.  Templates are bound to a plan and
+# are rendered and created when a service instance/binding is created, then cleaned
+# up when deleted.
+apiVersion: broker.couchbase.com/v1
+kind: CouchbaseServiceBrokerConfig
+metadata:
+  name: couchbase-service-broker
+spec:
+  # Catalog is simply verbatim what will be exposed on GET /v2/catalog
+  catalog:
+    services:
+    - id: 8522e991-07bc-4225-a859-1eec1e333153
+      name: couchbase-developer
+      description: Couchbase Server developer deployments
+      tags:
+      - database
+      - nosql
+      bindable: true
+      instances_retrievable: true
+      bindings_retrievable: true
+      plan_updatable: true
+      plans:
+      - id: ec0f2c9b-0277-46d7-985f-ba1fbf3b068d
+        name: couchbase-developer-private
+        description: Cluster accessible within the Kubernetes cluster
+        schemas:
+          service_instance:
+            create:
+              parameters:
+                $schema: "http://json-schema.org/draft-04/schema#"
+                type: object
+                required:
+                  - password
+                properties:
+                  password:
+                    description: "Administrator password"
+                    type: string
+                  size:
+                    description: "Cluster size"
+                    type: number
+                    minimum: 3
+                    maximum: 9
+            update:
+              parameters:
+                $schema: "http://json-schema.org/draft-04/schema#"
+                type: object
+                properties:
+                  size:
+                    description: "Cluster size"
+                    type: number
+                    minimum: 3
+                    maximum: 9
+  # Templates allow the end user to define anything they want to be created.
+  # The parameters if specified define where the source is, either requesst
+  # metadata or parameters.  Parameters allow defaults to be specified if
+  # the parameter is not defined.  Parameters are applied to the resource one
+  # or many times as required.
+  templates:
+  - name: couchbase-operator-serviceaccount
+    singleton: true
+    template:
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: couchbase-operator
+  - name: couchbase-operator-role
+    singleton: true
+    template:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: Role
+      metadata:
+        creationTimestamp: null
+        name: couchbase-operator
+      rules:
+      - apiGroups:
+        - batch
+        resources:
+        - jobs
+        - cronjobs
+        verbs:
+        - list
+        - watch
+        - create
+        - update
+      - apiGroups:
+        - couchbase.com
+        resources:
+        - couchbaseclusters
+        verbs:
+        - get
+        - list
+        - watch
+        - update
+      - apiGroups:
+        - couchbase.com
+        resources:
+        - couchbasebuckets
+        - couchbaseephemeralbuckets
+        - couchbasememcachedbuckets
+        - couchbasereplications
+        - couchbaseusers
+        - couchbasegroups
+        - couchbaseroles
+        - couchbaserolebindings
+        - couchbasebackups
+        verbs:
+        - list
+        - watch
+      - apiGroups:
+        - couchbase.com
+        resources:
+        - couchbasebackuprestores
+        verbs:
+        - list
+        - watch
+        - delete
+      - apiGroups:
+        - ""
+        resources:
+        - configmaps
+        verbs:
+        - get
+        - create
+        - update
+      - apiGroups:
+        - ""
+        resources:
+        - pods
+        - services
+        - persistentvolumeclaims
+        verbs:
+        - get
+        - list
+        - watch
+        - create
+        - update
+        - delete
+      - apiGroups:
+        - ""
+        resources:
+        - pods/exec
+        verbs:
+        - create
+      - apiGroups:
+        - ""
+        resources:
+        - events
+        verbs:
+        - list
+        - create
+        - update
+      - apiGroups:
+        - ""
+        resources:
+        - secrets
+        verbs:
+        - get
+        - list
+        - watch
+      - apiGroups:
+        - policy
+        resources:
+        - poddisruptionbudgets
+        verbs:
+        - get
+        - create
+        - delete
+        - list
+        - watch
+  - name: couchbase-operator-rolebinding
+    singleton: true
+    template:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: couchbase-operator
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: Role
+        name: couchbase-operator
+      subjects:
+      - kind: ServiceAccount
+        name: couchbase-operator
+        namespace: default
+  - name: couchbase-operator-deployment
+    singleton: true
+    template:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: couchbase-operator
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: couchbase-operator
+        template:
+          metadata:
+            labels:
+              app: couchbase-operator
+          spec:
+            containers:
+            - name: couchbase-operator
+              image: couchbase/couchbase-operator:v1
+              args:
+              - --pod-create-timeout=10m
+              command:
+              - couchbase-operator
+              env:
+              - name: WATCH_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              ports:
+              - containerPort: 8080
+                name: http
+              - containerPort: 8383
+                name: prometheus
+            serviceAccountName: couchbase-operator
+  - name: couchbase-secret
+    template:
+      apiVersion: v1
+      kind: Secret
+      metadata: {}
+      data:
+        username: QWRtaW5pc3RyYXRvcg==
+    parameters:
+    - name: name
+      source:
+        metadata: id
+        prefix: "instance-"
+      destination:
+        paths:
+        - /metadata/name
+    - name: password
+      required: true
+      source:
+        parameter:
+          path: /password
+      destination:
+        paths:
+        - /data/password
+  - name: couchbase-developer-private
+    template:
+      apiVersion: couchbase.com/v2
+      kind: CouchbaseCluster
+      metadata: {}
+      spec:
+        security: {}
+        buckets:
+          managed: true
+          selector:
+            matchLabels: {}
+        servers:
+        - name: default
+          services:
+          - data
+          - index
+          - query
+    parameters:
+    - name: name
+      source:
+        metadata: id
+        prefix: "instance-"
+      destination:
+        paths:
+        - /metadata/name
+        - /spec/security/adminSecret
+        - /spec/buckets/selector/matchLabels/cluster
+    - name: image
+      source:
+        parameter:
+          path: /image
+          default:
+            string: couchbase/server:enterprise-6.0.1
+      destination:
+        paths:
+        - /spec/image
+    - name: size
+      source:
+        parameter:
+          path: /size
+          default:
+            int: 3
+      destination:
+        paths:
+        - /spec/servers/0/size
+  - name: couchbase-bucket
+    template:
+      apiVersion: couchbase.com/v2
+      kind: CouchbaseBucket
+      metadata: {}
+      spec:
+        memoryQuota: 256
+        replicas: 1
+        ioPriority: high
+        evictionPolicy: valueOnly
+        conflictResolution: seqno
+    parameters:
+    - name: name
+      source:
+        metadata: id
+      destination:
+        paths:
+        - /metadata/name
+  # Bindings bind templates to service plans.  These allow the specification of
+  # exactly what templates are created when a plan is instantiated or bound to.
+  bindings:
+  - name: couchbase-developer-private
+    service: couchbase-developer
+    plan: couchbase-developer-private
+    serviceInstance:
+      templates:
+      - couchbase-operator-serviceaccount
+      - couchbase-operator-role
+      - couchbase-operator-rolebinding
+      - couchbase-operator-deployment
+      - couchbase-secret
+      - couchbase-developer-private
+    serviceBinding:
+      templates:
+      - couchbase-bucket
