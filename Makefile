@@ -12,7 +12,7 @@ COVER_FILE=/tmp/cover.out
 CODEGEN = vendor/k8s.io/code-generator
 IMPORTPATH=github.com/couchbase/service-broker
 
-.PHONY: all build dep apigen doc crd container test cover
+.PHONY: all build dep apigen doc crd container test unit lint cover
 
 all: build doc
 
@@ -38,8 +38,12 @@ $(CRDGEN_FILE): $(APISRC)
 container: build
 	docker build -f Dockerfile -t couchbase/service-broker:$(VERSION) .
 
-test: ${GENAPI}
+test: lint unit
+
+lint: ${GENAPI}
 	go run github.com/golangci/golangci-lint/cmd/golangci-lint run
+
+unit: ${GENAPI}
 	go test -v -race -cover -coverpkg github.com/couchbase/service-broker/pkg/... -coverprofile=$(COVER_FILE) ./test
 
 cover:
