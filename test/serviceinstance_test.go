@@ -11,6 +11,17 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// TestServiceInstanceCreate tests that the service broker accepts a minimal
+// service instance creation.
+func TestServiceInstanceCreate(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstance(t, fixtures.ServiceInstanceName, req)
+}
+
 // TestServiceInstanceCreateNotAynchronous tests that the service broker rejects service
 // instance creation that isn't asynchronous.
 func TestServiceInstanceCreateNotAynchronous(t *testing.T) {
@@ -78,17 +89,6 @@ func TestServiceInstanceCreateInvalidPlan(t *testing.T) {
 	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorParameterError)
 }
 
-// TestServiceInstanceCreate tests that the service broker accepts a minimal
-// service instance creation.
-func TestServiceInstanceCreate(t *testing.T) {
-	defer mustReset(t)
-
-	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
-
-	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustCreateServiceInstance(t, fixtures.ServiceInstanceName, req)
-}
-
 // TestServiceInstanceCreateWithSchema tests that the service broker accepts a
 // minimal service instance creation with schema validation.
 func TestServiceInstanceCreateWithSchema(t *testing.T) {
@@ -146,33 +146,6 @@ func TestServiceInstanceCreateWithRequiredSchemaNoParameters(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorValidationError)
-}
-
-// TestServiceInstanceCreateInProgress tests the behaviour of multiple creation requests
-// for the same service instance with the same request twice, before the operation has
-// completed e.g. been acknowledged, should return a 202.
-func TestServiceInstanceCreateInProgress(t *testing.T) {
-	defer mustReset(t)
-
-	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
-
-	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustCreateServiceInstance(t, fixtures.ServiceInstanceName, req)
-	util.MustCreateServiceInstance(t, fixtures.ServiceInstanceName, req)
-}
-
-// TestServiceInstanceCreateInProgressMismatched tests the behaviour of multiple creation
-// requests for the same service instance with different request parameters, before the
-// operation has completed e.g. been acknowledged, should return a 409.
-func TestServiceInstanceCreateInProgressMismatched(t *testing.T) {
-	defer mustReset(t)
-
-	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
-
-	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustCreateServiceInstance(t, fixtures.ServiceInstanceName, req)
-	req.PlanID = fixtures.BasicConfigurationPlanID2
-	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusConflict, req, nil)
 }
 
 // TestServiceInstancePoll tests polling a completed service instance creation
@@ -258,10 +231,37 @@ func TestServiceInstancePollIllegalOperationID(t *testing.T) {
 	util.MustGetAndError(t, "/v2/service_instances/pinkiepie/last_operation?"+util.PollServiceInstanceQuery(req, rsp).Encode(), http.StatusBadRequest, api.ErrorQueryError)
 }
 
-// TestServiceInstanceCreateCompleted tests the behaviour of multiple creation requests
+// TestServiceInstanceRecreateWhileInProgress tests the behaviour of multiple creation requests
+// for the same service instance with the same request twice, before the operation has
+// completed e.g. been acknowledged, should return a 202.
+func TestServiceInstanceRecreateWhileInProgress(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstance(t, fixtures.ServiceInstanceName, req)
+	util.MustCreateServiceInstance(t, fixtures.ServiceInstanceName, req)
+}
+
+// TestServiceInstanceRecreateWhileInProgressMismatched tests the behaviour of multiple creation
+// requests for the same service instance with different request parameters, before the
+// operation has completed e.g. been acknowledged, should return a 409.
+func TestServiceInstanceRecreateWhileInProgressMismatched(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstance(t, fixtures.ServiceInstanceName, req)
+	req.PlanID = fixtures.BasicConfigurationPlanID2
+	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusConflict, req, nil)
+}
+
+// TestServiceInstanceRecreateAfterCompletion tests the behaviour of multiple creation requests
 // for the same service instance with the same request twice, after the operation has
 // completed e.g. been acknowledged, should return a 200.
-func TestServiceInstanceCreateCompleted(t *testing.T) {
+func TestServiceInstanceRecreateAfterCompletion(t *testing.T) {
 	defer mustReset(t)
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
@@ -272,10 +272,10 @@ func TestServiceInstanceCreateCompleted(t *testing.T) {
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusOK, req, nil)
 }
 
-// TestServiceInstanceCreateCompletedMismatched tests the behaviour of multiple creation
+// TestServiceInstanceRecreateAfetrCompletionMismatched tests the behaviour of multiple creation
 // requests for the same service instance with different request parameters, before the
 // operation has completed e.g. been acknowledged, should return a 409.
-func TestServiceInstanceCreateCompletedMismatched(t *testing.T) {
+func TestServiceInstanceRecreateAfetrCompletionMismatched(t *testing.T) {
 	defer mustReset(t)
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
@@ -285,6 +285,20 @@ func TestServiceInstanceCreateCompletedMismatched(t *testing.T) {
 
 	req.PlanID = fixtures.BasicConfigurationPlanID2
 	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusConflict, req, api.ErrorResourceConflict)
+}
+
+// TestServiceInstanceDelete tests that service instance deletion works.
+func TestServiceInstanceDelete(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	rsp := &api.CreateServiceInstanceResponse{}
+	util.MustDelete(t, "/v2/service_instances/pinkiepie?"+util.DeleteServiceInstanceQuery(req).Encode(), http.StatusAccepted, rsp)
+	util.MustPollServiceInstanceForCompletion(t, fixtures.ServiceInstanceName, rsp)
 }
 
 // TestServiceInstanceDeleteNotAsynchronous tests that a service instance delete must
@@ -305,20 +319,6 @@ func TestServiceInstanceDeleteIllegalInstance(t *testing.T) {
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
 	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusGone, api.ErrorResourceGone)
-}
-
-// TestServiceInstanceDelete tests that service instance deletion works.
-func TestServiceInstanceDelete(t *testing.T) {
-	defer mustReset(t)
-
-	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
-
-	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
-
-	rsp := &api.CreateServiceInstanceResponse{}
-	util.MustDelete(t, "/v2/service_instances/pinkiepie?"+util.DeleteServiceInstanceQuery(req).Encode(), http.StatusAccepted, rsp)
-	util.MustPollServiceInstanceForCompletion(t, fixtures.ServiceInstanceName, rsp)
 }
 
 // TestServiceInstanceDeleteServiceIDRequired tests delete requests without service_id are
