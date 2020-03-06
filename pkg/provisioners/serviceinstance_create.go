@@ -20,7 +20,7 @@ import (
 // ServiceInstanceCreator caches various data associated with provisioning.
 type ServiceInstanceCreator struct {
 	// registry is the instance registry.
-	registry *registry.Registry
+	registry *registry.Entry
 
 	// instanceID is the unique instance ID requested by the client.
 	instanceID string
@@ -38,7 +38,7 @@ type ServiceInstanceCreator struct {
 
 // NewServiceInstanceCreator initializes all the data required for
 // provisioning a service instance.
-func NewServiceInstanceCreator(registry *registry.Registry, instanceID string, request *api.CreateServiceInstanceRequest) (*ServiceInstanceCreator, error) {
+func NewServiceInstanceCreator(registry *registry.Entry, instanceID string, request *api.CreateServiceInstanceRequest) (*ServiceInstanceCreator, error) {
 	namespace, err := getNamespace(request.Context)
 	if err != nil {
 		return nil, err
@@ -79,13 +79,7 @@ func (p *ServiceInstanceCreator) createResource(template *v1.CouchbaseServiceBro
 
 	// First we need to set up owner references so that we can garbage collect the
 	// cluster easily.
-	registryEntry, err := p.registry.Get(registry.ServiceInstanceRegistryName(p.instanceID))
-	if err != nil {
-		glog.Errorf("failed to get service instance registry entry: %v", err)
-		return err
-	}
-
-	ownerReference := registryEntry.GetOwnerReference()
+	ownerReference := p.registry.GetOwnerReference()
 	object.SetOwnerReferences([]metav1.OwnerReference{ownerReference})
 
 	// Prepare the client code

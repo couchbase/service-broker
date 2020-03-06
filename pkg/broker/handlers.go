@@ -1,7 +1,6 @@
 package broker
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -17,7 +16,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/julienschmidt/httprouter"
 
-	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // handleReadyz is a handler for Kubernetes readiness checks.  It is less verbose than the
@@ -65,94 +64,130 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	// Check if the instance already exists.
-	registryEntry, err := instanceRegistry.Get(registry.ServiceInstanceRegistryName(instanceID))
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		util.JSONError(w, fmt.Errorf("failed to lookup registry entry: %v", err))
+	entry, err := registry.Instance(instanceID)
+	if err != nil {
+		util.JSONError(w, err)
 		return
 	}
 
-	if registryEntry != nil {
+	if entry.Exists() {
 		// If the instance already exists either return 200 if provisioned or
 		// a 202 if it is still provisioning, or a 409 if provisioned or
 		// provisioning with different attributes.
-		prevRequestRaw, err := registryEntry.Get(registry.ServiceInstanceRequestKey)
+		serviceID, ok := entry.Get(registry.ServiceID)
+		if !ok {
+			util.JSONError(w, fmt.Errorf("unable to lookup existing service ID"))
+			return
+		}
+
+		if serviceID != request.ServiceID {
+			util.JSONError(w, errors.NewResourceConflictError("service ID %s does not match existing value %s", request.ServiceID, serviceID))
+			return
+		}
+
+		planID, ok := entry.Get(registry.PlanID)
+		if !ok {
+			util.JSONError(w, fmt.Errorf("unable to lookup existing plan ID"))
+			return
+		}
+
+		if planID != request.PlanID {
+			util.JSONError(w, errors.NewResourceConflictError("plan ID %s does not match existing value %s", request.PlanID, planID))
+			return
+		}
+
+		context := &runtime.RawExtension{}
+
+		ok, err := entry.GetJSON(registry.Context, context)
 		if err != nil {
-			util.JSONError(w, fmt.Errorf("unable to get service instance request from registry: %v", err))
+			util.JSONError(w, err)
 			return
 		}
 
-		prevRequest := &api.CreateServiceInstanceRequest{}
-
-		if err := json.Unmarshal([]byte(prevRequestRaw), prevRequest); err != nil {
-			util.JSONError(w, fmt.Errorf("unable to unmarshal previous instance request: %v", err))
+		if !ok {
+			util.JSONError(w, fmt.Errorf("unable to lookup existing context"))
 			return
 		}
 
-		if reflect.DeepEqual(request, prevRequest) {
-			dashboardURL, _ := registryEntry.Get(registry.RegistryKeyDashboardURL)
-
-			op, ok := operation.Get(instanceID)
-			if !ok {
-				response := &api.CreateServiceInstanceResponse{
-					DashboardURL: dashboardURL,
-				}
-				util.JSONResponse(w, http.StatusOK, response)
-
-				return
-			}
-
-			if op.Type == operation.TypeServiceInstanceCreate {
-				response := &api.CreateServiceInstanceResponse{
-					DashboardURL: dashboardURL,
-					Operation:    op.ID,
-				}
-				util.JSONResponse(w, http.StatusAccepted, response)
-
-				return
-			}
+		newContext := &runtime.RawExtension{}
+		if request.Context != nil {
+			newContext = request.Context
 		}
 
-		util.JSONError(w, errors.NewResourceConflictError("request conflicts with existing service instance"))
+		if !reflect.DeepEqual(newContext, context) {
+			util.JSONError(w, errors.NewResourceConflictError("request context %v does not match existing value %v", newContext, context))
+			return
+		}
+
+		parameters := &runtime.RawExtension{}
+
+		ok, err = entry.GetJSON(registry.Parameters, parameters)
+		if err != nil {
+			util.JSONError(w, err)
+			return
+		}
+
+		if !ok {
+			util.JSONError(w, fmt.Errorf("unable to lookup existing parameters"))
+			return
+		}
+
+		newParameters := &runtime.RawExtension{}
+		if request.Parameters != nil {
+			newParameters = request.Parameters
+		}
+
+		if !reflect.DeepEqual(newParameters, parameters) {
+			util.JSONError(w, errors.NewResourceConflictError("request parameters %v do not match existing value %v", newParameters, parameters))
+			return
+		}
+
+		status := http.StatusOK
+		response := &api.CreateServiceInstanceResponse{}
+
+		if op, ok := operation.Get(instanceID); ok {
+			status = http.StatusAccepted
+			response.Operation = op.ID
+		}
+
+		util.JSONResponse(w, status, response)
 
 		return
 	}
 
-	// Create a registry entry in the broker's namespace.  We cannot use the context's namespace
-	// as when we receive DELETE requests for example this context is not available and we don't
-	// know where to look.
-	registryEntry, err = instanceRegistry.New(registry.ServiceInstanceRegistryName(instanceID))
-	if err != nil {
-		util.JSONError(w, fmt.Errorf("failed to create registry entry for request: %v", err))
+	context := &runtime.RawExtension{}
+	if request.Context != nil {
+		context = request.Context
+	}
+
+	parameters := &runtime.RawExtension{}
+	if request.Parameters != nil {
+		parameters = request.Parameters
+	}
+
+	entry.Set(registry.ServiceID, request.ServiceID)
+	entry.Set(registry.PlanID, request.PlanID)
+
+	if err := entry.SetJSON(registry.Context, context); err != nil {
+		util.JSONError(w, err)
 		return
 	}
 
-	// Save the raw request in the registry, it is required for other handler logic.
-	requestJSON, err := json.Marshal(request)
-	if err != nil {
-		util.JSONError(w, fmt.Errorf("failed to marshal instance data: %v", err))
+	if err := entry.SetJSON(registry.Parameters, parameters); err != nil {
+		util.JSONError(w, err)
 		return
 	}
 
-	if err := registryEntry.Set(registry.ServiceInstanceRequestKey, string(requestJSON)); err != nil {
-		util.JSONError(w, fmt.Errorf("failed to set registry entry value %s: %v", registry.ServiceInstanceRequestKey, err))
+	if err := entry.Commit(); err != nil {
+		util.JSONError(w, err)
 		return
 	}
 
-	if err := registryEntry.Set(registry.ServiceOfferingKey, request.ServiceID); err != nil {
-		util.JSONError(w, fmt.Errorf("failed to set registry entry value %s: %v", registry.ServiceOfferingKey, err))
-		return
-	}
-
-	if err := registryEntry.Set(registry.ServicePlanKey, request.PlanID); err != nil {
-		util.JSONError(w, fmt.Errorf("failed to set registry entry value %s: %v", registry.ServicePlanKey, err))
-		return
-	}
-
-	glog.Infof("provisioning new service instance: %s", string(requestJSON))
+	glog.Infof("provisioning new service instance: %s", instanceID)
 
 	// Create a provisioning engine, and perform synchronous tasks.  This also derives
 	// things like the dashboard URL for the synchronous response.
-	provisioner, err := provisioners.NewServiceInstanceCreator(instanceRegistry, instanceID, request)
+	provisioner, err := provisioners.NewServiceInstanceCreator(entry, instanceID, request)
 	if err != nil {
 		util.JSONError(w, fmt.Errorf("failed to create provisioner: %v", err))
 		return
@@ -173,11 +208,8 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	go op.Run(provisioner)
 
 	// Return a response to the client.
-	dashboardURL, _ := registryEntry.Get(registry.RegistryKeyDashboardURL)
-
 	response := &api.CreateServiceInstanceResponse{
-		DashboardURL: dashboardURL,
-		Operation:    op.ID,
+		Operation: op.ID,
 	}
 	util.JSONResponse(w, http.StatusAccepted, response)
 }
@@ -191,14 +223,14 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 	}
 
 	// Check if the instance exists.
-	registryEntry, err := instanceRegistry.Get(registry.ServiceInstanceRegistryName(instanceID))
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		util.JSONErrorUsable(w, fmt.Errorf("failed to lookup registry entry: %v", err))
+	entry, err := registry.Instance(instanceID)
+	if err != nil {
+		util.JSONError(w, err)
 		return
 	}
 
 	// Not found, return a 404
-	if registryEntry == nil {
+	if !entry.Exists() {
 		util.JSONError(w, errors.NewResourceNotFoundError("service instance does not exist"))
 		return
 	}
@@ -217,15 +249,15 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 
-	serviceInstanceServiceID, err := registryEntry.Get(registry.ServiceOfferingKey)
-	if err != nil {
-		util.JSONError(w, err)
+	serviceInstanceServiceID, ok := entry.Get(registry.ServiceID)
+	if !ok {
+		util.JSONError(w, fmt.Errorf("unable to lookup existing service ID"))
 		return
 	}
 
-	serviceInstancePlanID, err := registryEntry.Get(registry.ServicePlanKey)
-	if err != nil {
-		util.JSONError(w, err)
+	serviceInstancePlanID, ok := entry.Get(registry.PlanID)
+	if !ok {
+		util.JSONError(w, fmt.Errorf("unable to lookup existing plan ID"))
 		return
 	}
 
@@ -239,6 +271,18 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 
+	parameters := &runtime.RawExtension{}
+
+	ok, err = entry.GetJSON(registry.Parameters, parameters)
+	if err != nil {
+		util.JSONError(w, err)
+	}
+
+	if !ok {
+		util.JSONError(w, fmt.Errorf("unable to lookup existing parameters"))
+		return
+	}
+
 	// If the instance does not exist or an operation is still in progress return
 	// a 404.
 	if _, ok := operation.Get(instanceID); ok {
@@ -246,25 +290,10 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 
-	requestJSON, err := registryEntry.Get(registry.ServiceInstanceRequestKey)
-	if err != nil {
-		util.JSONError(w, fmt.Errorf("failed to lookup registry entry: %v", err))
-		return
-	}
-
-	request := &api.CreateServiceInstanceRequest{}
-	if err := json.Unmarshal([]byte(requestJSON), request); err != nil {
-		util.JSONError(w, fmt.Errorf("unable to unmarshal instance request: %v", err))
-		return
-	}
-
-	dashboardURL, _ := registryEntry.Get(registry.RegistryKeyDashboardURL)
-
 	response := &api.GetServiceInstanceResponse{
-		ServiceID:    serviceInstanceServiceID,
-		PlanID:       serviceInstancePlanID,
-		DashboardURL: dashboardURL,
-		Parameters:   request.Parameters,
+		ServiceID:  serviceInstanceServiceID,
+		PlanID:     serviceInstancePlanID,
+		Parameters: parameters,
 	}
 	util.JSONResponse(w, http.StatusOK, response)
 }
@@ -291,22 +320,23 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	// Check if the instance already exists.
-	registryEntry, err := instanceRegistry.Get(registry.ServiceInstanceRegistryName(instanceID))
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		util.JSONErrorUsable(w, fmt.Errorf("failed to lookup registry entry: %v", err))
+	// Check if the instance exists.
+	entry, err := registry.Instance(instanceID)
+	if err != nil {
+		util.JSONError(w, err)
 		return
 	}
 
 	// Not found, return a 404
-	if registryEntry == nil {
+	if !entry.Exists() {
 		util.JSONError(w, errors.NewResourceNotFoundError("service instance does not exist"))
 		return
 	}
 
 	// Get the plan from the registry, it is not guaranteed to be in the request.
-	planID, err := registryEntry.Get(registry.ServicePlanKey)
-	if err != nil {
-		util.JSONError(w, fmt.Errorf("unable to lookup service instance plan ID: %v", err))
+	planID, ok := entry.Get(registry.PlanID)
+	if !ok {
+		util.JSONError(w, fmt.Errorf("unable to lookup existing plan ID"))
 		return
 	}
 
@@ -325,7 +355,7 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	updater, err := provisioners.NewServiceInstanceUpdater(instanceRegistry, instanceID, request)
+	updater, err := provisioners.NewServiceInstanceUpdater(entry, instanceID, request)
 	if err != nil {
 		util.JSONErrorUsable(w, err)
 		return
@@ -346,11 +376,8 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	go op.Run(updater)
 
 	// Return a response to the client.
-	dashboardURL, _ := registryEntry.Get(registry.RegistryKeyDashboardURL)
-
 	response := &api.UpdateServiceInstanceResponse{
-		DashboardURL: dashboardURL,
-		Operation:    op.ID,
+		Operation: op.ID,
 	}
 
 	util.JSONResponse(w, http.StatusAccepted, response)
@@ -371,15 +398,14 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	registryEntry, err := instanceRegistry.Get(registry.ServiceInstanceRegistryName(instanceID))
+	entry, err := registry.Instance(instanceID)
 	if err != nil {
-		if k8s_errors.IsNotFound(err) {
-			util.JSONError(w, errors.NewResourceGoneError("service instance does not exist"))
-			return
-		}
+		util.JSONError(w, err)
+		return
+	}
 
-		util.JSONError(w, fmt.Errorf("failed to lookup resigstry instance: %v", err))
-
+	if !entry.Exists() {
+		util.JSONError(w, errors.NewResourceGoneError("service instance does not exist"))
 		return
 	}
 
@@ -395,15 +421,15 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	serviceInstanceServiceID, err := registryEntry.Get(registry.ServiceOfferingKey)
-	if err != nil {
-		util.JSONError(w, err)
+	serviceInstanceServiceID, ok := entry.Get(registry.ServiceID)
+	if !ok {
+		util.JSONError(w, fmt.Errorf("unable to lookup existing service ID"))
 		return
 	}
 
-	serviceInstancePlanID, err := registryEntry.Get(registry.ServicePlanKey)
-	if err != nil {
-		util.JSONError(w, err)
+	serviceInstancePlanID, ok := entry.Get(registry.PlanID)
+	if !ok {
+		util.JSONError(w, fmt.Errorf("unable to lookup existing plan ID"))
 		return
 	}
 
@@ -417,7 +443,7 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	deleter := provisioners.NewServiceInstanceDeleter(instanceRegistry, instanceID)
+	deleter := provisioners.NewServiceInstanceDeleter(entry, instanceID)
 
 	// Start the delete operation in the background.
 	op, err := operation.New(operation.TypeServiceInstanceDelete, instanceID, serviceID, planID)
@@ -532,76 +558,6 @@ func handleReadServiceInstanceStatus(w http.ResponseWriter, r *http.Request, par
 
 // handleCreateServiceBinding
 func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	// Ensure the client supports async operation.
-	if err := util.AsyncRequired(r); err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	// Check request parameters.
-	instanceID := params.ByName("instance_id")
-	if instanceID == "" {
-		util.JSONError(w, fmt.Errorf("request missing instance_id parameter"))
-		return
-	}
-
-	bindingID := params.ByName("binding_id")
-	if bindingID == "" {
-		util.JSONError(w, fmt.Errorf("request missing binding_id parameter"))
-		return
-	}
-
-	// Parse and validate the request.
-	request := &api.CreateServiceBindingRequest{}
-	if err := util.JSONRequest(r, request); err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	if err := util.ValidateServicePlan(config.Config(), request.ServiceID, request.PlanID); err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	if err := util.ValidateParameters(config.Config(), request.ServiceID, request.PlanID, util.SchemaTypeServiceBinding, util.SchemaOperationCreate, request.Parameters); err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	// Check for an existing binding.
-	registryEntry, err := instanceRegistry.Get(registry.ServiceBindingRegistryName(instanceID, bindingID))
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		util.JSONError(w, fmt.Errorf("failed to lookup registry entry: %v", err))
-		return
-	}
-
-	// If the binding alread exists with the same parmeters return 202.  Return
-	// a 409 if they differ.
-	if registryEntry != nil {
-		return
-	}
-
-	if _, err = instanceRegistry.New(registry.ServiceBindingRegistryName(instanceID, bindingID)); err != nil {
-		util.JSONError(w, fmt.Errorf("failed to create registry entry for request: %v", err))
-		return
-	}
-
-	creator := provisioners.NewServiceBindingCreator(instanceRegistry, instanceID, bindingID)
-
-	// Start the provisioning process in the background.
-	op, err := operation.New(operation.TypeServiceInstanceCreate, instanceID, request.ServiceID, request.PlanID)
-	if err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	go op.Run(creator)
-
-	// Respond the operation ID to the client to start polling.
-	response := &api.CreateServiceBindingResponse{
-		Operation: op.ID,
-	}
-	util.JSONResponse(w, http.StatusAccepted, response)
 }
 
 // handleReadServiceBinding

@@ -7,14 +7,14 @@ import (
 // ServiceInstanceDeleter caches various data associated with deleting a service instance.
 type ServiceInstanceDeleter struct {
 	// registry is the instance registry.
-	registry *registry.Registry
+	registry *registry.Entry
 
 	// instanceID is the instance ID to delete.
 	instanceID string
 }
 
 // NewServiceInstanceDeleter returns a new controller capable of deleting a service instance.
-func NewServiceInstanceDeleter(registry *registry.Registry, instanceID string) *ServiceInstanceDeleter {
+func NewServiceInstanceDeleter(registry *registry.Entry, instanceID string) *ServiceInstanceDeleter {
 	return &ServiceInstanceDeleter{
 		registry:   registry,
 		instanceID: instanceID,
@@ -23,5 +23,5 @@ func NewServiceInstanceDeleter(registry *registry.Registry, instanceID string) *
 
 // Run performs asynchronous update tasks.
 func (d *ServiceInstanceDeleter) Run() error {
-	return d.registry.Delete(registry.ServiceInstanceRegistryName(d.instanceID))
+	return d.registry.Delete()
 }

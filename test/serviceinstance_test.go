@@ -272,10 +272,10 @@ func TestServiceInstanceRecreateAfterCompletion(t *testing.T) {
 	util.MustPut(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusOK, req, nil)
 }
 
-// TestServiceInstanceRecreateAfetrCompletionMismatched tests the behaviour of multiple creation
+// TestServiceInstanceRecreateAfterCompletionMismatchedPlanID tests the behaviour of multiple creation
 // requests for the same service instance with different request parameters, before the
 // operation has completed e.g. been acknowledged, should return a 409.
-func TestServiceInstanceRecreateAfetrCompletionMismatched(t *testing.T) {
+func TestServiceInstanceRecreateAfterCompletionMismatchedPlanID(t *testing.T) {
 	defer mustReset(t)
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
@@ -284,6 +284,72 @@ func TestServiceInstanceRecreateAfetrCompletionMismatched(t *testing.T) {
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
 	req.PlanID = fixtures.BasicConfigurationPlanID2
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusConflict, req, api.ErrorResourceConflict)
+}
+
+// TestServiceInstanceRecreateAfterCompletionMismatchedNoContext tests recreation of a service
+// instance where the first was created with no context, and the second was.
+func TestServiceInstanceRecreateAfterCompletionMismatchedNoContext(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	req.Context = &runtime.RawExtension{
+		Raw: []byte(`{"test":1}`),
+	}
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusConflict, req, api.ErrorResourceConflict)
+}
+
+// TestServiceInstanceRecreateAfterCompletionMismatchedWithContext tests recreation of a service
+// instance where the first was created with a context, and the second wasn't.
+func TestServiceInstanceRecreateAfterCompletionMismatchedWithContext(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	req.Context = &runtime.RawExtension{
+		Raw: []byte(`{"test":1}`),
+	}
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	req.Context = nil
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusConflict, req, api.ErrorResourceConflict)
+}
+
+// TestServiceInstanceRecreateAfterCompletionMismatchedNoParameters tests recreation of a service
+// instance where the first was created with no parameters, and the second was.
+func TestServiceInstanceRecreateAfterCompletionMismatchedNoParameters(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	req.Parameters = &runtime.RawExtension{
+		Raw: []byte(`{"test":1}`),
+	}
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusConflict, req, api.ErrorResourceConflict)
+}
+
+// TestServiceInstanceRecreateAfterCompletionMismatchedWithParameters tests recreation of a service
+// instance where the first was created with parameters, and the second wasn't.
+func TestServiceInstanceRecreateAfterCompletionMismatchedWithParameters(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	req.Parameters = &runtime.RawExtension{
+		Raw: []byte(`{"test":1}`),
+	}
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	req.Parameters = nil
 	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusConflict, req, api.ErrorResourceConflict)
 }
 

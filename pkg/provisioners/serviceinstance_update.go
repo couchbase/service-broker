@@ -20,7 +20,7 @@ import (
 // ServiceInstanceUpdater caches various data associated with updating a service instance.
 type ServiceInstanceUpdater struct {
 	// registry is the instance registry.
-	registry *registry.Registry
+	registry *registry.Entry
 
 	// instanceID is the unique instance ID requested by the client.
 	instanceID string
@@ -37,7 +37,7 @@ type ServiceInstanceUpdater struct {
 }
 
 // NewServiceInstanceUpdater returns a new controler capable of updaing a service instance.
-func NewServiceInstanceUpdater(registry *registry.Registry, instanceID string, request *api.UpdateServiceInstanceRequest) (*ServiceInstanceUpdater, error) {
+func NewServiceInstanceUpdater(registry *registry.Entry, instanceID string, request *api.UpdateServiceInstanceRequest) (*ServiceInstanceUpdater, error) {
 	namespace, err := getNamespace(request.Context)
 	if err != nil {
 		return nil, err
@@ -55,14 +55,9 @@ func NewServiceInstanceUpdater(registry *registry.Registry, instanceID string, r
 
 func (u *ServiceInstanceUpdater) PrepareResources() error {
 	// Use the cached versions, as the request parameters may not be set.
-	registryEntry, err := u.registry.Get(registry.ServiceInstanceRegistryName(u.instanceID))
-	if err != nil {
-		return err
-	}
-
-	planID, err := registryEntry.Get(registry.ServicePlanKey)
-	if err != nil {
-		return fmt.Errorf("unable to lookup service instance plan ID: %v", err)
+	planID, ok := u.registry.Get(registry.PlanID)
+	if !ok {
+		return fmt.Errorf("unable to lookup service instance plan ID")
 	}
 
 	// Collate and render our templates.

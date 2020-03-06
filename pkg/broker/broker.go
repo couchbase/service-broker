@@ -13,17 +13,12 @@ import (
 	"github.com/couchbase/service-broker/pkg/client"
 	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/pkg/log"
-	"github.com/couchbase/service-broker/pkg/registry"
 	"github.com/couchbase/service-broker/pkg/util"
 
 	"github.com/golang/glog"
 	"github.com/julienschmidt/httprouter"
 
 	"k8s.io/client-go/kubernetes/scheme"
-)
-
-var (
-	instanceRegistry *registry.Registry
 )
 
 // getHeader returns the header value for a header name.
@@ -249,9 +244,6 @@ func ConfigureServer(clients client.Clients, namespace, token string) error {
 	if err := config.Configure(clients, namespace, token); err != nil {
 		return err
 	}
-
-	// Setup managers.
-	instanceRegistry = registry.New(namespace)
 
 	return nil
 }
