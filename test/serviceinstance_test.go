@@ -19,7 +19,7 @@ func TestServiceInstanceCreate(t *testing.T) {
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustCreateServiceInstance(t, fixtures.ServiceInstanceName, req)
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 }
 
 // TestServiceInstanceCreateNotAynchronous tests that the service broker rejects service
@@ -102,7 +102,7 @@ func TestServiceInstanceCreateWithSchema(t *testing.T) {
 	req.Parameters = &runtime.RawExtension{
 		Raw: []byte(`{"test":1}`),
 	}
-	util.MustCreateServiceInstance(t, fixtures.ServiceInstanceName, req)
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 }
 
 // TestServiceInstanceCreateWithSchemaNoParameters tests that the service broker accepts a
@@ -115,7 +115,7 @@ func TestServiceInstanceCreateWithSchemaNoParameters(t *testing.T) {
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustCreateServiceInstance(t, fixtures.ServiceInstanceName, req)
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 }
 
 // TestServiceInstanceCreateSchemaValidationFail tests that the service broker rejects
@@ -375,10 +375,7 @@ func TestServiceInstanceDelete(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
-
-	rsp := &api.CreateServiceInstanceResponse{}
-	util.MustDelete(t, "/v2/service_instances/pinkiepie?"+util.DeleteServiceInstanceQuery(req).Encode(), http.StatusAccepted, rsp)
-	util.MustPollServiceInstanceForDeletion(t, fixtures.ServiceInstanceName, rsp)
+	util.MustDeleteServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 }
 
 // TestServiceInstanceDeleteNotAsynchronous tests that a service instance delete must
@@ -473,6 +470,19 @@ func TestServiceInstanceDeletePlanIDInvalid(t *testing.T) {
 	query := util.DeleteServiceInstanceQuery(req)
 	query.Set("plan_id", "illegal")
 	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?"+query.Encode(), http.StatusBadRequest, api.ErrorQueryError)
+}
+
+// TestServiceInstanceDeleteAndRecreate tests that persistent data isn't left lying about
+// and we can recreate an instance.
+func TestServiceInstanceDeleteAndRecreate(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+	util.MustDeleteServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 }
 
 // TestServiceInstanceRead tests that we can read an existing service instance.

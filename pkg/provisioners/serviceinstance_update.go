@@ -8,6 +8,7 @@ import (
 
 	"github.com/couchbase/service-broker/pkg/api"
 	"github.com/couchbase/service-broker/pkg/config"
+	"github.com/couchbase/service-broker/pkg/operation"
 	"github.com/couchbase/service-broker/pkg/registry"
 
 	"github.com/evanphx/json-patch"
@@ -183,8 +184,8 @@ func (u *ServiceInstanceUpdater) PrepareResources() error {
 	return nil
 }
 
-// Run performs asynchronous update tasks.
-func (u *ServiceInstanceUpdater) Run() error {
+// run performs asynchronous update tasks.
+func (u *ServiceInstanceUpdater) run() error {
 	glog.Info("updating resources")
 
 	// Prepare the client code
@@ -206,4 +207,11 @@ func (u *ServiceInstanceUpdater) Run() error {
 	}
 
 	return nil
+}
+
+// Run performs asynchronous update tasks.
+func (u *ServiceInstanceUpdater) Run() {
+	if err := operation.Complete(u.registry, u.run()); err != nil {
+		glog.Errorf("failed to delete instance")
+	}
 }

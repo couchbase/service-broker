@@ -10,7 +10,6 @@ import (
 
 	"github.com/couchbase/service-broker/pkg/broker"
 	"github.com/couchbase/service-broker/pkg/client"
-	"github.com/couchbase/service-broker/pkg/operation"
 	"github.com/couchbase/service-broker/test/util"
 )
 
@@ -30,7 +29,6 @@ var (
 // reset cleans the client of any resources that we may have registered and
 // clears out any broker persistent state.
 func reset() error {
-	operation.Reset()
 	return util.ResetClients(clients)
 }
 

@@ -214,14 +214,12 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	// Start the provisioning process in the background.
-	op, err := operation.New(operation.TypeProvision, instanceID, entry)
-	if err != nil {
+	if err := operation.Start(entry, operation.TypeProvision); err != nil {
 		util.JSONError(w, err)
 		return
 	}
 
-	go op.Run(provisioner)
+	go provisioner.Run()
 
 	operationID, ok := entry.Get(registry.OperationID)
 	if !ok {
@@ -306,8 +304,8 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 
 	// If the instance does not exist or an operation is still in progress return
 	// a 404.
-	if _, ok := operation.Get(instanceID); ok {
-		util.JSONError(w, errors.NewParameterError("operation in progress"))
+	if op, ok := entry.Get(registry.Operation); ok {
+		util.JSONError(w, errors.NewParameterError("%s operation in progress", op))
 		return
 	}
 
@@ -387,14 +385,12 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	// Start the update operation in the background.
-	op, err := operation.New(operation.TypeUpdate, instanceID, entry)
-	if err != nil {
+	if err := operation.Start(entry, operation.TypeUpdate); err != nil {
 		util.JSONError(w, err)
 		return
 	}
 
-	go op.Run(updater)
+	go updater.Run()
 
 	operationID, ok := entry.Get(registry.OperationID)
 	if !ok {
@@ -472,13 +468,12 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	deleter := provisioners.NewServiceInstanceDeleter(entry, instanceID)
 
 	// Start the delete operation in the background.
-	op, err := operation.New(operation.TypeDeprovision, instanceID, entry)
-	if err != nil {
+	if err := operation.Start(entry, operation.TypeDeprovision); err != nil {
 		util.JSONError(w, err)
 		return
 	}
 
-	go op.Run(deleter)
+	go deleter.Run()
 
 	operationID, ok := entry.Get(registry.OperationID)
 	if !ok {
@@ -566,54 +561,25 @@ func handlePollServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 
-	// Check to see if the operation actually exists in the cache.
-	// If not then perhaps someone restarted the broker.  We cannot say whether the
-	// opereration succeeded with any certainty, so declare it failed.
-	op, ok := operation.Get(instanceID)
-	if !ok {
-		if err := operation.Delete(instanceID, entry); err != nil {
-			util.JSONError(w, err)
-			return
-		}
-
-		response := &api.PollServiceInstanceResponse{
-			State:       api.PollStateFailed,
-			Description: "unable to lookup operation routine for service instance",
-		}
-
-		util.JSONResponse(w, http.StatusOK, response)
-
-		return
-	}
-
-	// status is the API state of the operation.
-	status := api.PollStateInProgress
-
-	// description is a description of why the operation is in that state.
+	state := api.PollStateInProgress
 	description := ""
 
-	// Poll the provisioner process for status updates.
-	select {
-	case err := <-op.Status:
-		if err := operation.Delete(instanceID, entry); err != nil {
+	if operationStatus, ok := entry.Get(registry.OperationStatus); ok {
+		if operationStatus == "" {
+			state = api.PollStateSucceeded
+			description = operationStatus
+		} else {
+			state = api.PollStateFailed
+		}
+
+		if err := operation.End(entry); err != nil {
 			util.JSONError(w, err)
 			return
 		}
-
-		if err != nil {
-			status = api.PollStateFailed
-			description = err.Error()
-
-			break
-		}
-
-		status = api.PollStateSucceeded
-	default:
 	}
 
-	// Return a response to the client.
 	response := &api.PollServiceInstanceResponse{
-		State:       status,
+		State:       state,
 		Description: description,
 	}
 	util.JSONResponse(w, http.StatusOK, response)

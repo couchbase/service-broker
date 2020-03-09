@@ -460,6 +460,17 @@ func MustPollServiceInstanceForCompletion(t *testing.T, name string, rsp *api.Cr
 	MustWaitFor(t, callback, pollTimeout)
 }
 
+// MustDeleteServiceInstance wraps up service instance deletion.
+func MustDeleteServiceInstance(t *testing.T, name string, req *api.CreateServiceInstanceRequest) *api.CreateServiceInstanceResponse {
+	rsp := &api.CreateServiceInstanceResponse{}
+	MustDelete(t, "/v2/service_instances/"+name+"?"+DeleteServiceInstanceQuery(req).Encode(), http.StatusAccepted, rsp)
+
+	// All delete operations are asynchronous and must have an operation string.
+	Assert(t, rsp.Operation != "")
+
+	return rsp
+}
+
 // MustPollServiceInstanceForDeletion wraps up polling for an aysnc deletion.
 func MustPollServiceInstanceForDeletion(t *testing.T, name string, rsp *api.CreateServiceInstanceResponse) {
 	callback := func() bool {
@@ -482,6 +493,12 @@ func MustPollServiceInstanceForDeletion(t *testing.T, name string, rsp *api.Crea
 func MustCreateServiceInstanceSuccessfully(t *testing.T, name string, req *api.CreateServiceInstanceRequest) {
 	rsp := MustCreateServiceInstance(t, name, req)
 	MustPollServiceInstanceForCompletion(t, name, rsp)
+}
+
+// MustDeleteServiceInstanceSuccessfully wraps up service instance deletion and polling.
+func MustDeleteServiceInstanceSuccessfully(t *testing.T, name string, req *api.CreateServiceInstanceRequest) {
+	rsp := MustDeleteServiceInstance(t, name, req)
+	MustPollServiceInstanceForDeletion(t, name, rsp)
 }
 
 // MustUpdateServiceInstance wraps up service instance creation.

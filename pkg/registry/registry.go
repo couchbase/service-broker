@@ -3,6 +3,7 @@ package registry
 
 import (
 	"encoding/json"
+	"sync"
 
 	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/pkg/version"
@@ -39,6 +40,9 @@ const (
 
 	// OperationID is the unique ID for an asynchronous operation on an instance or binding.
 	OperationID Key = "operation_id"
+
+	// OperationStatus is the error string returned by an aysynchronous operation.
+	OperationStatus Key = "operation_status"
 )
 
 // Entry is a KV store associated with each instance or binding.
@@ -48,6 +52,14 @@ type Entry struct {
 
 	// exists indicates whether the entry existed in Kubernetes when it was created.
 	exists bool
+
+	// mutex handles synchronization when reading and writing to this entry concurrently.
+	// In theory the only concurrency is when a provisioner is writing status and the invoking
+	// handler is reading any values to return to the user, even then this set should be
+	// mutually exclusive.  However in testing, async polling and provisioners reference the
+	// same underlying storage, so it needs the locks to avoid race conditions.  In real life
+	// the kubernetes client should return unique memory for each handler to use.
+	mutex sync.Mutex
 }
 
 // Instance creates an entry for a service instance, or retrives an existing one.
@@ -133,6 +145,9 @@ func (e *Entry) Delete() error {
 
 // Get gets a string from the entry.
 func (e *Entry) Get(key Key) (string, bool) {
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+
 	data, ok := e.secret.Data[string(key)]
 	if !ok {
 		return "", false
@@ -143,12 +158,12 @@ func (e *Entry) Get(key Key) (string, bool) {
 
 // GetJSON gets and decodes a JSON object from the entry.
 func (e *Entry) GetJSON(key Key, value interface{}) (bool, error) {
-	data, ok := e.secret.Data[string(key)]
+	data, ok := e.Get(key)
 	if !ok {
 		return false, nil
 	}
 
-	if err := json.Unmarshal(data, value); err != nil {
+	if err := json.Unmarshal([]byte(data), value); err != nil {
 		return true, err
 	}
 
@@ -157,6 +172,9 @@ func (e *Entry) GetJSON(key Key, value interface{}) (bool, error) {
 
 // Set sets an entry item.
 func (e *Entry) Set(key Key, value string) {
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+
 	e.secret.Data[string(key)] = []byte(value)
 }
 
@@ -167,7 +185,7 @@ func (e *Entry) SetJSON(key Key, value interface{}) error {
 		return err
 	}
 
-	e.secret.Data[string(key)] = data
+	e.Set(key, string(data))
 
 	return nil
 }

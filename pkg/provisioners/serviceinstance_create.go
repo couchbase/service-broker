@@ -7,6 +7,7 @@ import (
 	"github.com/couchbase/service-broker/pkg/api"
 	"github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1"
 	"github.com/couchbase/service-broker/pkg/config"
+	"github.com/couchbase/service-broker/pkg/operation"
 	"github.com/couchbase/service-broker/pkg/registry"
 
 	"github.com/golang/glog"
@@ -174,8 +175,8 @@ func (p *ServiceInstanceCreator) PrepareServiceInstance() error {
 	return nil
 }
 
-// Run performs asynchronous creation tasks.
-func (p *ServiceInstanceCreator) Run() error {
+// run performs asynchronous creation tasks.
+func (p *ServiceInstanceCreator) run() error {
 	glog.Infof("creating resources")
 
 	for _, template := range p.templates {
@@ -185,4 +186,11 @@ func (p *ServiceInstanceCreator) Run() error {
 	}
 
 	return nil
+}
+
+// Run performs asynchronous creation tasks.
+func (p *ServiceInstanceCreator) Run() {
+	if err := operation.Complete(p.registry, p.run()); err != nil {
+		glog.Errorf("failed to delete instance")
+	}
 }

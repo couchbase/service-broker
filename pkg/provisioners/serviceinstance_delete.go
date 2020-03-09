@@ -2,6 +2,8 @@ package provisioners
 
 import (
 	"github.com/couchbase/service-broker/pkg/registry"
+
+	"github.com/golang/glog"
 )
 
 // ServiceInstanceDeleter caches various data associated with deleting a service instance.
@@ -22,6 +24,8 @@ func NewServiceInstanceDeleter(registry *registry.Entry, instanceID string) *Ser
 }
 
 // Run performs asynchronous update tasks.
-func (d *ServiceInstanceDeleter) Run() error {
-	return d.registry.Delete()
+func (d *ServiceInstanceDeleter) Run() {
+	if err := d.registry.Delete(); err != nil {
+		glog.Errorf("failed to delete instance")
+	}
 }
