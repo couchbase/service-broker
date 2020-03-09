@@ -189,6 +189,20 @@ func TestServiceInstancePollPlanIDOptional(t *testing.T) {
 	util.MustGet(t, "/v2/service_instances/pinkiepie/last_operation?"+query.Encode(), http.StatusOK, nil)
 }
 
+// TestServiceInstancePollIllegalQuery tests polling a completed service instance creation
+// with a malformed query results in a bad request error.
+func TestServiceInstancePollIllegalQuery(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := util.MustCreateServiceInstance(t, fixtures.ServiceInstanceName, req)
+
+	query := util.PollServiceInstanceQuery(req, rsp)
+	util.MustGetAndError(t, "/v2/service_instances/pinkiepie/last_operation?"+query.Encode()+"&%illegal", http.StatusBadRequest, api.ErrorQueryError)
+}
+
 // TestServiceInstancePollIllegalServiceID tests that the service ID supplied to a service
 // instance polling operation must match that of the instance's service ID.
 func TestServiceInstancePollIllegalServiceID(t *testing.T) {
@@ -387,6 +401,20 @@ func TestServiceInstanceDeleteIllegalInstance(t *testing.T) {
 	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusGone, api.ErrorResourceGone)
 }
 
+// TestServiceInstanceDeleteIllegalQuery tests that a malformed query raises a bad request
+// with a query error.
+func TestServiceInstanceDeleteIllegalQuery(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	query := util.DeleteServiceInstanceQuery(req)
+	util.MustDeleteAndError(t, "/v2/service_instances/pinkiepie?"+query.Encode()+"&%illegal", http.StatusBadRequest, api.ErrorQueryError)
+}
+
 // TestServiceInstanceDeleteServiceIDRequired tests delete requests without service_id are
 // rejected.
 func TestServiceInstanceDeleteServiceIDRequired(t *testing.T) {
@@ -457,6 +485,20 @@ func TestServiceInstanceRead(t *testing.T) {
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
 	util.MustGet(t, "/v2/service_instances/pinkiepie?"+util.ReadServiceInstanceQuery(req).Encode(), http.StatusOK, nil)
+}
+
+// TestServiceInstanceReadIllegalQuery tests that a malformed query raises a bad request
+// with a query error.
+func TestServiceInstanceReadIllegalQuery(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	query := util.ReadServiceInstanceQuery(req)
+	util.MustGetAndError(t, "/v2/service_instances/pinkiepie?"+query.Encode()+"&%illegal", http.StatusBadRequest, api.ErrorQueryError)
 }
 
 // TestServiceInstanceReadServiceIDOptional tests that we can read an existing service instance
