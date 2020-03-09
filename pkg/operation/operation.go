@@ -3,6 +3,8 @@ package operation
 import (
 	"fmt"
 
+	"github.com/couchbase/service-broker/pkg/registry"
+
 	"github.com/google/uuid"
 )
 
@@ -10,30 +12,20 @@ import (
 type Type string
 
 const (
-	// TypeServiceInstanceCreate is used when a service instance is being created.
-	TypeServiceInstanceCreate Type = "serviceInstanceCreate"
+	// TypeProvision is used when a resource is being created.
+	TypeProvision Type = "provision"
 
-	// TypeServiceInstanceUpdate is used when a service instance is being updated.
-	TypeServiceInstanceUpdate Type = "serviceInstanceUpdate"
+	// TypeUpdate is used when a resource is being updated.
+	TypeUpdate Type = "update"
 
-	// TypeServiceInstanceDelete is used when a service instance is being deleted.
-	TypeServiceInstanceDelete Type = "serviceInstanceDelete"
+	// TypeDeprovision is used when a resource is being deleted.
+	TypeDeprovision Type = "deprovision"
 )
 
 // Operation represents an asynchronous operation.
+// All state is persisted in the registry entry associated with the instance or binding.
+// It is ostensibly an ephemeral cache of status channels so we can poll for completion.
 type Operation struct {
-	// Type is the type of operation being performed.
-	Type Type
-
-	// ID is a unique identifier for the operation.
-	ID string
-
-	// ServiceID is the identity of the service related to the operation.
-	ServiceID string
-
-	// PlanID is the identity of the plan related to the operation.
-	PlanID string
-
 	// Status is used to asynchronously poll for completion and read
 	// the operation's error status.
 	Status chan error
@@ -49,18 +41,33 @@ func Get(instanceID string) (op *Operation, ok bool) {
 }
 
 // Delete deletes the operation associated with an instance ID.
-func Delete(instanceID string) {
+func Delete(instanceID string, entry *registry.Entry) error {
 	delete(operations, instanceID)
+
+	entry.Unset(registry.Operation)
+	entry.Unset(registry.OperationID)
+
+	if err := entry.Commit(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // New creates a new aysnchronous operation for an instance ID.
-func New(t Type, instanceID, serviceID, planID string) (*Operation, error) {
+func New(t Type, instanceID string, entry *registry.Entry) (*Operation, error) {
+	id := uuid.New().String()
+
+	// Persist operation information to the registry.
+	entry.Set(registry.Operation, string(t))
+	entry.Set(registry.OperationID, id)
+
+	if err := entry.Commit(); err != nil {
+		return nil, err
+	}
+
 	operation := &Operation{
-		Type:      t,
-		ID:        uuid.New().String(),
-		ServiceID: serviceID,
-		PlanID:    planID,
-		Status:    make(chan error),
+		Status: make(chan error),
 	}
 
 	if _, ok := operations[instanceID]; ok {

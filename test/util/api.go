@@ -447,12 +447,33 @@ func MustCreateServiceInstance(t *testing.T, name string, req *api.CreateService
 // MustPollServiceInstanceForCompletion wraps up service instance poll.
 func MustPollServiceInstanceForCompletion(t *testing.T, name string, rsp *api.CreateServiceInstanceResponse) {
 	callback := func() bool {
+		// Polling will usually always return OK with the status embedded in the response.
 		poll := &api.PollServiceInstanceResponse{}
 		MustGet(t, "/v2/service_instances/"+name+"/last_operation?operation="+rsp.Operation, http.StatusOK, poll)
 
+		// A failed is always an error.
 		Assert(t, poll.State != api.PollStateFailed)
 
+		// Polling completes when the the state is success.
 		return poll.State == api.PollStateSucceeded
+	}
+	MustWaitFor(t, callback, pollTimeout)
+}
+
+// MustPollServiceInstanceForDeletion wraps up polling for an aysnc deletion.
+func MustPollServiceInstanceForDeletion(t *testing.T, name string, rsp *api.CreateServiceInstanceResponse) {
+	callback := func() bool {
+		// When polling for deletion, it will start as OK (as per MustPollServiceInstanceForCompletion)
+		// however will finally respond with Gone.
+		apiError := &api.Error{}
+		if err := Get("/v2/service_instances/"+name+"/last_operation?operation="+rsp.Operation, http.StatusGone, apiError); err != nil {
+			return false
+		}
+
+		// Assert that the correct error message is given.
+		Assert(t, apiError.Error == api.ErrorResourceGone)
+
+		return true
 	}
 	MustWaitFor(t, callback, pollTimeout)
 }

@@ -378,7 +378,7 @@ func TestServiceInstanceDelete(t *testing.T) {
 
 	rsp := &api.CreateServiceInstanceResponse{}
 	util.MustDelete(t, "/v2/service_instances/pinkiepie?"+util.DeleteServiceInstanceQuery(req).Encode(), http.StatusAccepted, rsp)
-	util.MustPollServiceInstanceForCompletion(t, fixtures.ServiceInstanceName, rsp)
+	util.MustPollServiceInstanceForDeletion(t, fixtures.ServiceInstanceName, rsp)
 }
 
 // TestServiceInstanceDeleteNotAsynchronous tests that a service instance delete must

@@ -32,6 +32,13 @@ const (
 
 	// Parameters are the parameters used to create or update the instance or binding.
 	Parameters Key = "parameters"
+
+	// Operation records there is an asynchronous operation in progress for the instance or binding.
+	// This is the analogue to an operation.Type.
+	Operation Key = "operation"
+
+	// OperationID is the unique ID for an asynchronous operation on an instance or binding.
+	OperationID Key = "operation_id"
 )
 
 // Entry is a KV store associated with each instance or binding.
@@ -163,6 +170,11 @@ func (e *Entry) SetJSON(key Key, value interface{}) error {
 	e.secret.Data[string(key)] = data
 
 	return nil
+}
+
+// Unset removes an item from the entry item.
+func (e *Entry) Unset(key Key) {
+	delete(e.secret.Data, string(key))
 }
 
 // GetOwnerReference returns the owner reference to attach to all resources created

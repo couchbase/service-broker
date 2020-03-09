@@ -17,6 +17,7 @@ linters:
   # Disable global checks, these are required with HTTP handlers.
   # Disable init checks (todo in the future).
   # Disable cognitive complexity checks (todo in the future).
+  # Disable cyclomatic complexity checks (todo in the future).
   # Disable imports checks (todo in the future).
   # Disable interface checks, this suggests stupid things.
   # Disable long line length checks (todo in the future).
@@ -26,6 +27,7 @@ linters:
   - gochecknoglobals
   - gochecknoinits
   - gocognit
+  - gocyclo
   - goimports
   - interfacer
   - lll

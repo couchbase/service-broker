@@ -145,9 +145,25 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		status := http.StatusOK
 		response := &api.CreateServiceInstanceResponse{}
 
-		if op, ok := operation.Get(instanceID); ok {
+		// There is some ambiguity in the specification, it's accepted if something is already
+		// provisioning, or a conflict if it's already provisioning with different parameters,
+		// but no mention is made if another operation is in flight e.g. update or deprovision.
+		// We'll just call it a conflict.
+		operationType, ok := entry.Get(registry.Operation)
+		if ok {
+			if operation.Type(operationType) != operation.TypeProvision {
+				util.JSONError(w, errors.NewResourceConflictError("existing %v operation in progress", operationType))
+				return
+			}
+
+			operationID, ok := entry.Get(registry.OperationID)
+			if !ok {
+				util.JSONError(w, fmt.Errorf("service instance missing operation ID"))
+				return
+			}
+
 			status = http.StatusAccepted
-			response.Operation = op.ID
+			response.Operation = operationID
 		}
 
 		util.JSONResponse(w, status, response)
@@ -199,7 +215,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	// Start the provisioning process in the background.
-	op, err := operation.New(operation.TypeServiceInstanceCreate, instanceID, request.ServiceID, request.PlanID)
+	op, err := operation.New(operation.TypeProvision, instanceID, entry)
 	if err != nil {
 		util.JSONError(w, err)
 		return
@@ -207,9 +223,14 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 	go op.Run(provisioner)
 
+	operationID, ok := entry.Get(registry.OperationID)
+	if !ok {
+		util.JSONError(w, fmt.Errorf("service instance missing operation ID"))
+	}
+
 	// Return a response to the client.
 	response := &api.CreateServiceInstanceResponse{
-		Operation: op.ID,
+		Operation: operationID,
 	}
 	util.JSONResponse(w, http.StatusAccepted, response)
 }
@@ -367,7 +388,7 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	// Start the update operation in the background.
-	op, err := operation.New(operation.TypeServiceInstanceUpdate, instanceID, request.ServiceID, planID)
+	op, err := operation.New(operation.TypeUpdate, instanceID, entry)
 	if err != nil {
 		util.JSONError(w, err)
 		return
@@ -375,9 +396,14 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 	go op.Run(updater)
 
+	operationID, ok := entry.Get(registry.OperationID)
+	if !ok {
+		util.JSONError(w, fmt.Errorf("service instance missing operation ID"))
+	}
+
 	// Return a response to the client.
 	response := &api.UpdateServiceInstanceResponse{
-		Operation: op.ID,
+		Operation: operationID,
 	}
 
 	util.JSONResponse(w, http.StatusAccepted, response)
@@ -446,7 +472,7 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	deleter := provisioners.NewServiceInstanceDeleter(entry, instanceID)
 
 	// Start the delete operation in the background.
-	op, err := operation.New(operation.TypeServiceInstanceDelete, instanceID, serviceID, planID)
+	op, err := operation.New(operation.TypeDeprovision, instanceID, entry)
 	if err != nil {
 		util.JSONError(w, err)
 		return
@@ -454,31 +480,33 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 	go op.Run(deleter)
 
+	operationID, ok := entry.Get(registry.OperationID)
+	if !ok {
+		util.JSONError(w, fmt.Errorf("service instance missing operation ID"))
+	}
+
 	response := &api.CreateServiceInstanceResponse{
-		Operation: op.ID,
+		Operation: operationID,
 	}
 	util.JSONResponse(w, http.StatusAccepted, response)
 }
 
-// handleReadServiceInstanceStatus
-func handleReadServiceInstanceStatus(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+// handlePollServiceInstance
+func handlePollServiceInstance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
 		util.JSONError(w, fmt.Errorf("request missing instance_id parameter"))
 		return
 	}
 
-	op, ok := operation.Get(instanceID)
-	if !ok {
-		// The operation should be persistent, hence this hack.
-		// While we should return an error here, the service catalog doesn't like getting
-		// a non-yay or nay response.
-		response := &api.PollServiceInstanceResponse{
-			State: api.PollStateSucceeded,
-		}
+	entry, err := registry.Instance(instanceID)
+	if err != nil {
+		util.JSONError(w, err)
+		return
+	}
 
-		util.JSONResponse(w, http.StatusOK, response)
-
+	if !entry.Exists() {
+		util.JSONError(w, errors.NewResourceGoneError("service instance does not exist"))
 		return
 	}
 
@@ -504,48 +532,83 @@ func handleReadServiceInstanceStatus(w http.ResponseWriter, r *http.Request, par
 		return
 	}
 
+	instanceServiceID, ok := entry.Get(registry.ServiceID)
+	if !ok {
+		util.JSONError(w, fmt.Errorf("service instance missing operation ID"))
+	}
+
+	instancePlanID, ok := entry.Get(registry.PlanID)
+	if !ok {
+		util.JSONError(w, fmt.Errorf("service instance missing operation ID"))
+	}
+
+	instanceOperationID, ok := entry.Get(registry.OperationID)
+	if !ok {
+		util.JSONError(w, fmt.Errorf("service instance missing operation ID"))
+	}
+
 	// While not specified, we check that the provided service ID matches the one
 	// we expect.  It may be indicative of a client error.
-	if serviceIDProvided && serviceID != op.ServiceID {
-		util.JSONError(w, errors.NewQueryError("provided service ID %s does not match %s", serviceID, op.ServiceID))
+	if serviceIDProvided && serviceID != instanceServiceID {
+		util.JSONError(w, errors.NewQueryError("provided service ID %s does not match %s", serviceID, instanceServiceID))
 		return
 	}
 
 	// While not specified, we check that the provided plan ID matches the one
 	// we expect.  It may be indicative of a client error.
-	if planIDProvided && planID != op.PlanID {
-		util.JSONError(w, errors.NewQueryError("provided plan ID %s does not match %s", planID, op.PlanID))
+	if planIDProvided && planID != instancePlanID {
+		util.JSONError(w, errors.NewQueryError("provided plan ID %s does not match %s", planID, instancePlanID))
 		return
 	}
 
-	if operationID != op.ID {
-		util.JSONError(w, errors.NewQueryError("provided operation %s does not match operation %s", operationID, op.ID))
+	if operationID != instanceOperationID {
+		util.JSONError(w, errors.NewQueryError("provided operation %s does not match operation %s", operationID, instanceOperationID))
+		return
+	}
+
+	// Check to see if the operation actually exists in the cache.
+	// If not then perhaps someone restarted the broker.  We cannot say whether the
+	// opereration succeeded with any certainty, so declare it failed.
+	op, ok := operation.Get(instanceID)
+	if !ok {
+		if err := operation.Delete(instanceID, entry); err != nil {
+			util.JSONError(w, err)
+			return
+		}
+
+		response := &api.PollServiceInstanceResponse{
+			State:       api.PollStateFailed,
+			Description: "unable to lookup operation routine for service instance",
+		}
+
+		util.JSONResponse(w, http.StatusOK, response)
+
 		return
 	}
 
 	// status is the API state of the operation.
-	var status api.PollState
+	status := api.PollStateInProgress
 
 	// description is a description of why the operation is in that state.
-	var description string
+	description := ""
 
 	// Poll the provisioner process for status updates.
 	select {
 	case err := <-op.Status:
-		// Free memory.  Is it safer just to garbage collect?  Yes.
-		operation.Delete(instanceID)
+		if err := operation.Delete(instanceID, entry); err != nil {
+			util.JSONError(w, err)
+			return
+		}
 
 		if err != nil {
 			status = api.PollStateFailed
 			description = err.Error()
-			glog.Error(err)
 
 			break
 		}
 
 		status = api.PollStateSucceeded
 	default:
-		status = api.PollStateInProgress
 	}
 
 	// Return a response to the client.
@@ -572,6 +635,6 @@ func handleUpdateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 func handleDeleteServiceBinding(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 }
 
-// handleReadServiceBindingStatus
-func handleReadServiceBindingStatus(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+// handlePollServiceBinding
+func handlePollServiceBinding(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 }
