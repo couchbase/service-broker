@@ -77,6 +77,11 @@ var (
 					Raw: []byte(BasicSchemaParameters),
 				},
 			},
+			Update: &v1.InputParamtersSchema{
+				Parameters: &runtime.RawExtension{
+					Raw: []byte(BasicSchemaParameters),
+				},
+			},
 		},
 	}
 
@@ -84,6 +89,11 @@ var (
 	basicSchemaRequired = &v1.Schemas{
 		ServiceInstance: &v1.ServiceInstanceSchema{
 			Create: &v1.InputParamtersSchema{
+				Parameters: &runtime.RawExtension{
+					Raw: []byte(BasicSchemaParametersRequired),
+				},
+			},
+			Update: &v1.InputParamtersSchema{
 				Parameters: &runtime.RawExtension{
 					Raw: []byte(BasicSchemaParametersRequired),
 				},

@@ -61,8 +61,7 @@ func TestServiceInstanceCreateIllegalQuery(t *testing.T) {
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
-	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true&%illegal", http.StatusBadRequest, req, api.ErrorQueryError)
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true&%illegal", http.StatusBadRequest, nil, api.ErrorQueryError)
 }
 
 // TestServiceInstanceCreateInvalidService tests that the service broker handles
@@ -118,9 +117,9 @@ func TestServiceInstanceCreateWithSchemaNoParameters(t *testing.T) {
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 }
 
-// TestServiceInstanceCreateSchemaValidationFail tests that the service broker rejects
+// TestServiceInstanceCreateWithSchemaInvalid tests that the service broker rejects
 // schema validation failure.
-func TestServiceInstanceCreateSchemaValidationFail(t *testing.T) {
+func TestServiceInstanceCreateWithSchemaInvalid(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
@@ -571,9 +570,9 @@ func TestServiceInstanceReadPlanIDIllegal(t *testing.T) {
 	util.MustGetAndError(t, "/v2/service_instances/pinkiepie?"+query.Encode(), http.StatusBadRequest, api.ErrorQueryError)
 }
 
-// TestServiceInstanceReadIllegalServiceInstance tests that a read on an illegal service
+// TestServiceInstanceReadIllegalInstance tests that a read on an illegal service
 // instance is rejected.
-func TestServiceInstanceReadIllegalServiceInstance(t *testing.T) {
+func TestServiceInstanceReadIllegalInstance(t *testing.T) {
 	defer mustReset(t)
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
@@ -593,4 +592,135 @@ func TestServiceInstanceUpdate(t *testing.T) {
 
 	update := fixtures.BasicServiceInstanceUpdateRequest()
 	util.MustUpdateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, update)
+}
+
+// TestServiceInstanceUpdateAsyncNotAsynchronous tests that update operations must
+// be asynchronous.
+func TestServiceInstanceUpdateAsyncNotAsynchronous(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	util.MustPatchAndError(t, "/v2/service_instances/pinkiepie", http.StatusUnprocessableEntity, nil, api.ErrorAsyncRequired)
+}
+
+// TestServiceInstanceUpdateIllegalBody tests that an illegal body raises a bad
+// request and parameter error.
+func TestServiceInstanceUpdateIllegalBody(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	util.MustPatchAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, `illegal`, api.ErrorParameterError)
+}
+
+// TestServiceInstanceUpdateIllegalQuery tests that an illegal query raises a bad
+// request and query error.
+func TestServiceInstanceUpdateIllegalQuery(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	util.MustPatchAndError(t, "/v2/service_instances/pinkiepie?%illegal", http.StatusBadRequest, nil, api.ErrorQueryError)
+}
+
+// TestServiceInstanceUpdateIllegalServiceID tests that an illegal body raises a bad
+// request and parameter error.
+func TestServiceInstanceUpdateIllegalServiceID(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	req.ServiceID = fixtures.IllegalID
+	util.MustPatchAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorParameterError)
+}
+
+// TestServiceInstanceUpdateIllegalPlanID tests that an illegal body raises a bad
+// request and parameter error.
+func TestServiceInstanceUpdateIllegalPlanID(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	req.PlanID = fixtures.IllegalID
+	util.MustPatchAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorParameterError)
+}
+
+// TestServiceInstanceUpdateIllegalInstance tests that an illegal instance raises a not
+// found and resource not found error.
+func TestServiceInstanceUpdateIllegalInstance(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	update := fixtures.BasicServiceInstanceUpdateRequest()
+	util.MustPatchAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusNotFound, update, api.ErrorResourceNotFound)
+}
+
+// TestServiceInstanceUpdateWithSchema tests that schema validation works.
+func TestServiceInstanceUpdateWithSchema(t *testing.T) {
+	defer mustReset(t)
+
+	configuration := fixtures.BasicConfiguration()
+	configuration.Catalog.Services[0].Plans[0].Schemas = fixtures.BasicSchema()
+	util.MustReplaceBrokerConfig(t, clients, configuration)
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	update := fixtures.BasicServiceInstanceUpdateRequest()
+	update.Parameters = &runtime.RawExtension{
+		Raw: []byte(`{"test":1}`),
+	}
+	util.MustUpdateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, update)
+}
+
+// TestServiceInstanceUpdateWithSchemaNoParameters tests that schema validation
+// is optional.
+func TestServiceInstanceUpdateWithSchemaNoParameters(t *testing.T) {
+	defer mustReset(t)
+
+	configuration := fixtures.BasicConfiguration()
+	configuration.Catalog.Services[0].Plans[0].Schemas = fixtures.BasicSchema()
+	util.MustReplaceBrokerConfig(t, clients, configuration)
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	update := fixtures.BasicServiceInstanceUpdateRequest()
+	util.MustUpdateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, update)
+}
+
+// TestServiceInstanceUpdateWithSchemaInvalid tests that schema validation rejects
+// invalid parameters,
+func TestServiceInstanceUpdateWithSchemaInvalid(t *testing.T) {
+	defer mustReset(t)
+
+	configuration := fixtures.BasicConfiguration()
+	configuration.Catalog.Services[0].Plans[0].Schemas = fixtures.BasicSchema()
+	util.MustReplaceBrokerConfig(t, clients, configuration)
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	update := fixtures.BasicServiceInstanceUpdateRequest()
+	update.Parameters = &runtime.RawExtension{
+		Raw: []byte(`{"test":"string"}`),
+	}
+	util.MustPatchAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, update, api.ErrorValidationError)
 }
