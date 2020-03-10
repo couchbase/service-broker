@@ -14,8 +14,11 @@ import (
 )
 
 const (
+	// labelBase is the root of all labels and annotations.
+	labelBase = "broker.couchbase.com"
+
 	// versionAnnotaiton recorder the broker version for upgrades.
-	versionAnnotaiton = "broker.couchbase.com/version"
+	versionAnnotaiton = labelBase + "/version"
 )
 
 // Key is an indentifier of a value in the registry entry's KV map.
@@ -23,10 +26,10 @@ type Key string
 
 const (
 	// ServiceID is the service ID related to the instance or binding.
-	ServiceID Key = "service_id"
+	ServiceID Key = "service-id"
 
 	// PlanID is the plan ID related to the instance or binding.
-	PlanID Key = "plan_id"
+	PlanID Key = "plan-id"
 
 	// Context is the context used to create or update the instance or binding.
 	Context Key = "context"
@@ -39,10 +42,10 @@ const (
 	Operation Key = "operation"
 
 	// OperationID is the unique ID for an asynchronous operation on an instance or binding.
-	OperationID Key = "operation_id"
+	OperationID Key = "operation-id"
 
 	// OperationStatus is the error string returned by an aysynchronous operation.
-	OperationStatus Key = "operation_status"
+	OperationStatus Key = "operation-status"
 )
 
 // Entry is a KV store associated with each instance or binding.
@@ -83,7 +86,7 @@ func Instance(name string) (*Entry, error) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: resourceName,
 				Labels: map[string]string{
-					"app": "broker.couchbase.com",
+					"app": labelBase,
 				},
 				Annotations: map[string]string{
 					versionAnnotaiton: version.Version,
@@ -143,12 +146,17 @@ func (e *Entry) Delete() error {
 	return nil
 }
 
+// annotationKey converts a key into an annotation key.
+func annotationKey(key Key) string {
+	return labelBase + "/" + string(key)
+}
+
 // Get gets a string from the entry.
 func (e *Entry) Get(key Key) (string, bool) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
-	data, ok := e.secret.Data[string(key)]
+	data, ok := e.secret.Data[annotationKey(key)]
 	if !ok {
 		return "", false
 	}
@@ -175,7 +183,7 @@ func (e *Entry) Set(key Key, value string) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
-	e.secret.Data[string(key)] = []byte(value)
+	e.secret.Data[annotationKey(key)] = []byte(value)
 }
 
 // SetJSON encodes a JSON object and sets the entry item.
@@ -192,7 +200,7 @@ func (e *Entry) SetJSON(key Key, value interface{}) error {
 
 // Unset removes an item from the entry item.
 func (e *Entry) Unset(key Key) {
-	delete(e.secret.Data, string(key))
+	delete(e.secret.Data, annotationKey(key))
 }
 
 // GetOwnerReference returns the owner reference to attach to all resources created
