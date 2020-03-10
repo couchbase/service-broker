@@ -69,7 +69,7 @@ var (
 		},
 	}
 
-	// basicSchema is schema for service instance create validation with optional parameters.
+	// basicSchema is schema for service instance validation with optional parameters.
 	basicSchema = &v1.Schemas{
 		ServiceInstance: &v1.ServiceInstanceSchema{
 			Create: &v1.InputParamtersSchema{
@@ -85,7 +85,7 @@ var (
 		},
 	}
 
-	// basicSchemaRequired is a schema for service instance create validation with required parameters.
+	// basicSchemaRequired is a schema for service instance validation with required parameters.
 	basicSchemaRequired = &v1.Schemas{
 		ServiceInstance: &v1.ServiceInstanceSchema{
 			Create: &v1.InputParamtersSchema{

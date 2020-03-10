@@ -2,6 +2,7 @@ package test
 
 import (
 	"net/http"
+	"reflect"
 	"testing"
 
 	"github.com/couchbase/service-broker/pkg/api"
@@ -493,7 +494,32 @@ func TestServiceInstanceRead(t *testing.T) {
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
-	util.MustGet(t, "/v2/service_instances/pinkiepie?"+util.ReadServiceInstanceQuery(req).Encode(), http.StatusOK, nil)
+	read := &api.GetServiceInstanceResponse{}
+	util.MustGet(t, "/v2/service_instances/pinkiepie?"+util.ReadServiceInstanceQuery(req).Encode(), http.StatusOK, read)
+
+	util.Assert(t, read.ServiceID == req.ServiceID)
+	util.Assert(t, read.PlanID == req.PlanID)
+}
+
+// TestServiceInstanceReadWithParameters tests that parameters are preserved and
+// reported with a get call.
+func TestServiceInstanceReadWithParameters(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	req.Parameters = &runtime.RawExtension{
+		Raw: []byte(`{"test":1}`),
+	}
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	read := &api.GetServiceInstanceResponse{}
+	util.MustGet(t, "/v2/service_instances/pinkiepie?"+util.ReadServiceInstanceQuery(req).Encode(), http.StatusOK, read)
+
+	util.Assert(t, read.ServiceID == req.ServiceID)
+	util.Assert(t, read.PlanID == req.PlanID)
+	util.Assert(t, reflect.DeepEqual(read.Parameters, req.Parameters))
 }
 
 // TestServiceInstanceReadIllegalQuery tests that a malformed query raises a bad request

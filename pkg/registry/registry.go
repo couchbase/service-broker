@@ -111,8 +111,8 @@ func (e *Entry) Exists() bool {
 
 // Commit persists the entry transaction to Kubernetes.
 func (e *Entry) Commit() error {
-        e.mutex.Lock()
-        defer e.mutex.Unlock()
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
 
 	if e.exists {
 		secret, err := config.Clients().Kubernetes().CoreV1().Secrets(config.Namespace()).Update(e.secret)
