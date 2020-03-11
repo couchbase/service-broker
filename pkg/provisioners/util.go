@@ -98,54 +98,56 @@ func getTemplate(name string) (*v1.CouchbaseServiceBrokerConfigTemplate, error) 
 
 // resolveSource gets a parameter source from either metadata or a JSON path into user specified parameters.
 func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSource, entry *registry.Entry, parameters *runtime.RawExtension, useDefaults bool) (interface{}, error) {
+	// Use a default if set.
+	var value interface{}
+
+	if useDefaults && source.Default != nil {
+		switch {
+		case source.Default.String != nil:
+			value = *source.Default.String
+		case source.Default.Bool != nil:
+			value = *source.Default.Bool
+		case source.Default.Int != nil:
+			value = *source.Default.Int
+		case source.Default.Object != nil:
+			if err := json.Unmarshal(source.Default.Object.Raw, &value); err != nil {
+				glog.Infof("unmarshal of source default failed: %v", err)
+				return nil, err
+			}
+		default:
+			return nil, errors.NewConfigurationError("undefined source default parameter")
+		}
+
+		glog.Infof("using source default %v", value)
+	}
+
 	switch {
 	case source.Registry != nil:
 		// Metadata parameters are explicitly mapped to values associated
 		// with the request.
-		value, ok, err := entry.GetUser(*source.Registry)
+		v, ok, err := entry.GetUser(*source.Registry)
 		if err != nil {
 			return nil, err
 		}
 
 		if !ok {
 			glog.Infof("registry key %s not set, skipping", *source.Registry)
-			return nil, nil
+			break
 		}
 
-		return value, nil
+		value = v
+
 	case source.Parameter != nil:
-		var value interface{}
-
 		// Parameters reference parameters specified by the client in response to
-		// the schema advertised to the client.  First set the default then try
-		// override if the parameter is specified by the client.
+		// the schema advertised to the client.
 		parameter := source.Parameter
-		if useDefaults && parameter.Default != nil {
-			switch {
-			case parameter.Default.String != nil:
-				value = *parameter.Default.String
-			case parameter.Default.Bool != nil:
-				value = *parameter.Default.Bool
-			case parameter.Default.Int != nil:
-				value = *parameter.Default.Int
-			case parameter.Default.Object != nil:
-				if err := json.Unmarshal(parameter.Default.Object.Raw, &value); err != nil {
-					glog.Infof("unmarshal of default parameter failed: %v", err)
-					return nil, err
-				}
-			default:
-				return nil, fmt.Errorf("undefined default parameter")
-			}
-
-			glog.Infof("using parameter default %v", value)
-		}
 
 		// Parameters reference parameters specified by the client in response to
 		// the schema advertised to the client.  Try to extract the parameter from
 		// the supplied parameters.
 		if parameters == nil || parameters.Raw == nil {
 			glog.Infof("client parameters not set, skipping")
-			return value, nil
+			break
 		}
 
 		var parametersUnstructured interface{}
@@ -165,15 +167,17 @@ func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 		v, _, err := pointer.Get(parametersUnstructured)
 		if err != nil {
 			glog.Infof("client parameter not set, skipping: %v", err)
-			return value, nil
+			break
 		}
 
-		glog.Infof("using parameter %v", v)
-
-		return v, nil
+		value = v
 	default:
 		return nil, fmt.Errorf("source parameter type not specified")
 	}
+
+	glog.Infof("using source value %v", value)
+
+	return value, nil
 }
 
 // resolveParameter applies parameter lookup rules and tries to return a value.

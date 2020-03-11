@@ -180,10 +180,29 @@ func BasicServiceInstanceUpdateRequest() *api.UpdateServiceInstanceRequest {
 	return basicServiceInstanceUpdateRequest.DeepCopy()
 }
 
+// RegistryParametersToRegistryWithDefault returns a parameter list as specified.
+func RegistryParametersToRegistryWithDefault(key, destination, defaultValue string, required bool) []v1.CouchbaseServiceBrokerConfigTemplateParameter {
+	return []v1.CouchbaseServiceBrokerConfigTemplateParameter{
+		{
+			Name: "test-parameter",
+			Sources: []v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+				{
+					Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceDefault{
+						String: &defaultValue,
+					},
+					Registry: &key,
+				},
+			},
+			Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+				Registry: &destination,
+			},
+			Required: required,
+		},
+	}
+}
+
 // ParametersToRegistry returns a parameter list as specified.
 func ParametersToRegistry(path, destination string, required bool) []v1.CouchbaseServiceBrokerConfigTemplateParameter {
-	d := destination
-
 	return []v1.CouchbaseServiceBrokerConfigTemplateParameter{
 		{
 			Name: "test-parameter",
@@ -195,7 +214,30 @@ func ParametersToRegistry(path, destination string, required bool) []v1.Couchbas
 				},
 			},
 			Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
-				Registry: &d,
+				Registry: &destination,
+			},
+			Required: required,
+		},
+	}
+}
+
+// ParametersToRegistryWithDefault returns a parameter list as specified.
+func ParametersToRegistryWithDefault(path, destination, defaultValue string, required bool) []v1.CouchbaseServiceBrokerConfigTemplateParameter {
+	return []v1.CouchbaseServiceBrokerConfigTemplateParameter{
+		{
+			Name: "test-parameter",
+			Sources: []v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+				{
+					Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceDefault{
+						String: &defaultValue,
+					},
+					Parameter: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceParameter{
+						Path: path,
+					},
+				},
+			},
+			Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+				Registry: &destination,
 			},
 			Required: required,
 		},

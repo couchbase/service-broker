@@ -121,3 +121,33 @@ func TestRegistryExplicitIllegaNamespace(t *testing.T) {
 	}
 	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorParameterError)
 }
+
+// TestRegistryDefault tests that missing registry entries can be defaulted.
+func TestRegistryDefault(t *testing.T) {
+	defer mustReset(t)
+
+	key := "animal"
+	defaultValue := "kitten"
+
+	configuration := fixtures.BasicConfiguration()
+	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.RegistryParametersToRegistryWithDefault(key, key, defaultValue, false)
+	util.MustReplaceBrokerConfig(t, clients, configuration)
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	entry := util.MustGetRegistryEntry(t, clients, fixtures.ServiceInstanceName)
+	util.MustHaveRegistryEntry(t, entry, registry.Key(key), defaultValue)
+}
+
+// TestRegistryiNoDestination test that a configuration error is raised when the destinationisn't specified.
+func TestRegistryiNoDestination(t *testing.T) {
+	defer mustReset(t)
+
+	configuration := fixtures.BasicConfiguration()
+	configuration.Bindings[0].ServiceInstance.Parameters[0].Destination.Registry = nil
+	util.MustReplaceBrokerConfig(t, clients, configuration)
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorConfigurationError)
+}

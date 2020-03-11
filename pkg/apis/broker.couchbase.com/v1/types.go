@@ -268,6 +268,10 @@ type CouchbaseServiceBrokerConfigTemplateParameter struct {
 // CouchbaseServiceBrokerConfigTemplateParameterSource defines where parameters
 // are sourced from.
 type CouchbaseServiceBrokerConfigTemplateParameterSource struct {
+	// Default specifies the default value is if the parameter is not defined.
+	// When used with a registry entry this must be a string.
+	Default *CouchbaseServiceBrokerConfigTemplateParameterSourceDefault `json:"default,omitempty"`
+
 	// Registry , if set, uses the corresponding registry value for the
 	// parameter source.
 	Registry *string `json:"registry,omitempty"`
@@ -291,14 +295,11 @@ type CouchbaseServiceBrokerConfigTemplateParameterSourceParameter struct {
 	// Path specifies the path in JSON pointer format to extract
 	// the parameter from a request parameter.
 	Path string `json:"path"`
-
-	// Default specifies the default value is if the parameter is not defined.
-	Default *CouchbaseServiceBrokerConfigTemplateParameterSourceParameterDefault `json:"default,omitempty"`
 }
 
-// CouchbaseServiceBrokerConfigTemplateParameterSourceParameterDefault defines a
+// CouchbaseServiceBrokerConfigTemplateParameterSourceDefault defines a
 // default value for a parameter source if it is not specified.
-type CouchbaseServiceBrokerConfigTemplateParameterSourceParameterDefault struct {
+type CouchbaseServiceBrokerConfigTemplateParameterSourceDefault struct {
 	// String specifies the default string value if the parameter is not defined.
 	String *string `json:"string,omitempty"`
 

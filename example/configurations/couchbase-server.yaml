@@ -352,8 +352,8 @@ spec:
       sources:
       - parameter:
           path: /image
-          default:
-            string: couchbase/server:enterprise-6.0.1
+        default:
+          string: couchbase/server:enterprise-6.0.1
       destination:
         paths:
         - /spec/image
@@ -361,8 +361,8 @@ spec:
       sources:
       - parameter:
           path: /size
-          default:
-            int: 3
+        default:
+          int: 3
       destination:
         paths:
         - /spec/servers/0/size

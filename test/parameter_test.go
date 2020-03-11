@@ -18,6 +18,9 @@ const (
 
 	// value is the value of the registry key we will create.
 	value = "cat"
+
+	// defaultValue is the default value for the registry key to use.
+	defaultValue = "kitten"
 )
 
 // TestParameters tests parameter items are correctly populated by service instance
@@ -66,4 +69,19 @@ func TestParametersMissingRequiredPath(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorParameterError)
+}
+
+// TestParametersDefault tests a parameter with a default work when not specified.
+func TestParametersDefault(t *testing.T) {
+	defer mustReset(t)
+
+	configuration := fixtures.BasicConfiguration()
+	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.ParametersToRegistryWithDefault("/animal", key, defaultValue, false)
+	util.MustReplaceBrokerConfig(t, clients, configuration)
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	entry := util.MustGetRegistryEntry(t, clients, fixtures.ServiceInstanceName)
+	util.MustHaveRegistryEntry(t, entry, registry.Key(key), defaultValue)
 }
