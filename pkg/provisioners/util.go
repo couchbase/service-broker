@@ -25,13 +25,13 @@ func GetNamespace(context *runtime.RawExtension) (string, error) {
 		var ctx interface{}
 
 		if err := json.Unmarshal(context.Raw, &ctx); err != nil {
-			glog.Errorf("unmarshal of client context failed: %v", err)
+			glog.Infof("unmarshal of client context failed: %v", err)
 			return "", err
 		}
 
 		pointer, err := jsonpointer.New("/namespace")
 		if err != nil {
-			glog.Errorf("failed to parse JSON pointer: %v", err)
+			glog.Infof("failed to parse JSON pointer: %v", err)
 			return "", err
 		}
 
@@ -42,9 +42,9 @@ func GetNamespace(context *runtime.RawExtension) (string, error) {
 				return namespace, nil
 			}
 
-			glog.Errorf("request context namespace not a string")
+			glog.Infof("request context namespace not a string")
 
-			return "", fmt.Errorf("request context namespace not a string")
+			return "", errors.NewParameterError("request context namespace not a string")
 		}
 	}
 
@@ -108,7 +108,8 @@ func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 		}
 
 		if !ok {
-			return nil, errors.NewConfigurationError("undefined metadata parameter %s", *source.Registry)
+			glog.Infof("registry key %s not set, skipping", *source.Registry)
+			return nil, nil
 		}
 
 		return value, nil
@@ -129,7 +130,7 @@ func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 				value = *parameter.Default.Int
 			case parameter.Default.Object != nil:
 				if err := json.Unmarshal(parameter.Default.Object.Raw, &value); err != nil {
-					glog.Errorf("unmarshal of default parameter failed: %v", err)
+					glog.Infof("unmarshal of default parameter failed: %v", err)
 					return nil, err
 				}
 			default:
@@ -142,14 +143,14 @@ func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 		// Parameters reference parameters specified by the client in response to
 		// the schema advertised to the client.  Try to extract the parameter from
 		// the supplied parameters.
-		if parameters.Raw == nil {
+		if parameters == nil || parameters.Raw == nil {
 			glog.Infof("client parameters not set, skipping")
 			return value, nil
 		}
 
 		var parametersUnstructured interface{}
 		if err := json.Unmarshal(parameters.Raw, &parametersUnstructured); err != nil {
-			glog.Errorf("unmarshal of client parameters failed: %v", err)
+			glog.Infof("unmarshal of client parameters failed: %v", err)
 			return nil, err
 		}
 
@@ -157,7 +158,7 @@ func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 
 		pointer, err := jsonpointer.New(parameter.Path)
 		if err != nil {
-			glog.Errorf("failed to parse JSON pointer: %v", err)
+			glog.Infof("failed to parse JSON pointer: %v", err)
 			return nil, err
 		}
 
@@ -179,37 +180,32 @@ func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 func resolveParameter(parameter *v1.CouchbaseServiceBrokerConfigTemplateParameter, entry *registry.Entry, parameters *runtime.RawExtension, useDefaults bool) (interface{}, error) {
 	values := make([]interface{}, len(parameter.Sources))
 
+	// Collect any sources requested.
 	for index := range parameter.Sources {
 		value, err := resolveSource(&parameter.Sources[index], entry, parameters, useDefaults)
 		if err != nil {
 			return nil, err
 		}
 
+		if parameter.Required && value == nil {
+			glog.Infof("source unset but parameter is required")
+			return nil, errors.NewParameterError("parameter %s is required", parameter.Name)
+		}
+
 		values[index] = value
 	}
 
-	// Set the requested paths in the template if the value is valid.
-	// We require that all parent elements in the template be populated,
-	// even if that means an empty object, exactly like the JSON patch
-	// specification.
-	minimumValues := 1
-	if len(values) < minimumValues {
-		if parameter.Required {
-			glog.Errorf("value unset but parameter is required")
-			return nil, fmt.Errorf("parameter %s is required", parameter.Name)
-		}
-
-		glog.Infof("value unset, skipping")
-
-		return nil, nil
-	}
-
 	// Default to the first value before optional mutation.
-	value := values[0]
+	var value interface{}
+
+	if len(values) != 0 {
+		value = values[0]
+	}
 
 	// Mutate the sources into a finished value if requested.
 	if parameter.Mutation != nil {
 		if parameter.Mutation.Format != nil {
+			// Error checking needs to happen.
 			value = fmt.Sprintf(*parameter.Mutation.Format, values...)
 		}
 	}
@@ -245,7 +241,7 @@ func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *re
 			}
 
 			if err := entry.SetUser(*parameter.Destination.Registry, strValue); err != nil {
-				return nil, err
+				return nil, errors.NewConfigurationError(err.Error())
 			}
 		}
 
@@ -259,7 +255,7 @@ func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *re
 		for _, path := range parameter.Destination.Paths {
 			valueJSON, err := json.Marshal(value)
 			if err != nil {
-				glog.Errorf("marshal of value failed: %v", err)
+				glog.Infof("marshal of value failed: %v", err)
 				return nil, err
 			}
 
@@ -272,13 +268,13 @@ func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *re
 
 		patch, err := jsonpatch.DecodePatch([]byte(patchSet))
 		if err != nil {
-			glog.Errorf("decode of JSON patch failed: %v", err)
+			glog.Infof("decode of JSON patch failed: %v", err)
 			return nil, err
 		}
 
 		object, err := patch.Apply(t.Template.Raw)
 		if err != nil {
-			glog.Errorf("apply of JSON patch failed: %v", err)
+			glog.Infof("apply of JSON patch failed: %v", err)
 			return nil, err
 		}
 

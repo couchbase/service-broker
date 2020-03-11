@@ -174,9 +174,14 @@ type Entry struct {
 	mutex sync.Mutex
 }
 
+// Name returns the name of the registry secret.
+func Name(name string) string {
+	return "registry-" + name
+}
+
 // Instance creates an entry for a service instance, or retrives an existing one.
 func Instance(name string) (*Entry, error) {
-	resourceName := "registry-" + name
+	resourceName := Name(name)
 	exists := true
 
 	// Look up an existing config map.

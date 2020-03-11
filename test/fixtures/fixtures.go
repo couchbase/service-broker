@@ -29,6 +29,9 @@ const (
 
 	// BasicSchemaParametersRequired is a simple schema for use in parameter validation.
 	BasicSchemaParametersRequired = `{"$schema":"http://json-schema.org/draft-04/schema#","type":"object","required":["test"],"properties":{"test":{"type":"number","minimum":1}}}`
+
+	// DashboardURL is the expected dashboard URL to be generated.
+	DashboardURL = "http://instance-" + ServiceInstanceName + ".example.com"
 )
 
 var (
@@ -175,4 +178,26 @@ func BasicServiceInstanceCreateRequest() *api.CreateServiceInstanceRequest {
 // request to use against the basicConfiguration.
 func BasicServiceInstanceUpdateRequest() *api.UpdateServiceInstanceRequest {
 	return basicServiceInstanceUpdateRequest.DeepCopy()
+}
+
+// ParametersToRegistry returns a parameter list as specified.
+func ParametersToRegistry(path, destination string, required bool) []v1.CouchbaseServiceBrokerConfigTemplateParameter {
+	d := destination
+
+	return []v1.CouchbaseServiceBrokerConfigTemplateParameter{
+		{
+			Name: "test-parameter",
+			Sources: []v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+				{
+					Parameter: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceParameter{
+						Path: path,
+					},
+				},
+			},
+			Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+				Registry: &d,
+			},
+			Required: required,
+		},
+	}
 }

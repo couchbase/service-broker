@@ -8,7 +8,9 @@ import (
 	"github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1"
 	"github.com/couchbase/service-broker/pkg/client"
 	"github.com/couchbase/service-broker/pkg/config"
+	"github.com/couchbase/service-broker/pkg/registry"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -70,5 +72,34 @@ func MustReplaceBrokerConfig(t *testing.T, clients client.Clients, spec *v1.Couc
 
 	if err := WaitFor(callback, configUpdateTimeout); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// MustGetRegistryEntry returns the registry entry for a service instance.
+func MustGetRegistryEntry(t *testing.T, clients client.Clients, name string) *corev1.Secret {
+	entry, err := clients.Kubernetes().CoreV1().Secrets(Namespace).Get(registry.Name(name), metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return entry
+}
+
+// MustHaveRegistryEntry checks a registry entry exists.
+func MustHaveRegistryEntry(t *testing.T, entry *corev1.Secret, key registry.Key, value string) {
+	data, ok := entry.Data[string(key)]
+	if !ok {
+		t.Fatalf("registry missing key %s", key)
+	}
+
+	if string(data) != value {
+		t.Fatalf("registry entry %s, expected %s", data, value)
+	}
+}
+
+// MustNotHaveRegistryEntry checks a registry entry doesn't exist.
+func MustNotHaveRegistryEntry(t *testing.T, entry *corev1.Secret, key registry.Key) {
+	if _, ok := entry.Data[string(key)]; ok {
+		t.Fatalf("registry has key %s", key)
 	}
 }

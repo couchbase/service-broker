@@ -47,7 +47,7 @@ func JSONRequest(r *http.Request, data interface{}) error {
 func JSONResponse(w http.ResponseWriter, status int, data interface{}) {
 	resp, err := json.Marshal(data)
 	if err != nil {
-		glog.Errorf("failed to marshal body: %v", err)
+		glog.Infof("failed to marshal body: %v", err)
 		HTTPResponse(w, http.StatusInternalServerError)
 	}
 
@@ -58,7 +58,7 @@ func JSONResponse(w http.ResponseWriter, status int, data interface{}) {
 	HTTPResponse(w, status)
 
 	if _, err := w.Write(resp); err != nil {
-		glog.Errorf("error writing response: %v", err)
+		glog.Infof("error writing response: %v", err)
 	}
 }
 

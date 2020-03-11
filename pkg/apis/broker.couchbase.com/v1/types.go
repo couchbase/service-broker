@@ -261,7 +261,7 @@ type CouchbaseServiceBrokerConfigTemplateParameter struct {
 	// Destination is the destination of the parameter.
 	Destination CouchbaseServiceBrokerConfigTemplateParameterDestination `json:"destination,omitempty"`
 
-	// Required will cause an error if the parameter is not specified.
+	// Required will cause an error if any source is not defined.
 	Required bool `json:"required,omitempty"`
 }
 

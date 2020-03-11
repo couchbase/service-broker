@@ -26,6 +26,6 @@ func NewServiceInstanceDeleter(registry *registry.Entry, instanceID string) *Ser
 // Run performs asynchronous update tasks.
 func (d *ServiceInstanceDeleter) Run() {
 	if err := d.registry.Delete(); err != nil {
-		glog.Errorf("failed to delete instance")
+		glog.Infof("failed to delete instance")
 	}
 }

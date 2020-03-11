@@ -117,7 +117,7 @@ func (u *ServiceInstanceUpdater) PrepareResources() error {
 		// Get the resource.
 		objectCurr, err := client.Resource(mapping.Resource).Namespace(u.namespace).Get(object.GetName(), metav1.GetOptions{})
 		if err != nil {
-			glog.Errorf("failed to get resource %s/%s %s", object.GetAPIVersion(), object.GetKind(), object.GetName())
+			glog.Infof("failed to get resource %s/%s %s", object.GetAPIVersion(), object.GetKind(), object.GetName())
 			return err
 		}
 
@@ -146,7 +146,7 @@ func (u *ServiceInstanceUpdater) PrepareResources() error {
 			for _, path := range parameter.Destination.Paths {
 				valueJSON, err := json.Marshal(value)
 				if err != nil {
-					glog.Errorf("marshal of value failed: %v", err)
+					glog.Infof("marshal of value failed: %v", err)
 					return err
 				}
 
@@ -159,13 +159,13 @@ func (u *ServiceInstanceUpdater) PrepareResources() error {
 
 			patch, err := jsonpatch.DecodePatch([]byte(patchSet))
 			if err != nil {
-				glog.Errorf("decode of JSON patch failed: %v", err)
+				glog.Infof("decode of JSON patch failed: %v", err)
 				return err
 			}
 
 			objectRaw, err = patch.Apply(objectRaw)
 			if err != nil {
-				glog.Errorf("apply of JSON patch failed: %v", err)
+				glog.Infof("apply of JSON patch failed: %v", err)
 				return err
 			}
 		}
@@ -217,6 +217,6 @@ func (u *ServiceInstanceUpdater) run() error {
 // Run performs asynchronous update tasks.
 func (u *ServiceInstanceUpdater) Run() {
 	if err := operation.Complete(u.registry, u.run()); err != nil {
-		glog.Errorf("failed to delete instance")
+		glog.Infof("failed to delete instance")
 	}
 }

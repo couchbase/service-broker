@@ -213,12 +213,12 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	// things like the dashboard URL for the synchronous response.
 	provisioner, err := provisioners.NewServiceInstanceCreator(entry, instanceID, request)
 	if err != nil {
-		util.JSONError(w, fmt.Errorf("failed to create provisioner: %v", err))
+		util.JSONError(w, err)
 		return
 	}
 
 	if err := provisioner.PrepareServiceInstance(); err != nil {
-		util.JSONError(w, fmt.Errorf("failed to prepare service instance: %v", err))
+		util.JSONError(w, err)
 		return
 	}
 

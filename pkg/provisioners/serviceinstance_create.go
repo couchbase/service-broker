@@ -78,7 +78,7 @@ func (p *ServiceInstanceCreator) createResource(template *v1.CouchbaseServiceBro
 	// Unmarshal into instructured JSON.
 	object := &unstructured.Unstructured{}
 	if err := json.Unmarshal(template.Template.Raw, object); err != nil {
-		glog.Errorf("unmarshal of template failed: %v", err)
+		glog.Infof("unmarshal of template failed: %v", err)
 		return err
 	}
 
@@ -109,35 +109,35 @@ func (p *ServiceInstanceCreator) createResource(template *v1.CouchbaseServiceBro
 
 			existing, err := client.Resource(mapping.Resource).Namespace(p.namespace).Get(object.GetName(), metav1.GetOptions{})
 			if err != nil {
-				glog.Errorf("unable to get existing singleton resource: %v", err)
+				glog.Infof("unable to get existing singleton resource: %v", err)
 				return err
 			}
 
 			owners, found, err := unstructured.NestedSlice(existing.Object, "metadata", "ownerReferences")
 			if err != nil {
-				glog.Errorf("unable to get owner references for object: %v", err)
+				glog.Infof("unable to get owner references for object: %v", err)
 				return err
 			}
 
 			if !found {
-				glog.Errorf("owner references unexpectedly missing")
+				glog.Infof("owner references unexpectedly missing")
 				return fmt.Errorf("owner references unexpectedly missing")
 			}
 
 			unstructuredOwnerReference, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&ownerReference)
 			if err != nil {
-				glog.Errorf("failed to convert owner reference to unstructured: %v", err)
+				glog.Infof("failed to convert owner reference to unstructured: %v", err)
 				return err
 			}
 
 			owners = append(owners, unstructuredOwnerReference)
 			if err := unstructured.SetNestedSlice(existing.Object, owners, "metadata", "ownerReferences"); err != nil {
-				glog.Errorf("unable to patch owner references for object: %v", err)
+				glog.Infof("unable to patch owner references for object: %v", err)
 				return err
 			}
 
 			if _, err := client.Resource(mapping.Resource).Namespace(p.namespace).Update(existing, metav1.UpdateOptions{}); err != nil {
-				glog.Errorf("unable to update singleton resource owner references: %v", err)
+				glog.Infof("unable to update singleton resource owner references: %v", err)
 				return err
 			}
 
@@ -172,21 +172,25 @@ func (p *ServiceInstanceCreator) PrepareServiceInstance() error {
 	for index := range templateBindings.ServiceInstance.Parameters {
 		parameter := &templateBindings.ServiceInstance.Parameters[index]
 
+		if parameter.Destination.Registry == nil {
+			return errors.NewConfigurationError("parameter %s must have a registry destination", parameter.Name)
+		}
+
 		value, err := resolveParameter(parameter, p.registry, p.request.Parameters, true)
 		if err != nil {
 			return err
 		}
 
-		if parameter.Destination.Registry == nil {
-			return errors.NewConfigurationError("parameter %s must have a registry destination", parameter.Name)
+		if value == nil {
+			continue
 		}
-
-		glog.Infof("setting registry entry %s to %v", *parameter.Destination.Registry, value)
 
 		strValue, ok := value.(string)
 		if !ok {
-			return errors.NewConfigurationError("parameter %s is not a string", parameter.Name)
+			return errors.NewConfigurationError("parameter %s is not a string %v", parameter.Name, value)
 		}
+
+		glog.Infof("setting registry entry %s to %s", *parameter.Destination.Registry, strValue)
 
 		if err := p.registry.SetUser(*parameter.Destination.Registry, strValue); err != nil {
 			return err
@@ -225,6 +229,6 @@ func (p *ServiceInstanceCreator) run() error {
 // Run performs asynchronous creation tasks.
 func (p *ServiceInstanceCreator) Run() {
 	if err := operation.Complete(p.registry, p.run()); err != nil {
-		glog.Errorf("failed to create instance: %v", err)
+		glog.Infof("failed to create instance: %v", err)
 	}
 }
