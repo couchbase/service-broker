@@ -310,9 +310,7 @@ spec:
     parameters:
     - name: name
       sources:
-      - metadata: instance-id
-      mutation:
-        format: "instance-%v"
+      - metadata: instance-name
       destination:
         paths:
         - /metadata/name
@@ -344,9 +342,7 @@ spec:
     parameters:
     - name: name
       sources:
-      - metadata: instance-id
-      mutation:
-        format: "instance-%v"
+      - metadata: instance-name
       destination:
         paths:
         - /metadata/name
@@ -370,32 +366,6 @@ spec:
       destination:
         paths:
         - /spec/servers/0/size
-    - name: dashboard-url
-      sources:
-      - metadata: instance-id
-      - metadata: namespace
-      mutation:
-        format: "http://%v.%v:8091"
-      destination:
-        registry: dashboard-url
-  - name: couchbase-bucket
-    template:
-      apiVersion: couchbase.com/v2
-      kind: CouchbaseBucket
-      metadata: {}
-      spec:
-        memoryQuota: 256
-        replicas: 1
-        ioPriority: high
-        evictionPolicy: valueOnly
-        conflictResolution: seqno
-    parameters:
-    - name: name
-      sources:
-      - metadata: instance-id
-      destination:
-        paths:
-        - /metadata/name
   # Bindings bind templates to service plans.  These allow the specification of
   # exactly what templates are created when a plan is instantiated or bound to.
   bindings:
@@ -403,6 +373,24 @@ spec:
     service: couchbase-developer
     plan: couchbase-developer-private
     serviceInstance:
+      # Create any shared parameters or those exposed by the broker API
+      # and commit to the registry.
+      parameters:
+      - name: instance-name
+        sources:
+        - metadata: instance-id
+        mutation:
+        - format: instance-%v
+        destination:
+          registry: instance-name
+      - name: dashboard-url
+        sources:
+        - metadata: instance-id
+        - metadata: namespace
+        mutation:
+          format: "http://%v.%v:8091"
+        destination:
+          registry: dashboard-url
       templates:
       - couchbase-operator-serviceaccount
       - couchbase-operator-role

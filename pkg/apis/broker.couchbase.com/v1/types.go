@@ -352,6 +352,10 @@ type CouchbaseServiceBrokerConfigBinding struct {
 // CouchbaseServiceBrokerTemplateList is an ordered list of templates to use
 // when performing a specific operation.
 type CouchbaseServiceBrokerTemplateList struct {
+	// Parameters allows registry parameters to be mutated and cached when a
+	// service instance is created.  These are only executed on instance creation.
+	Parameters []CouchbaseServiceBrokerConfigTemplateParameter `json:"parameters,omitempty"`
+
 	// Templates defines all the templates that will be created, in order,
 	// by the service broker for this operation.
 	Templates []string `json:"templates,omitempty"`

@@ -7,12 +7,13 @@ import (
 	"github.com/couchbase/service-broker/pkg/api"
 	"github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1"
 	"github.com/couchbase/service-broker/pkg/config"
+	"github.com/couchbase/service-broker/pkg/errors"
 	"github.com/couchbase/service-broker/pkg/operation"
 	"github.com/couchbase/service-broker/pkg/registry"
 
 	"github.com/golang/glog"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -103,7 +104,7 @@ func (p *ServiceInstanceCreator) createResource(template *v1.CouchbaseServiceBro
 		// When the object already exists and it is marked as a singleton we need to
 		// update the owner references to include this new serivce instance so it
 		// will not be garbage collected when an existing service instance is removed.
-		if errors.IsAlreadyExists(err) && template.Singleton {
+		if k8s_errors.IsAlreadyExists(err) && template.Singleton {
 			glog.Infof("singleton resource already exists, adding owner reference")
 
 			existing, err := client.Resource(mapping.Resource).Namespace(p.namespace).Get(object.GetName(), metav1.GetOptions{})
@@ -160,11 +161,34 @@ func (p *ServiceInstanceCreator) PrepareServiceInstance() error {
 		return err
 	}
 
-	glog.Infof("rendering templates for binding %s", templateBindings.Name)
-
 	if templateBindings.ServiceInstance == nil {
 		return nil
 	}
+
+	// Render any parameters.  As they are not associated with any template they
+	// can only ever be committed to the registry.
+	glog.Infof("rendering parameters for binding %s", templateBindings.Name)
+
+	for index := range templateBindings.ServiceInstance.Parameters {
+		parameter := &templateBindings.ServiceInstance.Parameters[index]
+
+		value, err := resolveParameter(parameter, p.registry, p.request.Parameters, true)
+		if err != nil {
+			return err
+		}
+
+		if parameter.Destination.Registry == nil {
+			return errors.NewConfigurationError("parameter %s must have a registry destination", parameter.Name)
+		}
+
+		glog.Infof("setting registry entry %s to %v", *parameter.Destination.Registry, value)
+
+		if err := p.registry.SetJSONUser(*parameter.Destination.Registry, value); err != nil {
+			return err
+		}
+	}
+
+	glog.Infof("rendering templates for binding %s", templateBindings.Name)
 
 	for _, templateName := range templateBindings.ServiceInstance.Templates {
 		template, err := getTemplate(templateName)

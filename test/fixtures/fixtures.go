@@ -65,35 +65,27 @@ var (
 				},
 			},
 		},
-		Templates: []v1.CouchbaseServiceBrokerConfigTemplate{
-			{
-				Name: "test-template",
-				Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameter{
-					{
-						Name: "dashboard-url",
-						Sources: []v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
-							{
-								Metadata: &instanceIDMetadataName,
-							},
-						},
-						Mutation: &v1.CouchbaseServiceBrokerConfigTemplateParameterMutation{
-							Format: &dashboardURLMutationFormat,
-						},
-						Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
-							Registry: &dashboardURLRegistryKey,
-						},
-					},
-				},
-			},
-		},
 		Bindings: []v1.CouchbaseServiceBrokerConfigBinding{
 			{
 				Name:    "test-binding",
 				Service: "test-offering",
 				Plan:    "test-plan",
 				ServiceInstance: &v1.CouchbaseServiceBrokerTemplateList{
-					Templates: []string{
-						"test-template",
+					Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameter{
+						{
+							Name: "dashboard-url",
+							Sources: []v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+								{
+									Metadata: &instanceIDMetadataName,
+								},
+							},
+							Mutation: &v1.CouchbaseServiceBrokerConfigTemplateParameterMutation{
+								Format: &dashboardURLMutationFormat,
+							},
+							Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+								Registry: &dashboardURLRegistryKey,
+							},
+						},
 					},
 				},
 			},
