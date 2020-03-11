@@ -6,10 +6,11 @@ import (
 	"sync"
 
 	"github.com/couchbase/service-broker/pkg/config"
+	"github.com/couchbase/service-broker/pkg/errors"
 	"github.com/couchbase/service-broker/pkg/version"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -52,7 +53,109 @@ const (
 
 	// OperationStatus is the error string returned by an aysynchronous operation.
 	OperationStatus Key = "operation-status"
+
+	// DashboardURL is the dashboard URL associated with a service instance.
+	DashboardURL Key = "dashboard-url"
 )
+
+// keyPolicy defines managed keys and how they can be accessed by users.
+type keyPolicy struct {
+	// name is the name of the key.
+	name Key
+
+	// read defines whether a user can read a specific key.
+	read bool
+
+	// write defines whether a user can write a specifc key.
+	write bool
+}
+
+var (
+	// keyPolicies defines whether users can modify managed keys.
+	keyPolicies = []keyPolicy{
+		{
+			name:  Namespace,
+			read:  true,
+			write: false,
+		},
+		{
+			name:  InstanceID,
+			read:  true,
+			write: false,
+		},
+		{
+			name:  ServiceID,
+			read:  true,
+			write: false,
+		},
+		{
+			name:  PlanID,
+			read:  true,
+			write: false,
+		},
+		{
+			name:  Context,
+			read:  false,
+			write: false,
+		},
+		{
+			name:  Parameters,
+			read:  false,
+			write: false,
+		},
+		{
+			name:  Operation,
+			read:  false,
+			write: false,
+		},
+		{
+			name:  OperationID,
+			read:  false,
+			write: false,
+		},
+		{
+			name:  OperationStatus,
+			read:  false,
+			write: false,
+		},
+		{
+			name:  DashboardURL,
+			read:  true,
+			write: true,
+		},
+	}
+)
+
+// findKeyPolicy looks up a defined key policy.
+func findKeyPolicy(name string) *keyPolicy {
+	for index := range keyPolicies {
+		if keyPolicies[index].name == Key(name) {
+			return &keyPolicies[index]
+		}
+	}
+
+	return nil
+}
+
+// isKeyWritable checks to see whether a key can be read.
+func isKeyReadable(name string) bool {
+	policy := findKeyPolicy(name)
+	if policy == nil {
+		return true
+	}
+
+	return policy.read
+}
+
+// isKeyWritable checks to see whether a key can be written.
+func isKeyWritable(name string) bool {
+	policy := findKeyPolicy(name)
+	if policy == nil {
+		return true
+	}
+
+	return policy.write
+}
 
 // Entry is a KV store associated with each instance or binding.
 type Entry struct {
@@ -73,13 +176,13 @@ type Entry struct {
 
 // Instance creates an entry for a service instance, or retrives an existing one.
 func Instance(name string) (*Entry, error) {
-	resourceName := "instance-" + name
+	resourceName := "registry-" + name
 	exists := true
 
 	// Look up an existing config map.
 	secret, err := config.Clients().Kubernetes().CoreV1().Secrets(config.Namespace()).Get(resourceName, metav1.GetOptions{})
 	if err != nil {
-		if !errors.IsNotFound(err) {
+		if !k8s_errors.IsNotFound(err) {
 			return nil, err
 		}
 
@@ -154,22 +257,21 @@ func (e *Entry) Delete() error {
 	return nil
 }
 
-// annotationKey converts a key into an annotation key.
-func annotationKey(key Key) string {
-	return labelBase + "/" + string(key)
-}
-
 // Get gets a string from the entry.
 func (e *Entry) Get(key Key) (string, bool) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
-	data, ok := e.secret.Annotations[annotationKey(key)]
+	if e.secret.Data == nil {
+		return "", false
+	}
+
+	data, ok := e.secret.Data[string(key)]
 	if !ok {
 		return "", false
 	}
 
-	return data, true
+	return string(data), true
 }
 
 // GetJSON gets and decodes a JSON object from the entry.
@@ -191,7 +293,11 @@ func (e *Entry) Set(key Key, value string) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
-	e.secret.Annotations[annotationKey(key)] = value
+	if e.secret.Data == nil {
+		e.secret.Data = map[string][]byte{}
+	}
+
+	e.secret.Data[string(key)] = []byte(value)
 }
 
 // SetJSON encodes a JSON object and sets the entry item.
@@ -207,48 +313,30 @@ func (e *Entry) SetJSON(key Key, value interface{}) error {
 }
 
 // GetJSONUser gets and decodes a JSON object from the registry.
-func (e *Entry) GetJSONUser(key string, value interface{}) (bool, error) {
-	e.mutex.Lock()
-	defer e.mutex.Unlock()
-
-	if e.secret.Data == nil {
-		return false, nil
+func (e *Entry) GetUser(key string) (string, bool, error) {
+	if !isKeyReadable(key) {
+		return "", false, errors.NewConfigurationError("registry key %s cannot be read", key)
 	}
 
-	data, ok := e.secret.Data[key]
-	if !ok {
-		return false, nil
-	}
+	value, ok := e.Get(Key(key))
 
-	if err := json.Unmarshal(data, value); err != nil {
-		return true, err
-	}
-
-	return true, nil
+	return value, ok, nil
 }
 
 // SetJSONUser encodes a JSON object and sets the entry item.
-func (e *Entry) SetJSONUser(key string, value interface{}) error {
-	data, err := json.Marshal(value)
-	if err != nil {
-		return err
+func (e *Entry) SetUser(key string, value string) error {
+	if !isKeyWritable(key) {
+		return errors.NewConfigurationError("registry key %s cannot be written", key)
 	}
 
-	e.mutex.Lock()
-	defer e.mutex.Unlock()
-
-	if e.secret.Data == nil {
-		e.secret.Data = map[string][]byte{}
-	}
-
-	e.secret.Data[key] = data
+	e.Set(Key(key), value)
 
 	return nil
 }
 
 // Unset removes an item from the entry item.
 func (e *Entry) Unset(key Key) {
-	delete(e.secret.Annotations, annotationKey(key))
+	delete(e.secret.Data, string(key))
 }
 
 // GetOwnerReference returns the owner reference to attach to all resources created

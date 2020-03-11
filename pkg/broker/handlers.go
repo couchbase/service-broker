@@ -239,13 +239,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		Operation: operationID,
 	}
 
-	var dashboardURL string
-
-	ok, err = entry.GetJSONUser("dashboard-url", &dashboardURL)
-	if err != nil {
-		util.JSONError(w, err)
-	}
-
+	dashboardURL, ok := entry.Get(registry.DashboardURL)
 	if ok {
 		response.DashboardURL = dashboardURL
 	}

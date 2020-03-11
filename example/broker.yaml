@@ -51,14 +51,14 @@ spec:
     spec:
       containers:
       - args:
-        - --logtostderr
-        - --stderrthreshold
+        - -logtostderr
+        - -v
         - "0"
-        - --token
+        - -token
         - /var/run/secrets/couchbase.com/couchbase-service-broker/token
-        - --tls-certificate
+        - -tls-certificate
         - /var/run/secrets/couchbase.com/couchbase-service-broker/tls-certificate
-        - --tls-private-key
+        - -tls-private-key
         - /var/run/secrets/couchbase.com/couchbase-service-broker/tls-private-key
         command:
         - /usr/local/bin/broker

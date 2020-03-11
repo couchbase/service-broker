@@ -7,6 +7,7 @@ import (
 
 	"github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1"
 	"github.com/couchbase/service-broker/pkg/config"
+	"github.com/couchbase/service-broker/pkg/errors"
 	"github.com/couchbase/service-broker/pkg/registry"
 
 	"github.com/evanphx/json-patch"
@@ -98,12 +99,16 @@ func getTemplate(name string) (*v1.CouchbaseServiceBrokerConfigTemplate, error) 
 // resolveSource gets a parameter source from either metadata or a JSON path into user specified parameters.
 func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSource, entry *registry.Entry, parameters *runtime.RawExtension, useDefaults bool) (interface{}, error) {
 	switch {
-	case source.Metadata != nil:
+	case source.Registry != nil:
 		// Metadata parameters are explicitly mapped to values associated
 		// with the request.
-		value, ok := entry.Get(registry.Key(*source.Metadata))
+		value, ok, err := entry.GetUser(*source.Registry)
+		if err != nil {
+			return nil, err
+		}
+
 		if !ok {
-			return nil, fmt.Errorf("undefined metadata parameter %s", *source.Metadata)
+			return nil, errors.NewConfigurationError("undefined metadata parameter %s", *source.Registry)
 		}
 
 		return value, nil
@@ -234,7 +239,12 @@ func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *re
 		if parameter.Destination.Registry != nil {
 			glog.Infof("setting registry entry %s to %v", *parameter.Destination.Registry, value)
 
-			if err := entry.SetJSONUser(*parameter.Destination.Registry, value); err != nil {
+			strValue, ok := value.(string)
+			if !ok {
+				return nil, errors.NewConfigurationError("parameter %s is not a string", parameter.Name)
+			}
+
+			if err := entry.SetUser(*parameter.Destination.Registry, strValue); err != nil {
 				return nil, err
 			}
 		}

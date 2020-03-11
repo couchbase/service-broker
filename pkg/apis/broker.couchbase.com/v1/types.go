@@ -268,9 +268,9 @@ type CouchbaseServiceBrokerConfigTemplateParameter struct {
 // CouchbaseServiceBrokerConfigTemplateParameterSource defines where parameters
 // are sourced from.
 type CouchbaseServiceBrokerConfigTemplateParameterSource struct {
-	// Metadata, if set, uses the corresponding metadata value for the
+	// Registry , if set, uses the corresponding registry value for the
 	// parameter source.
-	Metadata *string `json:"metadata,omitempty"`
+	Registry *string `json:"registry,omitempty"`
 
 	// Parameter, if set, uses the corresponding request parameter for the
 	// parameter source.

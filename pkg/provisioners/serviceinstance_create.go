@@ -183,7 +183,12 @@ func (p *ServiceInstanceCreator) PrepareServiceInstance() error {
 
 		glog.Infof("setting registry entry %s to %v", *parameter.Destination.Registry, value)
 
-		if err := p.registry.SetJSONUser(*parameter.Destination.Registry, value); err != nil {
+		strValue, ok := value.(string)
+		if !ok {
+			return errors.NewConfigurationError("parameter %s is not a string", parameter.Name)
+		}
+
+		if err := p.registry.SetUser(*parameter.Destination.Registry, strValue); err != nil {
 			return err
 		}
 	}
@@ -220,6 +225,6 @@ func (p *ServiceInstanceCreator) run() error {
 // Run performs asynchronous creation tasks.
 func (p *ServiceInstanceCreator) Run() {
 	if err := operation.Complete(p.registry, p.run()); err != nil {
-		glog.Errorf("failed to delete instance")
+		glog.Errorf("failed to create instance: %v", err)
 	}
 }

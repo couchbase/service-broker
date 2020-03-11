@@ -310,7 +310,7 @@ spec:
     parameters:
     - name: name
       sources:
-      - metadata: instance-name
+      - registry: instance-name
       destination:
         paths:
         - /metadata/name
@@ -342,7 +342,7 @@ spec:
     parameters:
     - name: name
       sources:
-      - metadata: instance-name
+      - registry: instance-name
       destination:
         paths:
         - /metadata/name
@@ -378,17 +378,17 @@ spec:
       parameters:
       - name: instance-name
         sources:
-        - metadata: instance-id
+        - registry: instance-id
         mutation:
-        - format: instance-%v
+          format: instance-%v
         destination:
           registry: instance-name
       - name: dashboard-url
         sources:
-        - metadata: instance-id
-        - metadata: namespace
+        - registry: instance-name
+        - registry: namespace
         mutation:
-          format: "http://%v.%v:8091"
+          format: http://%v.%v.svc:8091
         destination:
           registry: dashboard-url
       templates:

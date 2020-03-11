@@ -76,7 +76,7 @@ var (
 							Name: "dashboard-url",
 							Sources: []v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
 								{
-									Metadata: &instanceIDMetadataName,
+									Registry: &instanceIDMetadataName,
 								},
 							},
 							Mutation: &v1.CouchbaseServiceBrokerConfigTemplateParameterMutation{
