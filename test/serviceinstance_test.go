@@ -620,9 +620,9 @@ func TestServiceInstanceUpdate(t *testing.T) {
 	util.MustUpdateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, update)
 }
 
-// TestServiceInstanceUpdateAsyncNotAsynchronous tests that update operations must
+// TestServiceInstanceUpdateNotAsynchronous tests that update operations must
 // be asynchronous.
-func TestServiceInstanceUpdateAsyncNotAsynchronous(t *testing.T) {
+func TestServiceInstanceUpdateNotAsynchronous(t *testing.T) {
 	defer mustReset(t)
 
 	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())

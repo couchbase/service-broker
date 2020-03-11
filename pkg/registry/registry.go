@@ -25,6 +25,12 @@ const (
 type Key string
 
 const (
+	// Namespace is the namespace assigned to the instance.
+	Namespace Key = "namespace"
+
+	// InstanceID is the name of the service or binding.
+	InstanceID Key = "instance-id"
+
 	// ServiceID is the service ID related to the instance or binding.
 	ServiceID Key = "service-id"
 
@@ -92,7 +98,6 @@ func Instance(name string) (*Entry, error) {
 					versionAnnotaiton: version.Version,
 				},
 			},
-			Data: map[string][]byte{},
 		}
 	}
 
@@ -159,12 +164,12 @@ func (e *Entry) Get(key Key) (string, bool) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
-	data, ok := e.secret.Data[annotationKey(key)]
+	data, ok := e.secret.Annotations[annotationKey(key)]
 	if !ok {
 		return "", false
 	}
 
-	return string(data), true
+	return data, true
 }
 
 // GetJSON gets and decodes a JSON object from the entry.
@@ -186,7 +191,7 @@ func (e *Entry) Set(key Key, value string) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
-	e.secret.Data[annotationKey(key)] = []byte(value)
+	e.secret.Annotations[annotationKey(key)] = value
 }
 
 // SetJSON encodes a JSON object and sets the entry item.
@@ -201,9 +206,49 @@ func (e *Entry) SetJSON(key Key, value interface{}) error {
 	return nil
 }
 
+// GetJSONUser gets and decodes a JSON object from the registry.
+func (e *Entry) GetJSONUser(key string, value interface{}) (bool, error) {
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+
+	if e.secret.Data == nil {
+		return false, nil
+	}
+
+	data, ok := e.secret.Data[key]
+	if !ok {
+		return false, nil
+	}
+
+	if err := json.Unmarshal(data, value); err != nil {
+		return true, err
+	}
+
+	return true, nil
+}
+
+// SetJSONUser encodes a JSON object and sets the entry item.
+func (e *Entry) SetJSONUser(key string, value interface{}) error {
+	data, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+
+	if e.secret.Data == nil {
+		e.secret.Data = map[string][]byte{}
+	}
+
+	e.secret.Data[key] = data
+
+	return nil
+}
+
 // Unset removes an item from the entry item.
 func (e *Entry) Unset(key Key) {
-	delete(e.secret.Data, annotationKey(key))
+	delete(e.secret.Annotations, annotationKey(key))
 }
 
 // GetOwnerReference returns the owner reference to attach to all resources created

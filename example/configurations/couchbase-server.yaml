@@ -309,16 +309,17 @@ spec:
         username: QWRtaW5pc3RyYXRvcg==
     parameters:
     - name: name
-      source:
-        metadata: id
-        prefix: "instance-"
+      sources:
+      - metadata: instance-id
+      mutation:
+        format: "instance-%v"
       destination:
         paths:
         - /metadata/name
     - name: password
       required: true
-      source:
-        parameter:
+      sources:
+      - parameter:
           path: /password
       destination:
         paths:
@@ -342,17 +343,18 @@ spec:
           - query
     parameters:
     - name: name
-      source:
-        metadata: id
-        prefix: "instance-"
+      sources:
+      - metadata: instance-id
+      mutation:
+        format: "instance-%v"
       destination:
         paths:
         - /metadata/name
         - /spec/security/adminSecret
         - /spec/buckets/selector/matchLabels/cluster
     - name: image
-      source:
-        parameter:
+      sources:
+      - parameter:
           path: /image
           default:
             string: couchbase/server:enterprise-6.0.1
@@ -360,14 +362,22 @@ spec:
         paths:
         - /spec/image
     - name: size
-      source:
-        parameter:
+      sources:
+      - parameter:
           path: /size
           default:
             int: 3
       destination:
         paths:
         - /spec/servers/0/size
+    - name: dashboard-url
+      sources:
+      - metadata: instance-id
+      - metadata: namespace
+      mutation:
+        format: "http://%v.%v:8091"
+      destination:
+        registry: dashboard-url
   - name: couchbase-bucket
     template:
       apiVersion: couchbase.com/v2
@@ -381,8 +391,8 @@ spec:
         conflictResolution: seqno
     parameters:
     - name: name
-      source:
-        metadata: id
+      sources:
+      - metadata: instance-id
       destination:
         paths:
         - /metadata/name

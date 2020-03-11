@@ -3,6 +3,7 @@ package fixtures
 import (
 	"github.com/couchbase/service-broker/pkg/api"
 	"github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1"
+	"github.com/couchbase/service-broker/pkg/registry"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -31,6 +32,15 @@ const (
 )
 
 var (
+	// instanceIDMetadataName is the metadata key for accessing the instance ID from a template parameter.
+	instanceIDMetadataName = string(registry.InstanceID)
+
+	// dashboardURLMutationFormat describes how to turn the input sources to an output value.
+	dashboardURLMutationFormat = "http://instance-%v.example.com"
+
+	// dashboardURLRegistryKey is the name of the dashboard registry item to set.
+	dashboardURLRegistryKey = "dashboard-url"
+
 	// basicConfiguration is the absolute minimum valid configuration allowed by the
 	// service broker configuration schema.
 	basicConfiguration = &v1.CouchbaseServiceBrokerConfigSpec{
@@ -55,11 +65,37 @@ var (
 				},
 			},
 		},
+		Templates: []v1.CouchbaseServiceBrokerConfigTemplate{
+			{
+				Name: "test-template",
+				Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameter{
+					{
+						Name: "dashboard-url",
+						Sources: []v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+							{
+								Metadata: &instanceIDMetadataName,
+							},
+						},
+						Mutation: &v1.CouchbaseServiceBrokerConfigTemplateParameterMutation{
+							Format: &dashboardURLMutationFormat,
+						},
+						Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+							Registry: &dashboardURLRegistryKey,
+						},
+					},
+				},
+			},
+		},
 		Bindings: []v1.CouchbaseServiceBrokerConfigBinding{
 			{
 				Name:    "test-binding",
 				Service: "test-offering",
 				Plan:    "test-plan",
+				ServiceInstance: &v1.CouchbaseServiceBrokerTemplateList{
+					Templates: []string{
+						"test-template",
+					},
+				},
 			},
 			{
 				Name:    "test-binding-2",

@@ -40,7 +40,7 @@ type ServiceInstanceCreator struct {
 // NewServiceInstanceCreator initializes all the data required for
 // provisioning a service instance.
 func NewServiceInstanceCreator(registry *registry.Entry, instanceID string, request *api.CreateServiceInstanceRequest) (*ServiceInstanceCreator, error) {
-	namespace, err := getNamespace(request.Context)
+	namespace, err := GetNamespace(request.Context)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func NewServiceInstanceCreator(registry *registry.Entry, instanceID string, requ
 
 // renderTemplate applies any requested parameters to the template.
 func (p *ServiceInstanceCreator) renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate) error {
-	t, err := renderTemplate(template, p.instanceID, p.request.Parameters)
+	t, err := renderTemplate(template, p.registry, p.request.Parameters)
 	if err != nil {
 		return err
 	}
@@ -69,6 +69,11 @@ func (p *ServiceInstanceCreator) renderTemplate(template *v1.CouchbaseServiceBro
 
 // createResource instantiates rendered template resources.
 func (p *ServiceInstanceCreator) createResource(template *v1.CouchbaseServiceBrokerConfigTemplate) error {
+	if template.Template == nil {
+		glog.Infof("template has no associated object, skipping")
+		return nil
+	}
+
 	// Unmarshal into instructured JSON.
 	object := &unstructured.Unstructured{}
 	if err := json.Unmarshal(template.Template.Raw, object); err != nil {

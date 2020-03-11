@@ -251,9 +251,12 @@ type CouchbaseServiceBrokerConfigTemplateParameter struct {
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`
 
-	// Source is source of the parameter, either from request metadata or
+	// Source is source of the parameters, either from request metadata or
 	// the request parameters from the client.
-	Source CouchbaseServiceBrokerConfigTemplateParameterSource `json:"source,omitempty"`
+	Sources []CouchbaseServiceBrokerConfigTemplateParameterSource `json:"sources,omitempty"`
+
+	// Mutation is a the mutation to be applied to the parameter.
+	Mutation *CouchbaseServiceBrokerConfigTemplateParameterMutation `json:"mutation,omitempty"`
 
 	// Destination is the destination of the parameter.
 	Destination CouchbaseServiceBrokerConfigTemplateParameterDestination `json:"destination,omitempty"`
@@ -272,15 +275,11 @@ type CouchbaseServiceBrokerConfigTemplateParameterSource struct {
 	// Parameter, if set, uses the corresponding request parameter for the
 	// parameter source.
 	Parameter *CouchbaseServiceBrokerConfigTemplateParameterSourceParameter `json:"parameter,omitempty"`
+}
 
-	// Prefix attaches a prefix to string based parameters. Useful for constaining
-	// names and the like to beginning with a character e.g DNS hostnames.
-	Prefix *string `json:"prefix,omitempty"`
-
-	// Suffix attaches a suffix to string based parameters. Useful for appending
-	// a DNS domain for example.
-	Suffix *string `json:"suffix,omitempty"`
-
+// CouchbaseServiceBrokerConfigTemplateParameterMutation defines the operations
+// to perform on the parameter sources before routing to its destination.
+type CouchbaseServiceBrokerConfigTemplateParameterMutation struct {
 	// Format allows the parameter to be inserted into a string with a call
 	// to fmt.Sprintf.
 	Format *string `json:"format,omitempty"`
@@ -320,6 +319,9 @@ type CouchbaseServiceBrokerConfigTemplateParameterDestination struct {
 	// the parameter.  The service broker will create any parent objects
 	// necessary to fulfill the request.
 	Paths []string `json:"paths,omitempty"`
+
+	// Registry is a key to store the value to in the registry.
+	Registry *string `json:"registry,omitempty"`
 }
 
 // CouchbaseServiceBrokerConfigBinding binds a service plan to a set of templates

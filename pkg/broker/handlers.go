@@ -181,6 +181,14 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		parameters = request.Parameters
 	}
 
+	namespace, err := provisioners.GetNamespace(request.Context)
+	if err != nil {
+		util.JSONError(w, err)
+		return
+	}
+
+	entry.Set(registry.Namespace, namespace)
+	entry.Set(registry.InstanceID, instanceID)
 	entry.Set(registry.ServiceID, request.ServiceID)
 	entry.Set(registry.PlanID, request.PlanID)
 
@@ -230,6 +238,18 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	response := &api.CreateServiceInstanceResponse{
 		Operation: operationID,
 	}
+
+	var dashboardURL string
+
+	ok, err = entry.GetJSONUser("dashboard-url", &dashboardURL)
+	if err != nil {
+		util.JSONError(w, err)
+	}
+
+	if ok {
+		response.DashboardURL = dashboardURL
+	}
+
 	util.JSONResponse(w, http.StatusAccepted, response)
 }
 

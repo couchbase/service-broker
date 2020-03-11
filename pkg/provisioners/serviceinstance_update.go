@@ -39,7 +39,7 @@ type ServiceInstanceUpdater struct {
 
 // NewServiceInstanceUpdater returns a new controler capable of updaing a service instance.
 func NewServiceInstanceUpdater(registry *registry.Entry, instanceID string, request *api.UpdateServiceInstanceRequest) (*ServiceInstanceUpdater, error) {
-	namespace, err := getNamespace(request.Context)
+	namespace, err := GetNamespace(request.Context)
 	if err != nil {
 		return nil, err
 	}
@@ -91,9 +91,14 @@ func (u *ServiceInstanceUpdater) PrepareResources() error {
 			continue
 		}
 
-		t, err := renderTemplate(template, u.instanceID, u.request.Parameters)
+		t, err := renderTemplate(template, u.registry, u.request.Parameters)
 		if err != nil {
 			return err
+		}
+
+		if t.Template == nil || t.Template.Raw == nil {
+			glog.Info("template not set, ignoring update")
+			continue
 		}
 
 		// Unmarshal the object so we can derive the kind and name.
@@ -127,7 +132,7 @@ func (u *ServiceInstanceUpdater) PrepareResources() error {
 		// in the request, so be sure not to apply any defaults as they may
 		// cause the resource to do something that was not intended.
 		for index, parameter := range template.Parameters {
-			value, err := resolveParameter(&template.Parameters[index], u.instanceID, u.request.Parameters, false)
+			value, err := resolveParameter(&template.Parameters[index], u.registry, u.request.Parameters, false)
 			if err != nil {
 				return err
 			}
