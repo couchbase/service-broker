@@ -80,7 +80,7 @@ rules:
 # can see, along with what can be configured.  Templates are bound to a plan and
 # are rendered and created when a service instance/binding is created, then cleaned
 # up when deleted.
-apiVersion: broker.couchbase.com/v1
+apiVersion: broker.couchbase.com/v1alpha1
 kind: CouchbaseServiceBrokerConfig
 metadata:
   name: couchbase-service-broker

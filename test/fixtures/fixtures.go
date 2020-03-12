@@ -2,7 +2,7 @@ package fixtures
 
 import (
 	"github.com/couchbase/service-broker/pkg/api"
-	"github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1"
+	v1 "github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/registry"
 
 	"k8s.io/apimachinery/pkg/runtime"

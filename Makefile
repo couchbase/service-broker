@@ -20,7 +20,7 @@ build: ${GENAPI} $(BROKER_BIN)
 
 $(GENAPI): $(CODEGEN) $(APISRC)
 	rm -rf $(GENAPI)
-	GOPATH=$(HOME) ./vendor/k8s.io/code-generator/generate-groups.sh all github.com/couchbase/service-broker/generated github.com/couchbase/service-broker/pkg/apis broker.couchbase.com:v1 --go-header-file hack/boilerplate.go.txt --output-base ../../..
+	GOPATH=$(HOME) ./vendor/k8s.io/code-generator/generate-groups.sh all github.com/couchbase/service-broker/generated github.com/couchbase/service-broker/pkg/apis broker.couchbase.com:v1alpha1 --go-header-file hack/boilerplate.go.txt --output-base ../../..
 
 $(CODEGEN):
 	git clone -b kubernetes-1.13.4 https://github.com/kubernetes/code-generator $(CODEGEN)

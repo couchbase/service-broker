@@ -1,4 +1,4 @@
-package v1
+package v1alpha1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -8,7 +8,7 @@ import (
 const (
 	ServiceBrokerConfigKind = "CouchbaseServiceBrokerConfig"
 	ServiceBrokerConfigName = "couchbaseservicebrokerconfigs"
-	GroupVersion            = "v1"
+	GroupVersion            = "v1alpha1"
 	GroupName               = "broker.couchbase.com"
 	Group                   = GroupName + "/" + GroupVersion
 )

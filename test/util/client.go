@@ -5,7 +5,7 @@ import (
 
 	brokerclient "github.com/couchbase/service-broker/generated/clientset/versioned"
 	brokerclientfake "github.com/couchbase/service-broker/generated/clientset/versioned/fake"
-	"github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1"
+	v1 "github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/client"
 
 	"k8s.io/apimachinery/pkg/api/meta"
