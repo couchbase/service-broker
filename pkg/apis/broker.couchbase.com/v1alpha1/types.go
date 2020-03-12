@@ -251,50 +251,59 @@ type CouchbaseServiceBrokerConfigTemplateParameter struct {
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`
 
-	// Source is source of the parameters, either from request metadata or
-	// the request parameters from the client.
-	Sources []CouchbaseServiceBrokerConfigTemplateParameterSource `json:"sources,omitempty"`
+	// Required will cause an error if a parameter is not defined.
+	Required bool `json:"required,omitempty"`
 
-	// Mutation is a the mutation to be applied to the parameter.
-	Mutation *CouchbaseServiceBrokerConfigTemplateParameterMutation `json:"mutation,omitempty"`
+	// Source is source of the parameter.
+	Source CouchbaseServiceBrokerConfigTemplateParameterSource `json:"source"`
 
 	// Destination is the destination of the parameter.
-	Destination CouchbaseServiceBrokerConfigTemplateParameterDestination `json:"destination,omitempty"`
-
-	// Required will cause an error if any source is not defined.
-	Required bool `json:"required,omitempty"`
+	Destination CouchbaseServiceBrokerConfigTemplateParameterDestination `json:"destination"`
 }
 
 // CouchbaseServiceBrokerConfigTemplateParameterSource defines where parameters
 // are sourced from.
 type CouchbaseServiceBrokerConfigTemplateParameterSource struct {
 	// Default specifies the default value is if the parameter is not defined.
-	// When used with a registry entry this must be a string.
 	Default *CouchbaseServiceBrokerConfigTemplateParameterSourceDefault `json:"default,omitempty"`
 
-	// Registry , if set, uses the corresponding registry value for the
+	// Registry, if set, uses the corresponding registry value for the
 	// parameter source.
+	// +kubebuilder:validation:Pattern="^(instance:)?[a-zA-Z0-9-]+$"
 	Registry *string `json:"registry,omitempty"`
 
 	// Parameter, if set, uses the corresponding request parameter for the
 	// parameter source.
-	Parameter *CouchbaseServiceBrokerConfigTemplateParameterSourceParameter `json:"parameter,omitempty"`
+	Parameter *string `json:"parameter,omitempty"`
+
+	// Format allows the collection of an arbitrary number of parameters into
+	// a string format.
+	Format *CouchbaseServiceBrokerConfigTemplateParameterSourceFormat `json:"format,omitempty"`
 }
 
-// CouchbaseServiceBrokerConfigTemplateParameterMutation defines the operations
-// to perform on the parameter sources before routing to its destination.
-type CouchbaseServiceBrokerConfigTemplateParameterMutation struct {
-	// Format allows the parameter to be inserted into a string with a call
-	// to fmt.Sprintf.
-	Format *string `json:"format,omitempty"`
+// CouchbaseServiceBrokerConfigTemplateParameterSourceFormat defines a formatting
+// string and parameters.
+type CouchbaseServiceBrokerConfigTemplateParameterSourceFormat struct {
+	// String is the format string to use.
+	String string `json:"string"`
+
+	// Parameters is the set of parameters corresponding to the format string.
+	// All parameters must exist or the formatting operation will return nil.
+	// +kubebuilder:validation:MinItems=1
+	Parameters []CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"parameters"`
 }
 
-// CouchbaseServiceBrokerConfigTemplateParameterSourceParameter defines a source
-// parameter originating with a request.
-type CouchbaseServiceBrokerConfigTemplateParameterSourceParameter struct {
-	// Path specifies the path in JSON pointer format to extract
-	// the parameter from a request parameter.
-	Path string `json:"path"`
+// CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter is a parameter
+// for a formatting operation.
+type CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter struct {
+	// Registry , if set, uses the corresponding registry value for the
+	// parameter source.
+	// +kubebuilder:validation:Pattern="^(instance:)?[a-zA-Z0-9-]+$"
+	Registry *string `json:"registry,omitempty"`
+
+	// Parameter, if set, uses the corresponding request parameter for the
+	// parameter source.
+	Parameter *string `json:"parameter,omitempty"`
 }
 
 // CouchbaseServiceBrokerConfigTemplateParameterSourceDefault defines a

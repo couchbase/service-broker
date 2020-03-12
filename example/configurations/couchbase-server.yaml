@@ -309,16 +309,15 @@ spec:
         username: QWRtaW5pc3RyYXRvcg==
     parameters:
     - name: name
-      sources:
-      - registry: instance-name
+      source:
+        registry: instance-name
       destination:
         paths:
         - /metadata/name
     - name: password
       required: true
-      sources:
-      - parameter:
-          path: /password
+      source:
+        parameter: /password
       destination:
         paths:
         - /data/password
@@ -341,26 +340,24 @@ spec:
           - query
     parameters:
     - name: name
-      sources:
-      - registry: instance-name
+      source:
+        registry: instance-name
       destination:
         paths:
         - /metadata/name
         - /spec/security/adminSecret
         - /spec/buckets/selector/matchLabels/cluster
     - name: image
-      sources:
-      - parameter:
-          path: /image
+      source:
+        parameter: /image
         default:
-          string: couchbase/server:enterprise-6.0.1
+          string: couchbase/server:6.5.0
       destination:
         paths:
         - /spec/image
     - name: size
-      sources:
-      - parameter:
-          path: /size
+      source:
+        parameter: /size
         default:
           int: 3
       destination:
@@ -377,18 +374,22 @@ spec:
       # and commit to the registry.
       parameters:
       - name: instance-name
-        sources:
-        - registry: instance-id
-        mutation:
-          format: instance-%v
+        required: true
+        source:
+          format:
+            string: instance-%v
+            parameters:
+            - registry: instance-id
         destination:
           registry: instance-name
       - name: dashboard-url
-        sources:
-        - registry: instance-name
-        - registry: namespace
-        mutation:
-          format: http://%v.%v.svc:8091
+        required: true
+        source:
+          format:
+            string: http://%v.%v.svc:8091
+            parameters:
+            - registry: instance-name
+            - registry: namespace
         destination:
           registry: dashboard-url
       templates:

@@ -91,7 +91,7 @@ func (u *ServiceInstanceUpdater) PrepareResources() error {
 			continue
 		}
 
-		t, err := renderTemplate(template, u.registry, u.request.Parameters)
+		t, err := renderTemplate(template, u.registry)
 		if err != nil {
 			return err
 		}
@@ -132,7 +132,7 @@ func (u *ServiceInstanceUpdater) PrepareResources() error {
 		// in the request, so be sure not to apply any defaults as they may
 		// cause the resource to do something that was not intended.
 		for index, parameter := range template.Parameters {
-			value, err := resolveParameter(&template.Parameters[index], u.registry, u.request.Parameters, false)
+			value, err := resolveTemplateParameter(&template.Parameters[index], u.registry, false)
 			if err != nil {
 				return err
 			}

@@ -96,30 +96,77 @@ func getTemplate(name string) (*v1.CouchbaseServiceBrokerConfigTemplate, error) 
 	return nil, fmt.Errorf("unable to locate template for %s", name)
 }
 
-// resolveSource gets a parameter source from either metadata or a JSON path into user specified parameters.
-func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSource, entry *registry.Entry, parameters *runtime.RawExtension, useDefaults bool) (interface{}, error) {
-	// Use a default if set.
-	var value interface{}
+// resolveParameter attempts to find the parameter path in the provided JSON.
+func resolveParameter(path string, entry *registry.Entry) (interface{}, bool, error) {
+	var parameters interface{}
 
-	if useDefaults && source.Default != nil {
+	ok, err := entry.GetJSON(registry.Parameters, &parameters)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !ok {
+		return nil, false, fmt.Errorf("unable to lookup parameters")
+	}
+
+	glog.Infof("interrogating path %s", path)
+
+	pointer, err := jsonpointer.New(path)
+	if err != nil {
+		glog.Infof("failed to parse JSON pointer: %v", err)
+		return nil, false, err
+	}
+
+	value, _, err := pointer.Get(parameters)
+	if err != nil {
+		return nil, false, nil
+	}
+
+	return value, true, nil
+}
+
+// resolveFormat attepts to render a format parameter.
+func resolveFormat(format *v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormat, entry *registry.Entry) (interface{}, error) {
+	parameters := make([]interface{}, len(format.Parameters))
+
+	for index, parameter := range format.Parameters {
 		switch {
-		case source.Default.String != nil:
-			value = *source.Default.String
-		case source.Default.Bool != nil:
-			value = *source.Default.Bool
-		case source.Default.Int != nil:
-			value = *source.Default.Int
-		case source.Default.Object != nil:
-			if err := json.Unmarshal(source.Default.Object.Raw, &value); err != nil {
-				glog.Infof("unmarshal of source default failed: %v", err)
+		case parameter.Registry != nil:
+			value, ok, err := entry.GetUser(*parameter.Registry)
+			if err != nil {
 				return nil, err
 			}
-		default:
-			return nil, errors.NewConfigurationError("undefined source default parameter")
-		}
 
-		glog.Infof("using source default %v", value)
+			if !ok {
+				return nil, nil
+			}
+
+			parameters[index] = value
+
+		case parameter.Parameter != nil:
+			value, ok, err := resolveParameter(*parameter.Parameter, entry)
+			if err != nil {
+				return nil, err
+			}
+
+			if !ok {
+				return nil, nil
+			}
+
+			parameters[index] = value
+
+		default:
+			return nil, fmt.Errorf("format parameter type not specified")
+		}
 	}
+
+	return fmt.Sprintf(format.String, parameters...), nil
+}
+
+// resolveSource gets a parameter source from either metadata or a JSON path into user specified parameters.
+func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSource, entry *registry.Entry, useDefaults bool) (interface{}, error) {
+	// Try to resolve the parameter.
+	var value interface{}
 
 	switch {
 	case source.Registry != nil:
@@ -140,39 +187,49 @@ func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 	case source.Parameter != nil:
 		// Parameters reference parameters specified by the client in response to
 		// the schema advertised to the client.
-		parameter := source.Parameter
-
-		// Parameters reference parameters specified by the client in response to
-		// the schema advertised to the client.  Try to extract the parameter from
-		// the supplied parameters.
-		if parameters == nil || parameters.Raw == nil {
-			glog.Infof("client parameters not set, skipping")
-			break
-		}
-
-		var parametersUnstructured interface{}
-		if err := json.Unmarshal(parameters.Raw, &parametersUnstructured); err != nil {
-			glog.Infof("unmarshal of client parameters failed: %v", err)
+		v, ok, err := resolveParameter(*source.Parameter, entry)
+		if err != nil {
 			return nil, err
 		}
 
-		glog.Infof("interrogating path %s", parameter.Path)
-
-		pointer, err := jsonpointer.New(parameter.Path)
-		if err != nil {
-			glog.Infof("failed to parse JSON pointer: %v", err)
-			return nil, err
-		}
-
-		v, _, err := pointer.Get(parametersUnstructured)
-		if err != nil {
-			glog.Infof("client parameter not set, skipping: %v", err)
+		if !ok {
+			glog.Infof("client parameter %s not set, skipping", *source.Parameter)
 			break
 		}
 
 		value = v
+
+	case source.Format != nil:
+		v, err := resolveFormat(source.Format, entry)
+		if err != nil {
+			return nil, err
+		}
+
+		value = v
+
 	default:
 		return nil, fmt.Errorf("source parameter type not specified")
+	}
+
+	// If no value has been found or generated then use a default if set.
+	if value == nil && useDefaults && source.Default != nil {
+		switch {
+		case source.Default.String != nil:
+			value = *source.Default.String
+		case source.Default.Bool != nil:
+			value = *source.Default.Bool
+		case source.Default.Int != nil:
+			value = *source.Default.Int
+		case source.Default.Object != nil:
+			if err := json.Unmarshal(source.Default.Object.Raw, &value); err != nil {
+				glog.Infof("unmarshal of source default failed: %v", err)
+				return nil, err
+			}
+		default:
+			return nil, errors.NewConfigurationError("undefined source default parameter")
+		}
+
+		glog.Infof("using source default %v", value)
 	}
 
 	glog.Infof("using source value %v", value)
@@ -180,38 +237,16 @@ func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 	return value, nil
 }
 
-// resolveParameter applies parameter lookup rules and tries to return a value.
-func resolveParameter(parameter *v1.CouchbaseServiceBrokerConfigTemplateParameter, entry *registry.Entry, parameters *runtime.RawExtension, useDefaults bool) (interface{}, error) {
-	values := make([]interface{}, len(parameter.Sources))
-
-	// Collect any sources requested.
-	for index := range parameter.Sources {
-		value, err := resolveSource(&parameter.Sources[index], entry, parameters, useDefaults)
-		if err != nil {
-			return nil, err
-		}
-
-		if parameter.Required && value == nil {
-			glog.Infof("source unset but parameter is required")
-			return nil, errors.NewParameterError("parameter %s is required", parameter.Name)
-		}
-
-		values[index] = value
+// resolveTemplateParameter applies parameter lookup rules and tries to return a value.
+func resolveTemplateParameter(parameter *v1.CouchbaseServiceBrokerConfigTemplateParameter, entry *registry.Entry, useDefaults bool) (interface{}, error) {
+	value, err := resolveSource(&parameter.Source, entry, useDefaults)
+	if err != nil {
+		return nil, err
 	}
 
-	// Default to the first value before optional mutation.
-	var value interface{}
-
-	if len(values) != 0 {
-		value = values[0]
-	}
-
-	// Mutate the sources into a finished value if requested.
-	if parameter.Mutation != nil {
-		if parameter.Mutation.Format != nil {
-			// Error checking needs to happen.
-			value = fmt.Sprintf(*parameter.Mutation.Format, values...)
-		}
+	if parameter.Required && value == nil {
+		glog.Infof("source unset but is required")
+		return nil, errors.NewParameterError("source for parameter %s is required", parameter.Name)
 	}
 
 	return value, nil
@@ -219,7 +254,7 @@ func resolveParameter(parameter *v1.CouchbaseServiceBrokerConfigTemplateParamete
 
 // renderTemplate accepts a template defined in the configuration and applies any
 // request or metadata parameters to it.
-func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *registry.Entry, parameters *runtime.RawExtension) (*v1.CouchbaseServiceBrokerConfigTemplate, error) {
+func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *registry.Entry) (*v1.CouchbaseServiceBrokerConfigTemplate, error) {
 	glog.Infof("rendering template %s", template.Name)
 
 	// We will be modifying the template in place, so first clone it as the
@@ -230,7 +265,7 @@ func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *re
 	// the object.  This basically works like JSON patch++, automatically filling
 	// in parent objects and arrays as necessary.
 	for index, parameter := range t.Parameters {
-		value, err := resolveParameter(&t.Parameters[index], entry, parameters, true)
+		value, err := resolveTemplateParameter(&t.Parameters[index], entry, true)
 		if err != nil {
 			return nil, err
 		}

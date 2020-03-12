@@ -77,13 +77,15 @@ var (
 					Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameter{
 						{
 							Name: "dashboard-url",
-							Sources: []v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
-								{
-									Registry: &instanceIDMetadataName,
+							Source: v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+								Format: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormat{
+									String: dashboardURLMutationFormat,
+									Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter{
+										{
+											Registry: &instanceIDMetadataName,
+										},
+									},
 								},
-							},
-							Mutation: &v1.CouchbaseServiceBrokerConfigTemplateParameterMutation{
-								Format: &dashboardURLMutationFormat,
 							},
 							Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
 								Registry: &dashboardURLRegistryKey,
@@ -184,19 +186,17 @@ func BasicServiceInstanceUpdateRequest() *api.UpdateServiceInstanceRequest {
 func RegistryParametersToRegistryWithDefault(key, destination, defaultValue string, required bool) []v1.CouchbaseServiceBrokerConfigTemplateParameter {
 	return []v1.CouchbaseServiceBrokerConfigTemplateParameter{
 		{
-			Name: "test-parameter",
-			Sources: []v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
-				{
-					Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceDefault{
-						String: &defaultValue,
-					},
-					Registry: &key,
+			Name:     "test-parameter",
+			Required: required,
+			Source: v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+				Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceDefault{
+					String: &defaultValue,
 				},
+				Registry: &key,
 			},
 			Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
 				Registry: &destination,
 			},
-			Required: required,
 		},
 	}
 }
@@ -205,18 +205,14 @@ func RegistryParametersToRegistryWithDefault(key, destination, defaultValue stri
 func ParametersToRegistry(path, destination string, required bool) []v1.CouchbaseServiceBrokerConfigTemplateParameter {
 	return []v1.CouchbaseServiceBrokerConfigTemplateParameter{
 		{
-			Name: "test-parameter",
-			Sources: []v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
-				{
-					Parameter: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceParameter{
-						Path: path,
-					},
-				},
+			Name:     "test-parameter",
+			Required: required,
+			Source: v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+				Parameter: &path,
 			},
 			Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
 				Registry: &destination,
 			},
-			Required: required,
 		},
 	}
 }
@@ -225,21 +221,17 @@ func ParametersToRegistry(path, destination string, required bool) []v1.Couchbas
 func ParametersToRegistryWithDefault(path, destination, defaultValue string, required bool) []v1.CouchbaseServiceBrokerConfigTemplateParameter {
 	return []v1.CouchbaseServiceBrokerConfigTemplateParameter{
 		{
-			Name: "test-parameter",
-			Sources: []v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
-				{
-					Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceDefault{
-						String: &defaultValue,
-					},
-					Parameter: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceParameter{
-						Path: path,
-					},
+			Name:     "test-parameter",
+			Required: required,
+			Source: v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+				Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceDefault{
+					String: &defaultValue,
 				},
+				Parameter: &path,
 			},
 			Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
 				Registry: &destination,
 			},
-			Required: required,
 		},
 	}
 }

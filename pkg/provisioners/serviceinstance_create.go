@@ -58,7 +58,7 @@ func NewServiceInstanceCreator(registry *registry.Entry, instanceID string, requ
 
 // renderTemplate applies any requested parameters to the template.
 func (p *ServiceInstanceCreator) renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate) error {
-	t, err := renderTemplate(template, p.registry, p.request.Parameters)
+	t, err := renderTemplate(template, p.registry)
 	if err != nil {
 		return err
 	}
@@ -176,7 +176,7 @@ func (p *ServiceInstanceCreator) PrepareServiceInstance() error {
 			return errors.NewConfigurationError("parameter %s must have a registry destination", parameter.Name)
 		}
 
-		value, err := resolveParameter(parameter, p.registry, p.request.Parameters, true)
+		value, err := resolveTemplateParameter(parameter, p.registry, true)
 		if err != nil {
 			return err
 		}
