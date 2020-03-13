@@ -211,7 +211,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 	// Create a provisioning engine, and perform synchronous tasks.  This also derives
 	// things like the dashboard URL for the synchronous response.
-	provisioner, err := provisioners.NewServiceInstanceCreator(entry, instanceID, request)
+	provisioner, err := provisioners.NewServiceInstanceCreator(entry)
 	if err != nil {
 		util.JSONError(w, err)
 		return
@@ -388,7 +388,7 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	updater, err := provisioners.NewServiceInstanceUpdater(entry, instanceID, request)
+	updater, err := provisioners.NewServiceInstanceUpdater(entry, request)
 	if err != nil {
 		util.JSONErrorUsable(w, err)
 		return

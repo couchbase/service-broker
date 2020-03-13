@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/couchbase/service-broker/pkg/api"
 	v1 "github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/pkg/errors"
@@ -24,15 +23,6 @@ type ServiceInstanceCreator struct {
 	// registry is the instance registry.
 	registry *registry.Entry
 
-	// instanceID is the unique instance ID requested by the client.
-	instanceID string
-
-	// request is the raw request made by the client.
-	request *api.CreateServiceInstanceRequest
-
-	// namespace is the namespace to provision resources into.
-	namespace string
-
 	// templates contains the list of rendered templates.  Used as a cache
 	// between the synchronous and asynchronous phases of provisioning.
 	templates []*v1.CouchbaseServiceBrokerConfigTemplate
@@ -40,17 +30,9 @@ type ServiceInstanceCreator struct {
 
 // NewServiceInstanceCreator initializes all the data required for
 // provisioning a service instance.
-func NewServiceInstanceCreator(registry *registry.Entry, instanceID string, request *api.CreateServiceInstanceRequest) (*ServiceInstanceCreator, error) {
-	namespace, err := GetNamespace(request.Context)
-	if err != nil {
-		return nil, err
-	}
-
+func NewServiceInstanceCreator(registry *registry.Entry) (*ServiceInstanceCreator, error) {
 	provisioner := &ServiceInstanceCreator{
-		registry:   registry,
-		instanceID: instanceID,
-		request:    request,
-		namespace:  namespace,
+		registry: registry,
 	}
 
 	return provisioner, nil
@@ -70,7 +52,7 @@ func (p *ServiceInstanceCreator) renderTemplate(template *v1.CouchbaseServiceBro
 
 // createResource instantiates rendered template resources.
 func (p *ServiceInstanceCreator) createResource(template *v1.CouchbaseServiceBrokerConfigTemplate) error {
-	if template.Template == nil {
+	if template.Template == nil || template.Template.Raw == nil {
 		glog.Infof("template has no associated object, skipping")
 		return nil
 	}
@@ -97,17 +79,22 @@ func (p *ServiceInstanceCreator) createResource(template *v1.CouchbaseServiceBro
 		return err
 	}
 
+	namespace, ok := p.registry.Get(registry.Namespace)
+	if !ok {
+		return fmt.Errorf("unable to lookup namespace")
+	}
+
 	client := config.Clients().Dynamic()
 
 	// Create the object
-	if _, err := client.Resource(mapping.Resource).Namespace(p.namespace).Create(object, metav1.CreateOptions{}); err != nil {
+	if _, err := client.Resource(mapping.Resource).Namespace(namespace).Create(object, metav1.CreateOptions{}); err != nil {
 		// When the object already exists and it is marked as a singleton we need to
 		// update the owner references to include this new serivce instance so it
 		// will not be garbage collected when an existing service instance is removed.
 		if k8s_errors.IsAlreadyExists(err) && template.Singleton {
 			glog.Infof("singleton resource already exists, adding owner reference")
 
-			existing, err := client.Resource(mapping.Resource).Namespace(p.namespace).Get(object.GetName(), metav1.GetOptions{})
+			existing, err := client.Resource(mapping.Resource).Namespace(namespace).Get(object.GetName(), metav1.GetOptions{})
 			if err != nil {
 				glog.Infof("unable to get existing singleton resource: %v", err)
 				return err
@@ -136,7 +123,7 @@ func (p *ServiceInstanceCreator) createResource(template *v1.CouchbaseServiceBro
 				return err
 			}
 
-			if _, err := client.Resource(mapping.Resource).Namespace(p.namespace).Update(existing, metav1.UpdateOptions{}); err != nil {
+			if _, err := client.Resource(mapping.Resource).Namespace(namespace).Update(existing, metav1.UpdateOptions{}); err != nil {
 				glog.Infof("unable to update singleton resource owner references: %v", err)
 				return err
 			}
@@ -153,10 +140,20 @@ func (p *ServiceInstanceCreator) createResource(template *v1.CouchbaseServiceBro
 // prepareServiceInstance does provisional synchronous tasks before provisioning.  This does
 // basic template collection and rendering.
 func (p *ServiceInstanceCreator) PrepareServiceInstance() error {
-	glog.Infof("looking up bindings for service %s, plan %s", p.request.ServiceID, p.request.PlanID)
+	serviceID, ok := p.registry.Get(registry.ServiceID)
+	if !ok {
+		return fmt.Errorf("unable to lookup service ID")
+	}
+
+	planID, ok := p.registry.Get(registry.PlanID)
+	if !ok {
+		return fmt.Errorf("unable to lookup plan ID")
+	}
+
+	glog.Infof("looking up bindings for service %s, plan %s", serviceID, planID)
 
 	// Collate and render our templates.
-	templateBindings, err := getTemplateBindings(p.request.ServiceID, p.request.PlanID)
+	templateBindings, err := getTemplateBindings(serviceID, planID)
 	if err != nil {
 		return err
 	}

@@ -21,12 +21,6 @@ type ServiceInstanceUpdater struct {
 	// registry is the instance registry.
 	registry *registry.Entry
 
-	// instanceID is the unique instance ID requested by the client.
-	instanceID string
-
-	// namespace is the namespace in which the instance resides.
-	namespace string
-
 	// request is the incomiong client requesst.
 	request *api.UpdateServiceInstanceRequest
 
@@ -36,17 +30,10 @@ type ServiceInstanceUpdater struct {
 }
 
 // NewServiceInstanceUpdater returns a new controler capable of updaing a service instance.
-func NewServiceInstanceUpdater(registry *registry.Entry, instanceID string, request *api.UpdateServiceInstanceRequest) (*ServiceInstanceUpdater, error) {
-	namespace, err := GetNamespace(request.Context)
-	if err != nil {
-		return nil, err
-	}
-
+func NewServiceInstanceUpdater(registry *registry.Entry, request *api.UpdateServiceInstanceRequest) (*ServiceInstanceUpdater, error) {
 	u := &ServiceInstanceUpdater{
-		registry:   registry,
-		instanceID: instanceID,
-		namespace:  namespace,
-		request:    request,
+		registry: registry,
+		request:  request,
 	}
 
 	return u, nil
@@ -54,15 +41,25 @@ func NewServiceInstanceUpdater(registry *registry.Entry, instanceID string, requ
 
 func (u *ServiceInstanceUpdater) PrepareResources() error {
 	// Use the cached versions, as the request parameters may not be set.
+	serviceID, ok := u.registry.Get(registry.ServiceID)
+	if !ok {
+		return fmt.Errorf("unable to lookup service instance service ID")
+	}
+
 	planID, ok := u.registry.Get(registry.PlanID)
 	if !ok {
 		return fmt.Errorf("unable to lookup service instance plan ID")
 	}
 
-	// Collate and render our templates.
-	glog.Infof("looking up bindings for service %s, plan %s", u.request.ServiceID, planID)
+	namespace, ok := u.registry.Get(registry.Namespace)
+	if !ok {
+		return fmt.Errorf("unable to lookup namespace")
+	}
 
-	templateBindings, err := getTemplateBindings(u.request.ServiceID, planID)
+	// Collate and render our templates.
+	glog.Infof("looking up bindings for service %s, plan %s", serviceID, planID)
+
+	templateBindings, err := getTemplateBindings(serviceID, planID)
 	if err != nil {
 		return err
 	}
@@ -108,7 +105,7 @@ func (u *ServiceInstanceUpdater) PrepareResources() error {
 		}
 
 		// Get the resource.
-		objectCurr, err := client.Resource(mapping.Resource).Namespace(u.namespace).Get(object.GetName(), metav1.GetOptions{})
+		objectCurr, err := client.Resource(mapping.Resource).Namespace(namespace).Get(object.GetName(), metav1.GetOptions{})
 		if err != nil {
 			glog.Infof("failed to get resource %s/%s %s", object.GetAPIVersion(), object.GetKind(), object.GetName())
 			return err
@@ -152,6 +149,11 @@ func (u *ServiceInstanceUpdater) PrepareResources() error {
 func (u *ServiceInstanceUpdater) run() error {
 	glog.Info("updating resources")
 
+	namespace, ok := u.registry.Get(registry.Namespace)
+	if !ok {
+		return fmt.Errorf("unable to lookup namespace")
+	}
+
 	// Prepare the client code
 	client := config.Clients().Dynamic()
 
@@ -165,7 +167,7 @@ func (u *ServiceInstanceUpdater) run() error {
 			return err
 		}
 
-		if _, err := client.Resource(mapping.Resource).Namespace(u.namespace).Update(resource, metav1.UpdateOptions{}); err != nil {
+		if _, err := client.Resource(mapping.Resource).Namespace(namespace).Update(resource, metav1.UpdateOptions{}); err != nil {
 			return err
 		}
 	}
