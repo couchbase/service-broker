@@ -6,8 +6,8 @@ import (
 	"github.com/golang/glog"
 )
 
-// ServiceInstanceDeleter caches various data associated with deleting a service instance.
-type ServiceInstanceDeleter struct {
+// Deleter caches various data associated with deleting a service instance.
+type Deleter struct {
 	// registry is the instance registry.
 	registry *registry.Entry
 
@@ -15,16 +15,16 @@ type ServiceInstanceDeleter struct {
 	instanceID string
 }
 
-// NewServiceInstanceDeleter returns a new controller capable of deleting a service instance.
-func NewServiceInstanceDeleter(registry *registry.Entry, instanceID string) *ServiceInstanceDeleter {
-	return &ServiceInstanceDeleter{
+// NewDeleter returns a new controller capable of deleting a service instance.
+func NewDeleter(registry *registry.Entry, instanceID string) *Deleter {
+	return &Deleter{
 		registry:   registry,
 		instanceID: instanceID,
 	}
 }
 
 // Run performs asynchronous update tasks.
-func (d *ServiceInstanceDeleter) Run() {
+func (d *Deleter) Run() {
 	if err := d.registry.Delete(); err != nil {
 		glog.Infof("failed to delete instance")
 	}

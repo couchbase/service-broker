@@ -86,6 +86,31 @@ func getTemplateBindings(serviceID, planID string) (*v1.CouchbaseServiceBrokerCo
 	return nil, fmt.Errorf("unable to locate template bindings for service plan %s/%s", service, plan)
 }
 
+// getTemplateBinding returns the binding associated with a specific resource type.
+func getTemplateBinding(t ResourceType, serviceID, planID string) (*v1.CouchbaseServiceBrokerTemplateList, error) {
+	bindings, err := getTemplateBindings(serviceID, planID)
+	if err != nil {
+		return nil, err
+	}
+
+	var templates *v1.CouchbaseServiceBrokerTemplateList
+
+	switch t {
+	case ResourceTypeServiceInstance:
+		templates = bindings.ServiceInstance
+	case ResourceTypeServiceBinding:
+		templates = bindings.ServiceBinding
+	default:
+		return nil, fmt.Errorf("illegal binding type %s", string(t))
+	}
+
+	if templates == nil {
+		return nil, errors.NewConfigurationError("missing bindings for type %s", string(t))
+	}
+
+	return templates, nil
+}
+
 // getTemplate returns the template corresponding to a template name.
 func getTemplate(name string) (*v1.CouchbaseServiceBrokerConfigTemplate, error) {
 	for index, template := range config.Config().Spec.Templates {

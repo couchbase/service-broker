@@ -18,8 +18,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// ServiceInstanceCreator caches various data associated with provisioning.
-type ServiceInstanceCreator struct {
+// Creator caches various data associated with provisioning.
+type Creator struct {
+	resourceType ResourceType
+
 	// registry is the instance registry.
 	registry *registry.Entry
 
@@ -28,18 +30,19 @@ type ServiceInstanceCreator struct {
 	templates []*v1.CouchbaseServiceBrokerConfigTemplate
 }
 
-// NewServiceInstanceCreator initializes all the data required for
+// NewCreator initializes all the data required for
 // provisioning a service instance.
-func NewServiceInstanceCreator(registry *registry.Entry) (*ServiceInstanceCreator, error) {
-	provisioner := &ServiceInstanceCreator{
-		registry: registry,
+func NewCreator(resourceType ResourceType, registry *registry.Entry) (*Creator, error) {
+	provisioner := &Creator{
+		resourceType: resourceType,
+		registry:     registry,
 	}
 
 	return provisioner, nil
 }
 
 // renderTemplate applies any requested parameters to the template.
-func (p *ServiceInstanceCreator) renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate) error {
+func (p *Creator) renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate) error {
 	t, err := renderTemplate(template, p.registry)
 	if err != nil {
 		return err
@@ -51,7 +54,7 @@ func (p *ServiceInstanceCreator) renderTemplate(template *v1.CouchbaseServiceBro
 }
 
 // createResource instantiates rendered template resources.
-func (p *ServiceInstanceCreator) createResource(template *v1.CouchbaseServiceBrokerConfigTemplate) error {
+func (p *Creator) createResource(template *v1.CouchbaseServiceBrokerConfigTemplate) error {
 	if template.Template == nil || template.Template.Raw == nil {
 		glog.Infof("template has no associated object, skipping")
 		return nil
@@ -139,7 +142,7 @@ func (p *ServiceInstanceCreator) createResource(template *v1.CouchbaseServiceBro
 
 // prepareServiceInstance does provisional synchronous tasks before provisioning.  This does
 // basic template collection and rendering.
-func (p *ServiceInstanceCreator) PrepareServiceInstance() error {
+func (p *Creator) PrepareServiceInstance() error {
 	serviceID, ok := p.registry.Get(registry.ServiceID)
 	if !ok {
 		return fmt.Errorf("unable to lookup service ID")
@@ -153,21 +156,17 @@ func (p *ServiceInstanceCreator) PrepareServiceInstance() error {
 	glog.Infof("looking up bindings for service %s, plan %s", serviceID, planID)
 
 	// Collate and render our templates.
-	templateBindings, err := getTemplateBindings(serviceID, planID)
+	templates, err := getTemplateBinding(p.resourceType, serviceID, planID)
 	if err != nil {
 		return err
 	}
 
-	if templateBindings.ServiceInstance == nil {
-		return nil
-	}
-
 	// Render any parameters.  As they are not associated with any template they
 	// can only ever be committed to the registry.
-	glog.Infof("rendering parameters for binding %s", templateBindings.Name)
+	glog.Infof("rendering parameters for binding")
 
-	for index := range templateBindings.ServiceInstance.Parameters {
-		parameter := &templateBindings.ServiceInstance.Parameters[index]
+	for index := range templates.Parameters {
+		parameter := &templates.Parameters[index]
 
 		value, err := resolveTemplateParameter(parameter, p.registry, true)
 		if err != nil {
@@ -194,9 +193,9 @@ func (p *ServiceInstanceCreator) PrepareServiceInstance() error {
 		}
 	}
 
-	glog.Infof("rendering templates for binding %s", templateBindings.Name)
+	glog.Infof("rendering templates for binding")
 
-	for _, templateName := range templateBindings.ServiceInstance.Templates {
+	for _, templateName := range templates.Templates {
 		template, err := getTemplate(templateName)
 		if err != nil {
 			return err
@@ -211,7 +210,7 @@ func (p *ServiceInstanceCreator) PrepareServiceInstance() error {
 }
 
 // run performs asynchronous creation tasks.
-func (p *ServiceInstanceCreator) run() error {
+func (p *Creator) run() error {
 	glog.Infof("creating resources")
 
 	for _, template := range p.templates {
@@ -224,7 +223,7 @@ func (p *ServiceInstanceCreator) run() error {
 }
 
 // Run performs asynchronous creation tasks.
-func (p *ServiceInstanceCreator) Run() {
+func (p *Creator) Run() {
 	if err := operation.Complete(p.registry, p.run()); err != nil {
 		glog.Infof("failed to create instance: %v", err)
 	}

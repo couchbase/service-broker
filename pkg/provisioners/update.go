@@ -16,8 +16,10 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// ServiceInstanceUpdater caches various data associated with updating a service instance.
-type ServiceInstanceUpdater struct {
+// Updater caches various data associated with updating a service instance.
+type Updater struct {
+	resourceType ResourceType
+
 	// registry is the instance registry.
 	registry *registry.Entry
 
@@ -29,17 +31,18 @@ type ServiceInstanceUpdater struct {
 	resources []*unstructured.Unstructured
 }
 
-// NewServiceInstanceUpdater returns a new controler capable of updaing a service instance.
-func NewServiceInstanceUpdater(registry *registry.Entry, request *api.UpdateServiceInstanceRequest) (*ServiceInstanceUpdater, error) {
-	u := &ServiceInstanceUpdater{
-		registry: registry,
-		request:  request,
+// NewUpdater returns a new controler capable of updaing a service instance.
+func NewUpdater(resourceType ResourceType, registry *registry.Entry, request *api.UpdateServiceInstanceRequest) (*Updater, error) {
+	u := &Updater{
+		resourceType: resourceType,
+		registry:     registry,
+		request:      request,
 	}
 
 	return u, nil
 }
 
-func (u *ServiceInstanceUpdater) PrepareResources() error {
+func (u *Updater) PrepareResources() error {
 	// Use the cached versions, as the request parameters may not be set.
 	serviceID, ok := u.registry.Get(registry.ServiceID)
 	if !ok {
@@ -59,19 +62,15 @@ func (u *ServiceInstanceUpdater) PrepareResources() error {
 	// Collate and render our templates.
 	glog.Infof("looking up bindings for service %s, plan %s", serviceID, planID)
 
-	templateBindings, err := getTemplateBindings(serviceID, planID)
+	templates, err := getTemplateBinding(u.resourceType, serviceID, planID)
 	if err != nil {
 		return err
-	}
-
-	if templateBindings.ServiceInstance == nil {
-		return nil
 	}
 
 	// Prepare the client code
 	client := config.Clients().Dynamic()
 
-	for _, templateName := range templateBindings.ServiceInstance.Templates {
+	for _, templateName := range templates.Templates {
 		glog.Infof("getting resource for template %s", templateName)
 
 		// Lookup the template, the name may be dynamic e.g. based on instance
@@ -146,7 +145,7 @@ func (u *ServiceInstanceUpdater) PrepareResources() error {
 }
 
 // run performs asynchronous update tasks.
-func (u *ServiceInstanceUpdater) run() error {
+func (u *Updater) run() error {
 	glog.Info("updating resources")
 
 	namespace, ok := u.registry.Get(registry.Namespace)
@@ -176,7 +175,7 @@ func (u *ServiceInstanceUpdater) run() error {
 }
 
 // Run performs asynchronous update tasks.
-func (u *ServiceInstanceUpdater) Run() {
+func (u *Updater) Run() {
 	if err := operation.Complete(u.registry, u.run()); err != nil {
 		glog.Infof("failed to delete instance")
 	}
