@@ -350,16 +350,16 @@ spec:
     - name: image
       source:
         parameter: /image
-        default:
-          string: couchbase/server:6.5.0
+      default:
+        string: couchbase/server:6.5.0
       destination:
         paths:
         - /spec/image
     - name: size
       source:
         parameter: /size
-        default:
-          int: 3
+      default:
+        int: 3
       destination:
         paths:
         - /spec/servers/0/size

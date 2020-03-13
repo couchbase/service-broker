@@ -254,8 +254,11 @@ type CouchbaseServiceBrokerConfigTemplateParameter struct {
 	// Required will cause an error if a parameter is not defined.
 	Required bool `json:"required,omitempty"`
 
+	// Default specifies the default value is if the parameter is not defined.
+	Default *CouchbaseServiceBrokerConfigTemplateParameterDefault `json:"default,omitempty"`
+
 	// Source is source of the parameter.
-	Source CouchbaseServiceBrokerConfigTemplateParameterSource `json:"source"`
+	Source *CouchbaseServiceBrokerConfigTemplateParameterSource `json:"source,omitempty"`
 
 	// Destination is the destination of the parameter.
 	Destination CouchbaseServiceBrokerConfigTemplateParameterDestination `json:"destination"`
@@ -264,9 +267,6 @@ type CouchbaseServiceBrokerConfigTemplateParameter struct {
 // CouchbaseServiceBrokerConfigTemplateParameterSource defines where parameters
 // are sourced from.
 type CouchbaseServiceBrokerConfigTemplateParameterSource struct {
-	// Default specifies the default value is if the parameter is not defined.
-	Default *CouchbaseServiceBrokerConfigTemplateParameterSourceDefault `json:"default,omitempty"`
-
 	// Registry, if set, uses the corresponding registry value for the
 	// parameter source.
 	// +kubebuilder:validation:Pattern="^(instance:)?[a-zA-Z0-9-]+$"
@@ -279,6 +279,9 @@ type CouchbaseServiceBrokerConfigTemplateParameterSource struct {
 	// Format allows the collection of an arbitrary number of parameters into
 	// a string format.
 	Format *CouchbaseServiceBrokerConfigTemplateParameterSourceFormat `json:"format,omitempty"`
+
+	// Template allows the recursive rendering and inclusion of a named template.
+	Template *string `json:"template,omitempty"`
 }
 
 // CouchbaseServiceBrokerConfigTemplateParameterSourceFormat defines a formatting
@@ -306,9 +309,9 @@ type CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter struct {
 	Parameter *string `json:"parameter,omitempty"`
 }
 
-// CouchbaseServiceBrokerConfigTemplateParameterSourceDefault defines a
+// CouchbaseServiceBrokerConfigTemplateParameterDefault defines a
 // default value for a parameter source if it is not specified.
-type CouchbaseServiceBrokerConfigTemplateParameterSourceDefault struct {
+type CouchbaseServiceBrokerConfigTemplateParameterDefault struct {
 	// String specifies the default string value if the parameter is not defined.
 	String *string `json:"string,omitempty"`
 

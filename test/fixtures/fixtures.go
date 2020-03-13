@@ -61,6 +61,12 @@ var (
 	// zeroInt is an addressable integer zero.
 	zeroInt = 0
 
+	// dnsSnippetName is the name of a template snippet.
+	dnsSnippetName = "dns-snippet"
+
+	// dnsDefault is an addressable DNS server name.
+	dnsDefault = "192.168.0.1"
+
 	// basicResource is used to test object creation, and conflict handling.
 	basicResource = &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
@@ -103,13 +109,32 @@ var (
 		},
 		Templates: []v1.CouchbaseServiceBrokerConfigTemplate{
 			{
+				Name: dnsSnippetName,
+				Template: &runtime.RawExtension{
+					Raw: []byte(`{"nameservers":[]}`),
+				},
+				Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameter{
+					{
+						Name: "nameserver",
+						Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterDefault{
+							String: &dnsDefault,
+						},
+						Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+							Paths: []string{
+								"/nameservers/-",
+							},
+						},
+					},
+				},
+			},
+			{
 				Name: "test-template",
 				// Populated by the configuration function.
 				Template: &runtime.RawExtension{},
 				Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameter{
 					{
 						Name: "instance-name",
-						Source: v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+						Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
 							Registry: &instanceNameRegistryEntry,
 						},
 						Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
@@ -120,10 +145,8 @@ var (
 					},
 					{
 						Name: "automount-service-token",
-						Source: v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
-							Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceDefault{
-								Bool: &falseBool,
-							},
+						Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterDefault{
+							Bool: &falseBool,
 						},
 						Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
 							Paths: []string{
@@ -133,14 +156,36 @@ var (
 					},
 					{
 						Name: "priority",
-						Source: v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
-							Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceDefault{
-								Int: &zeroInt,
-							},
+						Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterDefault{
+							Int: &zeroInt,
 						},
 						Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
 							Paths: []string{
 								"/spec/priority",
+							},
+						},
+					},
+					{
+						Name: "sidecar",
+						Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterDefault{
+							Object: &runtime.RawExtension{
+								Raw: []byte(`{"name":"sidecar","image":"org/sidecar:tag"}`),
+							},
+						},
+						Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+							Paths: []string{
+								"/spec/containers/-",
+							},
+						},
+					},
+					{
+						Name: "dns",
+						Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+							Template: &dnsSnippetName,
+						},
+						Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+							Paths: []string{
+								"/spec/dnsConfig",
 							},
 						},
 					},
@@ -156,7 +201,7 @@ var (
 					Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameter{
 						{
 							Name: "instance-name",
-							Source: v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+							Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
 								Format: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormat{
 									String: "instance-%s",
 									Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter{
@@ -172,7 +217,7 @@ var (
 						},
 						{
 							Name: "dashboard-url",
-							Source: v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+							Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
 								Format: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormat{
 									String: dashboardURLMutationFormat,
 									Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter{
@@ -265,7 +310,7 @@ func BasicConfiguration() *v1.CouchbaseServiceBrokerConfigSpec {
 		return nil
 	}
 
-	configuration.Templates[0].Template.Raw = raw
+	configuration.Templates[1].Template.Raw = raw
 
 	return configuration
 }
@@ -298,11 +343,11 @@ func RegistryParametersToRegistryWithDefault(key, destination, defaultValue stri
 		{
 			Name:     "test-parameter",
 			Required: required,
-			Source: v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
-				Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceDefault{
-					String: &defaultValue,
-				},
+			Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
 				Registry: &key,
+			},
+			Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterDefault{
+				String: &defaultValue,
 			},
 			Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
 				Registry: &destination,
@@ -317,7 +362,7 @@ func ParametersToRegistry(path, destination string, required bool) []v1.Couchbas
 		{
 			Name:     "test-parameter",
 			Required: required,
-			Source: v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+			Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
 				Parameter: &path,
 			},
 			Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
@@ -333,11 +378,11 @@ func ParametersToRegistryWithDefault(path, destination, defaultValue string, req
 		{
 			Name:     "test-parameter",
 			Required: required,
-			Source: v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
-				Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceDefault{
-					String: &defaultValue,
-				},
+			Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
 				Parameter: &path,
+			},
+			Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterDefault{
+				String: &defaultValue,
 			},
 			Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
 				Registry: &destination,

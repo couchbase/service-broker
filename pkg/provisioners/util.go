@@ -165,14 +165,17 @@ func resolveFormat(format *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 }
 
 // resolveSource gets a parameter source from either metadata or a JSON path into user specified parameters.
-func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSource, entry *registry.Entry, useDefaults bool) (interface{}, error) {
+func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSource, entry *registry.Entry) (interface{}, error) {
+	if source == nil {
+		return nil, nil
+	}
+
 	// Try to resolve the parameter.
 	var value interface{}
 
 	switch {
+	// Registry parameters are reference registry values.
 	case source.Registry != nil:
-		// Metadata parameters are explicitly mapped to values associated
-		// with the request.
 		v, ok, err := entry.GetUser(*source.Registry)
 		if err != nil {
 			return nil, err
@@ -185,9 +188,9 @@ func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 
 		value = v
 
+	// Parameters reference parameters specified by the client in response to
+	// the schema advertised to the client.
 	case source.Parameter != nil:
-		// Parameters reference parameters specified by the client in response to
-		// the schema advertised to the client.
 		v, ok, err := resolveParameter(*source.Parameter, entry)
 		if err != nil {
 			return nil, err
@@ -200,6 +203,8 @@ func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 
 		value = v
 
+	// Format will do a string formatting with Sprintf and a variadic set
+	// of parameters.
 	case source.Format != nil:
 		v, err := resolveFormat(source.Format, entry)
 		if err != nil {
@@ -207,39 +212,64 @@ func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 		}
 
 		value = v
-	}
 
-	// If no value has been found or generated then use a default if set.
-	if value == nil && useDefaults && source.Default != nil {
-		switch {
-		case source.Default.String != nil:
-			value = *source.Default.String
-		case source.Default.Bool != nil:
-			value = *source.Default.Bool
-		case source.Default.Int != nil:
-			value = *source.Default.Int
-		case source.Default.Object != nil:
-			if err := json.Unmarshal(source.Default.Object.Raw, &value); err != nil {
-				glog.Infof("unmarshal of source default failed: %v", err)
-				return nil, err
-			}
-		default:
-			return nil, errors.NewConfigurationError("undefined source default parameter")
+	// Template will recursively render a template and return an object.
+	// This allows sharing of common configuration.
+	case source.Template != nil:
+		t, err := getTemplate(*source.Template)
+		if err != nil {
+			return nil, err
 		}
 
-		glog.Infof("using source default %v", value)
+		template, err := renderTemplate(t, entry)
+		if err != nil {
+			return nil, err
+		}
+
+		var v interface{}
+		if err := json.Unmarshal(template.Template.Raw, &v); err != nil {
+			glog.Infof("unmarshal of template failed: %v", err)
+			return nil, err
+		}
+
+		value = v
 	}
 
-	glog.Infof("using source value %v", value)
+	glog.Infof("resolved source value %v", value)
 
 	return value, nil
 }
 
 // resolveTemplateParameter applies parameter lookup rules and tries to return a value.
 func resolveTemplateParameter(parameter *v1.CouchbaseServiceBrokerConfigTemplateParameter, entry *registry.Entry, useDefaults bool) (interface{}, error) {
-	value, err := resolveSource(&parameter.Source, entry, useDefaults)
+	value, err := resolveSource(parameter.Source, entry)
 	if err != nil {
 		return nil, err
+	}
+
+	// If no value has been found or generated then use a default if set.
+	if value == nil && useDefaults && parameter.Default != nil {
+		switch {
+		case parameter.Default.String != nil:
+			value = *parameter.Default.String
+		case parameter.Default.Bool != nil:
+			value = *parameter.Default.Bool
+		case parameter.Default.Int != nil:
+			value = *parameter.Default.Int
+		case parameter.Default.Object != nil:
+			var v interface{}
+
+			if err := json.Unmarshal(parameter.Default.Object.Raw, &v); err != nil {
+				glog.Infof("unmarshal of source default failed: %v", err)
+				return nil, err
+			}
+
+			value = v
+		default:
+			return nil, errors.NewConfigurationError("undefined source default parameter")
+		}
+
+		glog.Infof("using source default %v", value)
 	}
 
 	if parameter.Required && value == nil {
