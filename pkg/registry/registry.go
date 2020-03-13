@@ -9,6 +9,8 @@ import (
 	"github.com/couchbase/service-broker/pkg/errors"
 	"github.com/couchbase/service-broker/pkg/version"
 
+	"github.com/golang/glog"
+
 	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -330,6 +332,8 @@ func (e *Entry) GetUser(key string) (string, bool, error) {
 
 // SetJSONUser encodes a JSON object and sets the entry item.
 func (e *Entry) SetUser(key string, value string) error {
+	glog.Infof("setting registry entry %s to %s", key, value)
+
 	if !isKeyWritable(key) {
 		return errors.NewConfigurationError("registry key %s cannot be written", key)
 	}

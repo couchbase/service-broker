@@ -8,6 +8,7 @@ import (
 
 	"github.com/couchbase/service-broker/pkg/api"
 	"github.com/couchbase/service-broker/pkg/config"
+	"github.com/couchbase/service-broker/pkg/errors"
 	"github.com/couchbase/service-broker/pkg/operation"
 	"github.com/couchbase/service-broker/pkg/registry"
 
@@ -143,14 +144,26 @@ func (u *ServiceInstanceUpdater) PrepareResources() error {
 
 			patches := []string{}
 
-			for _, path := range parameter.Destination.Paths {
-				valueJSON, err := json.Marshal(value)
-				if err != nil {
-					glog.Infof("marshal of value failed: %v", err)
-					return err
-				}
+			for _, destination := range parameter.Destinations {
+				switch {
+				case destination.Registry != nil:
+					strValue, ok := value.(string)
+					if !ok {
+						return errors.NewConfigurationError("parameter %s is not a string", parameter.Name)
+					}
 
-				patches = append(patches, fmt.Sprintf(`{"op":"add","path":"%s","value":%s}`, path, string(valueJSON)))
+					if err := u.registry.SetUser(*destination.Registry, strValue); err != nil {
+						return errors.NewConfigurationError(err.Error())
+					}
+				case destination.Path != nil:
+					valueJSON, err := json.Marshal(value)
+					if err != nil {
+						glog.Infof("marshal of value failed: %v", err)
+						return err
+					}
+
+					patches = append(patches, fmt.Sprintf(`{"op":"add","path":"%s","value":%s}`, *destination.Path, string(valueJSON)))
+				}
 			}
 
 			patchSet := "[" + strings.Join(patches, ",") + "]"

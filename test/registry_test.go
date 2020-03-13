@@ -37,7 +37,7 @@ func TestRegistryIllegalWrite(t *testing.T) {
 	illegalKey := string(registry.ServiceID)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters[0].Destination.Registry = &illegalKey
+	configuration.Bindings[0].ServiceInstance.Parameters[0].Destinations[0].Registry = &illegalKey
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -145,7 +145,7 @@ func TestRegistryiNoDestination(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters[0].Destination.Registry = nil
+	configuration.Bindings[0].ServiceInstance.Parameters[0].Destinations[0].Registry = nil
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()

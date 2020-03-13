@@ -172,10 +172,6 @@ func (p *ServiceInstanceCreator) PrepareServiceInstance() error {
 	for index := range templateBindings.ServiceInstance.Parameters {
 		parameter := &templateBindings.ServiceInstance.Parameters[index]
 
-		if parameter.Destination.Registry == nil {
-			return errors.NewConfigurationError("parameter %s must have a registry destination", parameter.Name)
-		}
-
 		value, err := resolveTemplateParameter(parameter, p.registry, true)
 		if err != nil {
 			return err
@@ -190,10 +186,14 @@ func (p *ServiceInstanceCreator) PrepareServiceInstance() error {
 			return errors.NewConfigurationError("parameter %s is not a string %v", parameter.Name, value)
 		}
 
-		glog.Infof("setting registry entry %s to %s", *parameter.Destination.Registry, strValue)
+		for _, destination := range parameter.Destinations {
+			if destination.Registry == nil {
+				return errors.NewConfigurationError("parameter %s must have a registry destination", parameter.Name)
+			}
 
-		if err := p.registry.SetUser(*parameter.Destination.Registry, strValue); err != nil {
-			return err
+			if err := p.registry.SetUser(*destination.Registry, strValue); err != nil {
+				return err
+			}
 		}
 	}
 

@@ -311,16 +311,14 @@ spec:
     - name: name
       source:
         registry: instance-name
-      destination:
-        paths:
-        - /metadata/name
+      destinations:
+      - path: /metadata/name
     - name: password
       required: true
       source:
         parameter: /password
-      destination:
-        paths:
-        - /data/password
+      destinations:
+      - path: /data/password
   - name: couchbase-developer-private
     template:
       apiVersion: couchbase.com/v2
@@ -342,27 +340,24 @@ spec:
     - name: name
       source:
         registry: instance-name
-      destination:
-        paths:
-        - /metadata/name
-        - /spec/security/adminSecret
-        - /spec/buckets/selector/matchLabels/cluster
+      destinations:
+      - path: /metadata/name
+      - path: /spec/security/adminSecret
+      - path: /spec/buckets/selector/matchLabels/cluster
     - name: image
       source:
         parameter: /image
       default:
         string: couchbase/server:6.5.0
-      destination:
-        paths:
-        - /spec/image
+      destinations:
+      - path: /spec/image
     - name: size
       source:
         parameter: /size
       default:
         int: 3
-      destination:
-        paths:
-        - /spec/servers/0/size
+      destinations:
+      - path: /spec/servers/0/size
   # Bindings bind templates to service plans.  These allow the specification of
   # exactly what templates are created when a plan is instantiated or bound to.
   bindings:
@@ -380,8 +375,8 @@ spec:
             string: instance-%v
             parameters:
             - registry: instance-id
-        destination:
-          registry: instance-name
+        destinations:
+        - registry: instance-name
       - name: dashboard-url
         required: true
         source:
@@ -390,8 +385,8 @@ spec:
             parameters:
             - registry: instance-name
             - registry: namespace
-        destination:
-          registry: dashboard-url
+        destinations:
+        - registry: dashboard-url
       templates:
       - couchbase-operator-serviceaccount
       - couchbase-operator-role

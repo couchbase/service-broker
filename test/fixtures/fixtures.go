@@ -67,6 +67,24 @@ var (
 	// dnsDefault is an addressable DNS server name.
 	dnsDefault = "192.168.0.1"
 
+	// dnsSnippetNamespacePath is an addressable JSON pointer.
+	dnsSnippetNamespacePath = "/nameservers/-"
+
+	// basicResourceNamePath is an addressable JSON pointer.
+	basicResourceNamePath = "/metadata/name"
+
+	// basicResourceAutomountPath is an addressable JSON pointer.
+	basicResourceAutomountPath = "/spec/automountServiceAccountToken"
+
+	// basicResourcePriorityPath is an addressable JSON pointer.
+	basicResourcePriorityPath = "/spec/priority"
+
+	// basicResourceContainersPath is an addressable JSON pointer.
+	basicResourceContainersPath = "/spec/containers/-"
+
+	// basicResourceDNSPath is an addressable JSON pointer.
+	basicResourceDNSPath = "/spec/dnsConfig"
+
 	// basicResource is used to test object creation, and conflict handling.
 	basicResource = &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
@@ -119,10 +137,8 @@ var (
 						Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterDefault{
 							String: &dnsDefault,
 						},
-						Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
-							Paths: []string{
-								"/nameservers/-",
-							},
+						Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+							{Path: &dnsSnippetNamespacePath},
 						},
 					},
 				},
@@ -137,10 +153,8 @@ var (
 						Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
 							Registry: &instanceNameRegistryEntry,
 						},
-						Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
-							Paths: []string{
-								"/metadata/name",
-							},
+						Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+							{Path: &basicResourceNamePath},
 						},
 					},
 					{
@@ -148,10 +162,8 @@ var (
 						Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterDefault{
 							Bool: &falseBool,
 						},
-						Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
-							Paths: []string{
-								"/spec/automountServiceAccountToken",
-							},
+						Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+							{Path: &basicResourceAutomountPath},
 						},
 					},
 					{
@@ -159,10 +171,8 @@ var (
 						Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterDefault{
 							Int: &zeroInt,
 						},
-						Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
-							Paths: []string{
-								"/spec/priority",
-							},
+						Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+							{Path: &basicResourcePriorityPath},
 						},
 					},
 					{
@@ -172,10 +182,8 @@ var (
 								Raw: []byte(`{"name":"sidecar","image":"org/sidecar:tag"}`),
 							},
 						},
-						Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
-							Paths: []string{
-								"/spec/containers/-",
-							},
+						Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+							{Path: &basicResourceContainersPath},
 						},
 					},
 					{
@@ -183,10 +191,8 @@ var (
 						Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
 							Template: &dnsSnippetName,
 						},
-						Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
-							Paths: []string{
-								"/spec/dnsConfig",
-							},
+						Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+							{Path: &basicResourceDNSPath},
 						},
 					},
 				},
@@ -211,8 +217,8 @@ var (
 									},
 								},
 							},
-							Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
-								Registry: &instanceNameRegistryEntry,
+							Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+								{Registry: &instanceNameRegistryEntry},
 							},
 						},
 						{
@@ -230,8 +236,8 @@ var (
 									},
 								},
 							},
-							Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
-								Registry: &dashboardURLRegistryKey,
+							Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+								{Registry: &dashboardURLRegistryKey},
 							},
 						},
 					},
@@ -349,8 +355,8 @@ func RegistryParametersToRegistryWithDefault(key, destination, defaultValue stri
 			Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterDefault{
 				String: &defaultValue,
 			},
-			Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
-				Registry: &destination,
+			Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+				{Registry: &destination},
 			},
 		},
 	}
@@ -365,8 +371,8 @@ func ParametersToRegistry(path, destination string, required bool) []v1.Couchbas
 			Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
 				Parameter: &path,
 			},
-			Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
-				Registry: &destination,
+			Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+				{Registry: &destination},
 			},
 		},
 	}
@@ -384,8 +390,8 @@ func ParametersToRegistryWithDefault(path, destination, defaultValue string, req
 			Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterDefault{
 				String: &defaultValue,
 			},
-			Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
-				Registry: &destination,
+			Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+				{Registry: &destination},
 			},
 		},
 	}

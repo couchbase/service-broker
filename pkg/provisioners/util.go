@@ -284,6 +284,11 @@ func resolveTemplateParameter(parameter *v1.CouchbaseServiceBrokerConfigTemplate
 // request or metadata parameters to it.
 func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *registry.Entry) (*v1.CouchbaseServiceBrokerConfigTemplate, error) {
 	glog.Infof("rendering template %s", template.Name)
+
+	if template.Template == nil || template.Template.Raw == nil {
+		return nil, errors.NewConfigurationError("template %s is not defined", template.Name)
+	}
+
 	glog.V(log.LevelDebug).Infof("template source: %s", string(template.Template.Raw))
 
 	// We will be modifying the template in place, so first clone it as the
@@ -299,35 +304,39 @@ func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *re
 			return nil, err
 		}
 
-		// Set the registry entry if defined.
-		if parameter.Destination.Registry != nil {
-			glog.Infof("setting registry entry %s to %v", *parameter.Destination.Registry, value)
+		// Set each destination path using JSON patch.
+		patches := []string{}
 
-			strValue, ok := value.(string)
-			if !ok {
-				return nil, errors.NewConfigurationError("parameter %s is not a string", parameter.Name)
-			}
+		for _, destination := range parameter.Destinations {
+			switch {
+			case destination.Registry != nil:
+				strValue, ok := value.(string)
+				if !ok {
+					return nil, errors.NewConfigurationError("parameter %s is not a string", parameter.Name)
+				}
 
-			if err := entry.SetUser(*parameter.Destination.Registry, strValue); err != nil {
-				return nil, errors.NewConfigurationError(err.Error())
+				if err := entry.SetUser(*destination.Registry, strValue); err != nil {
+					return nil, errors.NewConfigurationError(err.Error())
+				}
+			case destination.Path != nil:
+				valueJSON, err := json.Marshal(value)
+				if err != nil {
+					glog.Infof("marshal of value failed: %v", err)
+					return nil, err
+				}
+
+				patches = append(patches, fmt.Sprintf(`{"op":"add","path":"%s","value":%s}`, *destination.Path, string(valueJSON)))
 			}
 		}
 
-		// Set each destination path using JSON patch.
-		if t.Template == nil {
+		minPatches := 1
+		if len(patches) < minPatches {
+			glog.Infof("no paths to apply parameter to")
 			continue
 		}
 
-		patches := []string{}
-
-		for _, path := range parameter.Destination.Paths {
-			valueJSON, err := json.Marshal(value)
-			if err != nil {
-				glog.Infof("marshal of value failed: %v", err)
-				return nil, err
-			}
-
-			patches = append(patches, fmt.Sprintf(`{"op":"add","path":"%s","value":%s}`, path, string(valueJSON)))
+		if t.Template == nil || t.Template.Raw == nil {
+			return nil, errors.NewConfigurationError("template %s is not defined", t.Name)
 		}
 
 		patchSet := "[" + strings.Join(patches, ",") + "]"
@@ -349,9 +358,7 @@ func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *re
 		t.Template.Raw = object
 	}
 
-	if t.Template != nil {
-		glog.Infof("rendered template %s", string(t.Template.Raw))
-	}
+	glog.Infof("rendered template %s", string(t.Template.Raw))
 
 	return t, nil
 }

@@ -260,8 +260,9 @@ type CouchbaseServiceBrokerConfigTemplateParameter struct {
 	// Source is source of the parameter.
 	Source *CouchbaseServiceBrokerConfigTemplateParameterSource `json:"source,omitempty"`
 
-	// Destination is the destination of the parameter.
-	Destination CouchbaseServiceBrokerConfigTemplateParameterDestination `json:"destination"`
+	// Destinations is the destination of the parameter.
+	// +kubebuilder:validation:MinItems=1
+	Destinations []CouchbaseServiceBrokerConfigTemplateParameterDestination `json:"destinations"`
 }
 
 // CouchbaseServiceBrokerConfigTemplateParameterSource defines where parameters
@@ -328,10 +329,9 @@ type CouchbaseServiceBrokerConfigTemplateParameterDefault struct {
 // CouchbaseServiceBrokerConfigTemplateParameterDestination defines where to
 // patch parameters into the resource template.
 type CouchbaseServiceBrokerConfigTemplateParameterDestination struct {
-	// Paths is a list of JSON pointers in the resource template to patch
-	// the parameter.  The service broker will create any parent objects
-	// necessary to fulfill the request.
-	Paths []string `json:"paths,omitempty"`
+	// Path is a JSON pointer in the resource template to patch
+	// the parameter.
+	Path *string `json:"path,omitempty"`
 
 	// Registry is a key to store the value to in the registry.
 	Registry *string `json:"registry,omitempty"`
