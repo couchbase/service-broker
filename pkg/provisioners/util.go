@@ -280,26 +280,13 @@ func resolveTemplateParameter(parameter *v1.CouchbaseServiceBrokerConfigTemplate
 	return value, nil
 }
 
-// renderTemplate accepts a template defined in the configuration and applies any
-// request or metadata parameters to it.
-func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *registry.Entry) (*v1.CouchbaseServiceBrokerConfigTemplate, error) {
-	glog.Infof("rendering template %s", template.Name)
-
-	if template.Template == nil || template.Template.Raw == nil {
-		return nil, errors.NewConfigurationError("template %s is not defined", template.Name)
-	}
-
-	glog.V(log.LevelDebug).Infof("template source: %s", string(template.Template.Raw))
-
-	// We will be modifying the template in place, so first clone it as the
-	// config is immutable.
-	t := template.DeepCopy()
-
+// patchObject takes a raw JSON object and applies parameters to it.
+func patchObject(object []byte, parameters []v1.CouchbaseServiceBrokerConfigTemplateParameter, entry *registry.Entry, useDefaults bool) ([]byte, error) {
 	// Now for the fun bit.  Work through each defined parameter and apply it to
 	// the object.  This basically works like JSON patch++, automatically filling
 	// in parent objects and arrays as necessary.
-	for index, parameter := range t.Parameters {
-		value, err := resolveTemplateParameter(&t.Parameters[index], entry, true)
+	for index, parameter := range parameters {
+		value, err := resolveTemplateParameter(&parameters[index], entry, useDefaults)
 		if err != nil {
 			return nil, err
 		}
@@ -318,6 +305,7 @@ func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *re
 				if err := entry.SetUser(*destination.Registry, strValue); err != nil {
 					return nil, errors.NewConfigurationError(err.Error())
 				}
+
 			case destination.Path != nil:
 				valueJSON, err := json.Marshal(value)
 				if err != nil {
@@ -335,10 +323,6 @@ func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *re
 			continue
 		}
 
-		if t.Template == nil || t.Template.Raw == nil {
-			return nil, errors.NewConfigurationError("template %s is not defined", t.Name)
-		}
-
 		patchSet := "[" + strings.Join(patches, ",") + "]"
 
 		glog.Infof("applying patchset %s", patchSet)
@@ -349,14 +333,36 @@ func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *re
 			return nil, err
 		}
 
-		object, err := patch.Apply(t.Template.Raw)
-		if err != nil {
+		if object, err = patch.Apply(object); err != nil {
 			glog.Infof("apply of JSON patch failed: %v", err)
 			return nil, err
 		}
-
-		t.Template.Raw = object
 	}
+
+	return object, nil
+}
+
+// renderTemplate accepts a template defined in the configuration and applies any
+// request or metadata parameters to it.
+func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *registry.Entry) (*v1.CouchbaseServiceBrokerConfigTemplate, error) {
+	glog.Infof("rendering template %s", template.Name)
+
+	if template.Template == nil || template.Template.Raw == nil {
+		return nil, errors.NewConfigurationError("template %s is not defined", template.Name)
+	}
+
+	glog.V(log.LevelDebug).Infof("template source: %s", string(template.Template.Raw))
+
+	// We will be modifying the template in place, so first clone it as the
+	// config is immutable.
+	t := template.DeepCopy()
+
+	object, err := patchObject(t.Template.Raw, t.Parameters, entry, true)
+	if err != nil {
+		return nil, err
+	}
+
+	t.Template.Raw = object
 
 	glog.Infof("rendered template %s", string(t.Template.Raw))
 

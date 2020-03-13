@@ -4,15 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strings"
 
 	"github.com/couchbase/service-broker/pkg/api"
 	"github.com/couchbase/service-broker/pkg/config"
-	"github.com/couchbase/service-broker/pkg/errors"
 	"github.com/couchbase/service-broker/pkg/operation"
 	"github.com/couchbase/service-broker/pkg/registry"
 
-	"github.com/evanphx/json-patch"
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -97,11 +94,6 @@ func (u *ServiceInstanceUpdater) PrepareResources() error {
 			return err
 		}
 
-		if t.Template == nil || t.Template.Raw == nil {
-			glog.Info("template not set, ignoring update")
-			continue
-		}
-
 		// Unmarshal the object so we can derive the kind and name.
 		object := &unstructured.Unstructured{}
 		if err := json.Unmarshal(t.Template.Raw, object); err != nil {
@@ -132,55 +124,9 @@ func (u *ServiceInstanceUpdater) PrepareResources() error {
 		// Apply the parameters.  Only affect parameters that are defined
 		// in the request, so be sure not to apply any defaults as they may
 		// cause the resource to do something that was not intended.
-		for index, parameter := range template.Parameters {
-			value, err := resolveTemplateParameter(&template.Parameters[index], u.registry, false)
-			if err != nil {
-				return err
-			}
-
-			if value == nil {
-				continue
-			}
-
-			patches := []string{}
-
-			for _, destination := range parameter.Destinations {
-				switch {
-				case destination.Registry != nil:
-					strValue, ok := value.(string)
-					if !ok {
-						return errors.NewConfigurationError("parameter %s is not a string", parameter.Name)
-					}
-
-					if err := u.registry.SetUser(*destination.Registry, strValue); err != nil {
-						return errors.NewConfigurationError(err.Error())
-					}
-				case destination.Path != nil:
-					valueJSON, err := json.Marshal(value)
-					if err != nil {
-						glog.Infof("marshal of value failed: %v", err)
-						return err
-					}
-
-					patches = append(patches, fmt.Sprintf(`{"op":"add","path":"%s","value":%s}`, *destination.Path, string(valueJSON)))
-				}
-			}
-
-			patchSet := "[" + strings.Join(patches, ",") + "]"
-
-			glog.Infof("applying patchset %s", patchSet)
-
-			patch, err := jsonpatch.DecodePatch([]byte(patchSet))
-			if err != nil {
-				glog.Infof("decode of JSON patch failed: %v", err)
-				return err
-			}
-
-			objectRaw, err = patch.Apply(objectRaw)
-			if err != nil {
-				glog.Infof("apply of JSON patch failed: %v", err)
-				return err
-			}
+		objectRaw, err = patchObject(objectRaw, template.Parameters, u.registry, false)
+		if err != nil {
+			return err
 		}
 
 		// Commit the resource if it has changed
