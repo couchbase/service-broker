@@ -1,10 +1,15 @@
 package fixtures
 
 import (
+	"encoding/json"
+
 	"github.com/couchbase/service-broker/pkg/api"
 	v1 "github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/registry"
+	"github.com/couchbase/service-broker/test/util"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -31,18 +36,46 @@ const (
 	BasicSchemaParametersRequired = `{"$schema":"http://json-schema.org/draft-04/schema#","type":"object","required":["test"],"properties":{"test":{"type":"number","minimum":1}}}`
 
 	// DashboardURL is the expected dashboard URL to be generated.
-	DashboardURL = "http://instance-" + ServiceInstanceName + ".example.com"
+	DashboardURL = "http://instance-" + ServiceInstanceName + "." + util.Namespace + ".svc"
 )
 
 var (
-	// instanceIDMetadataName is the metadata key for accessing the instance ID from a template parameter.
-	instanceIDMetadataName = string(registry.InstanceID)
+	// instanceIDRegistryEntry is the metadata key for accessing the instance ID from a template parameter.
+	instanceIDRegistryEntry = string(registry.InstanceID)
+
+	// namespaceRegistryEntry is the metadata key for accessing the namespace from a template parameter.
+	namespaceRegistryEntry = string(registry.Namespace)
 
 	// dashboardURLMutationFormat describes how to turn the input sources to an output value.
-	dashboardURLMutationFormat = "http://instance-%v.example.com"
+	dashboardURLMutationFormat = "http://%v.%v.svc"
 
 	// dashboardURLRegistryKey is the name of the dashboard registry item to set.
 	dashboardURLRegistryKey = "dashboard-url"
+
+	// instanceNameRegistryEntry is the unique instance name to store in the registry.
+	instanceNameRegistryEntry = "instance-name"
+
+	// falseBool is an addressable boolean false.
+	falseBool = false
+
+	// zeroInt is an addressable integer zero.
+	zeroInt = 0
+
+	// basicResource is used to test object creation, and conflict handling.
+	basicResource = &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Pod",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  "image",
+					Image: "org/image:tag",
+				},
+			},
+		},
+	}
 
 	// basicConfiguration is the absolute minimum valid configuration allowed by the
 	// service broker configuration schema.
@@ -68,6 +101,52 @@ var (
 				},
 			},
 		},
+		Templates: []v1.CouchbaseServiceBrokerConfigTemplate{
+			{
+				Name: "test-template",
+				// Populated by the configuration function.
+				Template: &runtime.RawExtension{},
+				Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameter{
+					{
+						Name: "instance-name",
+						Source: v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+							Registry: &instanceNameRegistryEntry,
+						},
+						Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+							Paths: []string{
+								"/metadata/name",
+							},
+						},
+					},
+					{
+						Name: "automount-service-token",
+						Source: v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+							Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceDefault{
+								Bool: &falseBool,
+							},
+						},
+						Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+							Paths: []string{
+								"/spec/automountServiceAccountToken",
+							},
+						},
+					},
+					{
+						Name: "priority",
+						Source: v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+							Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceDefault{
+								Int: &zeroInt,
+							},
+						},
+						Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+							Paths: []string{
+								"/spec/priority",
+							},
+						},
+					},
+				},
+			},
+		},
 		Bindings: []v1.CouchbaseServiceBrokerConfigBinding{
 			{
 				Name:    "test-binding",
@@ -76,13 +155,32 @@ var (
 				ServiceInstance: &v1.CouchbaseServiceBrokerTemplateList{
 					Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameter{
 						{
+							Name: "instance-name",
+							Source: v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+								Format: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormat{
+									String: "instance-%s",
+									Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter{
+										{
+											Registry: &instanceIDRegistryEntry,
+										},
+									},
+								},
+							},
+							Destination: v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+								Registry: &instanceNameRegistryEntry,
+							},
+						},
+						{
 							Name: "dashboard-url",
 							Source: v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
 								Format: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormat{
 									String: dashboardURLMutationFormat,
 									Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter{
 										{
-											Registry: &instanceIDMetadataName,
+											Registry: &instanceNameRegistryEntry,
+										},
+										{
+											Registry: &namespaceRegistryEntry,
 										},
 									},
 								},
@@ -91,6 +189,9 @@ var (
 								Registry: &dashboardURLRegistryKey,
 							},
 						},
+					},
+					Templates: []string{
+						"test-template",
 					},
 				},
 			},
@@ -157,7 +258,16 @@ func EmptyConfiguration() *v1.CouchbaseServiceBrokerConfigSpec {
 // BasicConfiguration is the absolute minimum valid configuration allowed by the
 // service broker configuration schema.
 func BasicConfiguration() *v1.CouchbaseServiceBrokerConfigSpec {
-	return basicConfiguration.DeepCopy()
+	configuration := basicConfiguration.DeepCopy()
+
+	raw, err := json.Marshal(basicResource)
+	if err != nil {
+		return nil
+	}
+
+	configuration.Templates[0].Template.Raw = raw
+
+	return configuration
 }
 
 // BasicSchema is schema for service instance create validation with optional parameters.

@@ -482,6 +482,7 @@ func TestServiceInstanceDeleteAndRecreate(t *testing.T) {
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 	util.MustDeleteServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+	util.MustResetDynamicClient(t, clients)
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 }
 

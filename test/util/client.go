@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"testing"
 
 	brokerclient "github.com/couchbase/service-broker/generated/clientset/versioned"
 	brokerclientfake "github.com/couchbase/service-broker/generated/clientset/versioned/fake"
@@ -31,7 +32,7 @@ var (
 		{
 			GroupVersion: "v1",
 			APIResources: []metav1.APIResource{
-				{Name: "configmaps", Namespaced: true, Group: "", Version: "v1", Kind: "ConfigMap"},
+				{Name: "pods", Namespaced: true, Group: "", Version: "v1", Kind: "Pod"},
 			},
 		},
 	}
@@ -124,6 +125,19 @@ func ResetClients(clients client.Clients) error {
 	c.mapper = mapper
 
 	return nil
+}
+
+// ResetDynamicClient deletes any objects created by template rendering.
+// This simulates garbage collection when a registry item is deleted.
+func MustResetDynamicClient(t *testing.T, clients client.Clients) {
+	c, ok := clients.(*clientsImpl)
+	if !ok {
+		t.Fatal("wrong client type")
+	}
+
+	dynamic := dynamicclientfake.NewSimpleDynamicClient(scheme.Scheme)
+
+	c.dynamic = dynamic
 }
 
 // Kubernetes returns a typed client for Kubernetes resources.

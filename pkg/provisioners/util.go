@@ -8,6 +8,7 @@ import (
 	v1 "github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/pkg/errors"
+	"github.com/couchbase/service-broker/pkg/log"
 	"github.com/couchbase/service-broker/pkg/registry"
 
 	"github.com/evanphx/json-patch"
@@ -206,9 +207,6 @@ func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 		}
 
 		value = v
-
-	default:
-		return nil, fmt.Errorf("source parameter type not specified")
 	}
 
 	// If no value has been found or generated then use a default if set.
@@ -256,6 +254,7 @@ func resolveTemplateParameter(parameter *v1.CouchbaseServiceBrokerConfigTemplate
 // request or metadata parameters to it.
 func renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *registry.Entry) (*v1.CouchbaseServiceBrokerConfigTemplate, error) {
 	glog.Infof("rendering template %s", template.Name)
+	glog.V(log.LevelDebug).Infof("template source: %s", string(template.Template.Raw))
 
 	// We will be modifying the template in place, so first clone it as the
 	// config is immutable.
