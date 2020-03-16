@@ -20,9 +20,6 @@ import (
 type Updater struct {
 	resourceType ResourceType
 
-	// registry is the instance registry.
-	registry *registry.Entry
-
 	// request is the incomiong client requesst.
 	request *api.UpdateServiceInstanceRequest
 
@@ -32,29 +29,28 @@ type Updater struct {
 }
 
 // NewUpdater returns a new controler capable of updaing a service instance.
-func NewUpdater(resourceType ResourceType, registry *registry.Entry, request *api.UpdateServiceInstanceRequest) (*Updater, error) {
+func NewUpdater(resourceType ResourceType, request *api.UpdateServiceInstanceRequest) (*Updater, error) {
 	u := &Updater{
 		resourceType: resourceType,
-		registry:     registry,
 		request:      request,
 	}
 
 	return u, nil
 }
 
-func (u *Updater) PrepareResources() error {
+func (u *Updater) PrepareResources(entry *registry.Entry) error {
 	// Use the cached versions, as the request parameters may not be set.
-	serviceID, ok := u.registry.Get(registry.ServiceID)
+	serviceID, ok := entry.Get(registry.ServiceID)
 	if !ok {
 		return fmt.Errorf("unable to lookup service instance service ID")
 	}
 
-	planID, ok := u.registry.Get(registry.PlanID)
+	planID, ok := entry.Get(registry.PlanID)
 	if !ok {
 		return fmt.Errorf("unable to lookup service instance plan ID")
 	}
 
-	namespace, ok := u.registry.Get(registry.Namespace)
+	namespace, ok := entry.Get(registry.Namespace)
 	if !ok {
 		return fmt.Errorf("unable to lookup namespace")
 	}
@@ -85,7 +81,7 @@ func (u *Updater) PrepareResources() error {
 			continue
 		}
 
-		t, err := renderTemplate(template, u.registry)
+		t, err := renderTemplate(template, entry)
 		if err != nil {
 			return err
 		}
@@ -120,7 +116,7 @@ func (u *Updater) PrepareResources() error {
 		// Apply the parameters.  Only affect parameters that are defined
 		// in the request, so be sure not to apply any defaults as they may
 		// cause the resource to do something that was not intended.
-		objectRaw, err = patchObject(objectRaw, template.Parameters, u.registry, false)
+		objectRaw, err = patchObject(objectRaw, template.Parameters, entry, false)
 		if err != nil {
 			return err
 		}
@@ -145,10 +141,10 @@ func (u *Updater) PrepareResources() error {
 }
 
 // run performs asynchronous update tasks.
-func (u *Updater) run() error {
+func (u *Updater) run(entry *registry.Entry) error {
 	glog.Info("updating resources")
 
-	namespace, ok := u.registry.Get(registry.Namespace)
+	namespace, ok := entry.Get(registry.Namespace)
 	if !ok {
 		return fmt.Errorf("unable to lookup namespace")
 	}
@@ -175,8 +171,8 @@ func (u *Updater) run() error {
 }
 
 // Run performs asynchronous update tasks.
-func (u *Updater) Run() {
-	if err := operation.Complete(u.registry, u.run()); err != nil {
+func (u *Updater) Run(entry *registry.Entry) {
+	if err := operation.Complete(entry, u.run(entry)); err != nil {
 		glog.Infof("failed to delete instance")
 	}
 }

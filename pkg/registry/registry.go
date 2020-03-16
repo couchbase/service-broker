@@ -3,7 +3,7 @@ package registry
 
 import (
 	"encoding/json"
-	"sync"
+	"fmt"
 
 	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/pkg/errors"
@@ -167,13 +167,10 @@ type Entry struct {
 	// exists indicates whether the entry existed in Kubernetes when it was created.
 	exists bool
 
-	// mutex handles synchronization when reading and writing to this entry concurrently.
-	// In theory the only concurrency is when a provisioner is writing status and the invoking
-	// handler is reading any values to return to the user, even then this set should be
-	// mutually exclusive.  However in testing, async polling and provisioners reference the
-	// same underlying storage, so it needs the locks to avoid race conditions.  In real life
-	// the kubernetes client should return unique memory for each handler to use.
-	mutex sync.Mutex
+	// readOnly indicates whether this instance is read only.
+	// Once set it cannot be unset.  Read only instances cannot be deleted or
+	// updated.
+	readOnly bool
 }
 
 // Name returns the name of the registry secret.
@@ -182,7 +179,7 @@ func Name(name string) string {
 }
 
 // Instance creates an entry for a service instance, or retrives an existing one.
-func Instance(name string) (*Entry, error) {
+func Instance(name string, readOnly bool) (*Entry, error) {
 	resourceName := Name(name)
 	exists := true
 
@@ -212,11 +209,22 @@ func Instance(name string) (*Entry, error) {
 	}
 
 	entry := &Entry{
-		secret: secret,
-		exists: exists,
+		secret:   secret,
+		exists:   exists,
+		readOnly: readOnly,
 	}
 
 	return entry, nil
+}
+
+// Clone duplicates a registry entry, the clone is read only to allow concurrency
+// while the master copy retains its read/write status.
+func (e *Entry) Clone() *Entry {
+	return &Entry{
+		secret:   e.secret.DeepCopy(),
+		exists:   e.exists,
+		readOnly: true,
+	}
 }
 
 // Exists indicates whether the entry existed in Kubernetes when it was created.
@@ -226,8 +234,9 @@ func (e *Entry) Exists() bool {
 
 // Commit persists the entry transaction to Kubernetes.
 func (e *Entry) Commit() error {
-	e.mutex.Lock()
-	defer e.mutex.Unlock()
+	if e.readOnly {
+		return fmt.Errorf("registry entry is read only")
+	}
 
 	if e.exists {
 		secret, err := config.Clients().Kubernetes().CoreV1().Secrets(config.Namespace()).Update(e.secret)
@@ -253,6 +262,10 @@ func (e *Entry) Commit() error {
 
 // Delete removes the entry from Kubernetes.
 func (e *Entry) Delete() error {
+	if e.readOnly {
+		return fmt.Errorf("registry entry is read only")
+	}
+
 	if !e.exists {
 		return nil
 	}
@@ -266,9 +279,6 @@ func (e *Entry) Delete() error {
 
 // Get gets a string from the entry.
 func (e *Entry) Get(key Key) (string, bool) {
-	e.mutex.Lock()
-	defer e.mutex.Unlock()
-
 	if e.secret.Data == nil {
 		return "", false
 	}
@@ -297,9 +307,6 @@ func (e *Entry) GetJSON(key Key, value interface{}) (bool, error) {
 
 // Set sets an entry item.
 func (e *Entry) Set(key Key, value string) {
-	e.mutex.Lock()
-	defer e.mutex.Unlock()
-
 	if e.secret.Data == nil {
 		e.secret.Data = map[string][]byte{}
 	}

@@ -22,9 +22,6 @@ import (
 type Creator struct {
 	resourceType ResourceType
 
-	// registry is the instance registry.
-	registry *registry.Entry
-
 	// templates contains the list of rendered templates.  Used as a cache
 	// between the synchronous and asynchronous phases of provisioning.
 	templates []*v1.CouchbaseServiceBrokerConfigTemplate
@@ -32,18 +29,17 @@ type Creator struct {
 
 // NewCreator initializes all the data required for
 // provisioning a service instance.
-func NewCreator(resourceType ResourceType, registry *registry.Entry) (*Creator, error) {
+func NewCreator(resourceType ResourceType) (*Creator, error) {
 	provisioner := &Creator{
 		resourceType: resourceType,
-		registry:     registry,
 	}
 
 	return provisioner, nil
 }
 
 // renderTemplate applies any requested parameters to the template.
-func (p *Creator) renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate) error {
-	t, err := renderTemplate(template, p.registry)
+func (p *Creator) renderTemplate(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *registry.Entry) error {
+	t, err := renderTemplate(template, entry)
 	if err != nil {
 		return err
 	}
@@ -54,7 +50,7 @@ func (p *Creator) renderTemplate(template *v1.CouchbaseServiceBrokerConfigTempla
 }
 
 // createResource instantiates rendered template resources.
-func (p *Creator) createResource(template *v1.CouchbaseServiceBrokerConfigTemplate) error {
+func (p *Creator) createResource(template *v1.CouchbaseServiceBrokerConfigTemplate, entry *registry.Entry) error {
 	if template.Template == nil || template.Template.Raw == nil {
 		glog.Infof("template has no associated object, skipping")
 		return nil
@@ -71,7 +67,7 @@ func (p *Creator) createResource(template *v1.CouchbaseServiceBrokerConfigTempla
 
 	// First we need to set up owner references so that we can garbage collect the
 	// cluster easily.
-	ownerReference := p.registry.GetOwnerReference()
+	ownerReference := entry.GetOwnerReference()
 	object.SetOwnerReferences([]metav1.OwnerReference{ownerReference})
 
 	// Prepare the client code
@@ -82,7 +78,7 @@ func (p *Creator) createResource(template *v1.CouchbaseServiceBrokerConfigTempla
 		return err
 	}
 
-	namespace, ok := p.registry.Get(registry.Namespace)
+	namespace, ok := entry.Get(registry.Namespace)
 	if !ok {
 		return fmt.Errorf("unable to lookup namespace")
 	}
@@ -142,13 +138,13 @@ func (p *Creator) createResource(template *v1.CouchbaseServiceBrokerConfigTempla
 
 // prepareServiceInstance does provisional synchronous tasks before provisioning.  This does
 // basic template collection and rendering.
-func (p *Creator) PrepareServiceInstance() error {
-	serviceID, ok := p.registry.Get(registry.ServiceID)
+func (p *Creator) PrepareServiceInstance(entry *registry.Entry) error {
+	serviceID, ok := entry.Get(registry.ServiceID)
 	if !ok {
 		return fmt.Errorf("unable to lookup service ID")
 	}
 
-	planID, ok := p.registry.Get(registry.PlanID)
+	planID, ok := entry.Get(registry.PlanID)
 	if !ok {
 		return fmt.Errorf("unable to lookup plan ID")
 	}
@@ -168,7 +164,7 @@ func (p *Creator) PrepareServiceInstance() error {
 	for index := range templates.Parameters {
 		parameter := &templates.Parameters[index]
 
-		value, err := resolveTemplateParameter(parameter, p.registry, true)
+		value, err := resolveTemplateParameter(parameter, entry, true)
 		if err != nil {
 			return err
 		}
@@ -187,7 +183,7 @@ func (p *Creator) PrepareServiceInstance() error {
 				return errors.NewConfigurationError("parameter %s must have a registry destination", parameter.Name)
 			}
 
-			if err := p.registry.SetUser(*destination.Registry, strValue); err != nil {
+			if err := entry.SetUser(*destination.Registry, strValue); err != nil {
 				return err
 			}
 		}
@@ -201,7 +197,7 @@ func (p *Creator) PrepareServiceInstance() error {
 			return err
 		}
 
-		if err = p.renderTemplate(template); err != nil {
+		if err = p.renderTemplate(template, entry); err != nil {
 			return err
 		}
 	}
@@ -210,11 +206,11 @@ func (p *Creator) PrepareServiceInstance() error {
 }
 
 // run performs asynchronous creation tasks.
-func (p *Creator) run() error {
+func (p *Creator) run(entry *registry.Entry) error {
 	glog.Infof("creating resources")
 
 	for _, template := range p.templates {
-		if err := p.createResource(template); err != nil {
+		if err := p.createResource(template, entry); err != nil {
 			return err
 		}
 	}
@@ -223,8 +219,8 @@ func (p *Creator) run() error {
 }
 
 // Run performs asynchronous creation tasks.
-func (p *Creator) Run() {
-	if err := operation.Complete(p.registry, p.run()); err != nil {
+func (p *Creator) Run(entry *registry.Entry) {
+	if err := operation.Complete(entry, p.run(entry)); err != nil {
 		glog.Infof("failed to create instance: %v", err)
 	}
 }

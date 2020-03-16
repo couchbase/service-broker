@@ -64,7 +64,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	// Check if the instance already exists.
-	entry, err := registry.Instance(instanceID)
+	entry, err := registry.Instance(instanceID, false)
 	if err != nil {
 		util.JSONError(w, err)
 		return
@@ -211,13 +211,13 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 	// Create a provisioning engine, and perform synchronous tasks.  This also derives
 	// things like the dashboard URL for the synchronous response.
-	provisioner, err := provisioners.NewCreator(provisioners.ResourceTypeServiceInstance, entry)
+	provisioner, err := provisioners.NewCreator(provisioners.ResourceTypeServiceInstance)
 	if err != nil {
 		util.JSONError(w, err)
 		return
 	}
 
-	if err := provisioner.PrepareServiceInstance(); err != nil {
+	if err := provisioner.PrepareServiceInstance(entry); err != nil {
 		util.JSONError(w, err)
 		return
 	}
@@ -227,9 +227,11 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	go provisioner.Run()
+	frozenEntry := entry.Clone()
 
-	operationID, ok := entry.Get(registry.OperationID)
+	go provisioner.Run(entry)
+
+	operationID, ok := frozenEntry.Get(registry.OperationID)
 	if !ok {
 		util.JSONError(w, fmt.Errorf("service instance missing operation ID"))
 	}
@@ -239,7 +241,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		Operation: operationID,
 	}
 
-	dashboardURL, ok := entry.Get(registry.DashboardURL)
+	dashboardURL, ok := frozenEntry.Get(registry.DashboardURL)
 	if ok {
 		response.DashboardURL = dashboardURL
 	}
@@ -256,7 +258,7 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 	}
 
 	// Check if the instance exists.
-	entry, err := registry.Instance(instanceID)
+	entry, err := registry.Instance(instanceID, true)
 	if err != nil {
 		util.JSONError(w, err)
 		return
@@ -354,7 +356,7 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 	// Check if the instance already exists.
 	// Check if the instance exists.
-	entry, err := registry.Instance(instanceID)
+	entry, err := registry.Instance(instanceID, false)
 	if err != nil {
 		util.JSONError(w, err)
 		return
@@ -388,13 +390,13 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	updater, err := provisioners.NewUpdater(provisioners.ResourceTypeServiceInstance, entry, request)
+	updater, err := provisioners.NewUpdater(provisioners.ResourceTypeServiceInstance, request)
 	if err != nil {
 		util.JSONErrorUsable(w, err)
 		return
 	}
 
-	if err := updater.PrepareResources(); err != nil {
+	if err := updater.PrepareResources(entry); err != nil {
 		util.JSONErrorUsable(w, err)
 		return
 	}
@@ -404,9 +406,11 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	go updater.Run()
+	frozenEntry := entry.Clone()
 
-	operationID, ok := entry.Get(registry.OperationID)
+	go updater.Run(entry)
+
+	operationID, ok := frozenEntry.Get(registry.OperationID)
 	if !ok {
 		util.JSONError(w, fmt.Errorf("service instance missing operation ID"))
 	}
@@ -434,7 +438,7 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	entry, err := registry.Instance(instanceID)
+	entry, err := registry.Instance(instanceID, false)
 	if err != nil {
 		util.JSONError(w, err)
 		return
@@ -479,7 +483,7 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	deleter := provisioners.NewDeleter(entry, instanceID)
+	deleter := provisioners.NewDeleter()
 
 	// Start the delete operation in the background.
 	if err := operation.Start(entry, operation.TypeDeprovision); err != nil {
@@ -487,7 +491,7 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	go deleter.Run()
+	go deleter.Run(entry)
 
 	operationID, ok := entry.Get(registry.OperationID)
 	if !ok {
@@ -508,7 +512,7 @@ func handlePollServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 
-	entry, err := registry.Instance(instanceID)
+	entry, err := registry.Instance(instanceID, false)
 	if err != nil {
 		util.JSONError(w, err)
 		return

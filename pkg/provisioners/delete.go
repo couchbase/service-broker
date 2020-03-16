@@ -7,25 +7,16 @@ import (
 )
 
 // Deleter caches various data associated with deleting a service instance.
-type Deleter struct {
-	// registry is the instance registry.
-	registry *registry.Entry
-
-	// instanceID is the instance ID to delete.
-	instanceID string
-}
+type Deleter struct{}
 
 // NewDeleter returns a new controller capable of deleting a service instance.
-func NewDeleter(registry *registry.Entry, instanceID string) *Deleter {
-	return &Deleter{
-		registry:   registry,
-		instanceID: instanceID,
-	}
+func NewDeleter() *Deleter {
+	return &Deleter{}
 }
 
 // Run performs asynchronous update tasks.
-func (d *Deleter) Run() {
-	if err := d.registry.Delete(); err != nil {
+func (d *Deleter) Run(entry *registry.Entry) {
+	if err := entry.Delete(); err != nil {
 		glog.Infof("failed to delete instance")
 	}
 }
