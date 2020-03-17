@@ -76,8 +76,8 @@ func MustReplaceBrokerConfig(t *testing.T, clients client.Clients, spec *v1.Couc
 }
 
 // MustGetRegistryEntry returns the registry entry for a service instance.
-func MustGetRegistryEntry(t *testing.T, clients client.Clients, name string) *corev1.Secret {
-	entry, err := clients.Kubernetes().CoreV1().Secrets(Namespace).Get(registry.Name(name), metav1.GetOptions{})
+func MustGetRegistryEntry(t *testing.T, clients client.Clients, rt registry.Type, name string) *corev1.Secret {
+	entry, err := clients.Kubernetes().CoreV1().Secrets(Namespace).Get(registry.Name(rt, name), metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

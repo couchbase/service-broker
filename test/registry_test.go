@@ -22,7 +22,7 @@ func TestRegistry(t *testing.T) {
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
-	entry := util.MustGetRegistryEntry(t, clients, fixtures.ServiceInstanceName)
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
 	util.MustHaveRegistryEntry(t, entry, registry.Namespace, util.Namespace)
 	util.MustHaveRegistryEntry(t, entry, registry.InstanceID, fixtures.ServiceInstanceName)
 	util.MustHaveRegistryEntry(t, entry, registry.ServiceID, fixtures.BasicConfigurationOfferingID)
@@ -71,7 +71,7 @@ func TestRegistryMissingKey(t *testing.T) {
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
-	entry := util.MustGetRegistryEntry(t, clients, fixtures.ServiceInstanceName)
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
 	util.MustNotHaveRegistryEntry(t, entry, fixtures.DashboardURL)
 }
 
@@ -104,7 +104,7 @@ func TestRegistryExplicitNamespace(t *testing.T) {
 	}
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
-	entry := util.MustGetRegistryEntry(t, clients, fixtures.ServiceInstanceName)
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
 	util.MustHaveRegistryEntry(t, entry, registry.Namespace, namespace)
 }
 
@@ -136,7 +136,7 @@ func TestRegistryDefault(t *testing.T) {
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
-	entry := util.MustGetRegistryEntry(t, clients, fixtures.ServiceInstanceName)
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
 	util.MustHaveRegistryEntry(t, entry, registry.Key(key), defaultValue)
 }
 

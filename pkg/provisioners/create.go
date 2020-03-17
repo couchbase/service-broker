@@ -136,9 +136,9 @@ func (p *Creator) createResource(template *v1.CouchbaseServiceBrokerConfigTempla
 	return nil
 }
 
-// prepareServiceInstance does provisional synchronous tasks before provisioning.  This does
+// Prepare does provisional synchronous tasks before provisioning.  This does
 // basic template collection and rendering.
-func (p *Creator) PrepareServiceInstance(entry *registry.Entry) error {
+func (p *Creator) Prepare(entry *registry.Entry) error {
 	serviceID, ok := entry.Get(registry.ServiceID)
 	if !ok {
 		return fmt.Errorf("unable to lookup service ID")

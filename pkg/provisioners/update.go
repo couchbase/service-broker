@@ -38,7 +38,8 @@ func NewUpdater(resourceType ResourceType, request *api.UpdateServiceInstanceReq
 	return u, nil
 }
 
-func (u *Updater) PrepareResources(entry *registry.Entry) error {
+// Prepare pre-processes the registry and templates.
+func (u *Updater) Prepare(entry *registry.Entry) error {
 	// Use the cached versions, as the request parameters may not be set.
 	serviceID, ok := entry.Get(registry.ServiceID)
 	if !ok {

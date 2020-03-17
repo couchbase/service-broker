@@ -38,7 +38,7 @@ func TestParameters(t *testing.T) {
 	}
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
-	entry := util.MustGetRegistryEntry(t, clients, fixtures.ServiceInstanceName)
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
 	util.MustHaveRegistryEntry(t, entry, registry.Key(key), value)
 }
 
@@ -54,7 +54,7 @@ func TestParametersMissingPath(t *testing.T) {
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
-	entry := util.MustGetRegistryEntry(t, clients, fixtures.ServiceInstanceName)
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
 	util.MustNotHaveRegistryEntry(t, entry, registry.Key(key))
 }
 
@@ -82,6 +82,6 @@ func TestParametersDefault(t *testing.T) {
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
-	entry := util.MustGetRegistryEntry(t, clients, fixtures.ServiceInstanceName)
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
 	util.MustHaveRegistryEntry(t, entry, registry.Key(key), defaultValue)
 }

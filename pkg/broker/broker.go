@@ -155,7 +155,6 @@ func NewOpenServiceBrokerHandler() http.Handler {
 	router.GET("/v2/service_instances/:instance_id/last_operation", handlePollServiceInstance)
 	router.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", handleCreateServiceBinding)
 	router.GET("/v2/service_instances/:instance_id/service_bindings/:binding_id", handleReadServiceBinding)
-	router.PATCH("/v2/service_instances/:instance_id/service_bindings/:binding_id", handleUpdateServiceBinding)
 	router.DELETE("/v2/service_instances/:instance_id/service_bindings/:binding_id", handleDeleteServiceBinding)
 	router.GET("/v2/service_instances/:instance_id/service_bindings/:binding_id/last_operation", handlePollServiceBinding)
 

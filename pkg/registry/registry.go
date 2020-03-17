@@ -31,8 +31,11 @@ const (
 	// Namespace is the namespace assigned to the instance.
 	Namespace Key = "namespace"
 
-	// InstanceID is the name of the service or binding.
+	// InstanceID is the name of the service.
 	InstanceID Key = "instance-id"
+
+	// BindingID is the name of the binding.
+	BindingID Key = "binding-id"
 
 	// ServiceID is the service ID related to the instance or binding.
 	ServiceID Key = "service-id"
@@ -58,6 +61,9 @@ const (
 
 	// DashboardURL is the dashboard URL associated with a service instance.
 	DashboardURL Key = "dashboard-url"
+
+	// Credentials is the set of credentials that may be generated for a service binding.
+	Credentials Key = "credentials"
 )
 
 // keyPolicy defines managed keys and how they can be accessed by users.
@@ -159,6 +165,17 @@ func isKeyWritable(name string) bool {
 	return policy.write
 }
 
+// Type defines the registry type.
+type Type string
+
+const (
+	// ServiceInstance is used for service instance registries.
+	ServiceInstance Type = "service-instance"
+
+	// ServiceBinding is used for service instance registries.
+	ServiceBinding Type = "service-binding"
+)
+
 // Entry is a KV store associated with each instance or binding.
 type Entry struct {
 	// secret is the Kubernetes secret used to persist information.
@@ -174,13 +191,13 @@ type Entry struct {
 }
 
 // Name returns the name of the registry secret.
-func Name(name string) string {
-	return "registry-" + name
+func Name(t Type, name string) string {
+	return "registry-" + string(t) + "-" + name
 }
 
-// Instance creates an entry for a service instance, or retrives an existing one.
-func Instance(name string, readOnly bool) (*Entry, error) {
-	resourceName := Name(name)
+// New creates a registry entry, or retrives an existing one.
+func New(t Type, name string, readOnly bool) (*Entry, error) {
+	resourceName := Name(t, name)
 	exists := true
 
 	// Look up an existing config map.

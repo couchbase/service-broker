@@ -169,3 +169,41 @@ type PollServiceBindingResponse struct {
 	State       PollState `json:"state"`
 	Description string    `json:"description,omitempty"`
 }
+
+// GetServiceBindingResponse is returned by the server when a service binding is read.
+type GetServiceBindingResponse struct {
+	Metadata        *BindingMetadata      `json:"metadata,omitempty"`
+	Credentials     *runtime.RawExtension `json:"credentials,omitempty"`
+	SyslogDrainURL  string                `json:"syslog_drain_url,omitempty"`
+	RouteServiceURL string                `json:"route_service_url,omitempty"`
+	VolumeMounts    []VolumeMount         `json:"volume_mounts,omitempty"`
+	Parameters      *runtime.RawExtension `json:"parameters,omitempty"`
+	Endpoints       []Endpoint            `json:"endpoints,omitempty"`
+}
+
+// BindingMetadata describes attributes about a binding.
+type BindingMetadata struct {
+	ExpiresAt string `json:"expires_at,omitempty"`
+}
+
+// VolumeMount defines a volume that can be consumed by a client.
+type VolumeMount struct {
+	Driver       string `json:"driver"`
+	ContainerDir string `json:"container_dir"`
+	Mode         string `json:"mode"`
+	DeviceType   string `json:"device_type"`
+	Device       Device `json:"device"`
+}
+
+// Device defines a volume device.
+type Device struct {
+	VolumeID    string                `json:"volume_id"`
+	MountConfig *runtime.RawExtension `json:"mount_config,omitempty"`
+}
+
+// Endpoint defines a service endpoint.
+type Endpoint struct {
+	Host     string   `json:"host"`
+	Ports    []string `json:"ports"`
+	Protocol string   `json:"protocol,omitempty"`
+}
