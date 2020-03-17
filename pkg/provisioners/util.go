@@ -3,7 +3,9 @@ package provisioners
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"strings"
+	"time"
 
 	v1 "github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/config"
@@ -126,7 +128,7 @@ func getTemplate(name string) (*v1.CouchbaseServiceBrokerConfigTemplate, error) 
 func resolveParameter(path string, entry *registry.Entry) (interface{}, bool, error) {
 	var parameters interface{}
 
-	ok, err := entry.GetJSON(registry.Parameters, &parameters)
+	ok, err := entry.Get(registry.Parameters, &parameters)
 	if err != nil {
 		return nil, false, err
 	}
@@ -189,6 +191,33 @@ func resolveFormat(format *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 	return fmt.Sprintf(format.String, parameters...), nil
 }
 
+// resolveRandomString generates a random string.
+func resolveRandomString(config *v1.CouchbaseServiceBrokerConfigTemplateParameterSourceRandomString) interface{} {
+	now := time.Now()
+	rand.Seed(now.UnixNano())
+
+	dictionary := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	if config.Dictionary != nil {
+		dictionary = *config.Dictionary
+	}
+
+	glog.Infof("generating string with length %d using dictionary %s", config.Length, dictionary)
+
+	dictionaryLength := len(dictionary)
+
+	value := ""
+
+	for i := 0; i < config.Length; i++ {
+		arrayIndexOffset := 1
+
+		index := rand.Intn(dictionaryLength - arrayIndexOffset)
+
+		value += dictionary[index : index+1]
+	}
+
+	return value
+}
+
 // resolveSource gets a parameter source from either metadata or a JSON path into user specified parameters.
 func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSource, entry *registry.Entry) (interface{}, error) {
 	if source == nil {
@@ -201,6 +230,8 @@ func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 	switch {
 	// Registry parameters are reference registry values.
 	case source.Registry != nil:
+		glog.Infof("getting registry key %s", *source.Registry)
+
 		v, ok, err := entry.GetUser(*source.Registry)
 		if err != nil {
 			return nil, err
@@ -237,6 +268,10 @@ func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 		}
 
 		value = v
+
+	// RandomString will randomly generate a password string for example.
+	case source.RandomString != nil:
+		value = resolveRandomString(source.RandomString)
 
 	// Template will recursively render a template and return an object.
 	// This allows sharing of common configuration.

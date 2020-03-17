@@ -78,7 +78,11 @@ func (p *Creator) createResource(template *v1.CouchbaseServiceBrokerConfigTempla
 		return err
 	}
 
-	namespace, ok := entry.Get(registry.Namespace)
+	namespace, ok, err := entry.GetString(registry.Namespace)
+	if err != nil {
+		return err
+	}
+
 	if !ok {
 		return fmt.Errorf("unable to lookup namespace")
 	}
@@ -139,12 +143,20 @@ func (p *Creator) createResource(template *v1.CouchbaseServiceBrokerConfigTempla
 // Prepare does provisional synchronous tasks before provisioning.  This does
 // basic template collection and rendering.
 func (p *Creator) Prepare(entry *registry.Entry) error {
-	serviceID, ok := entry.Get(registry.ServiceID)
+	serviceID, ok, err := entry.GetString(registry.ServiceID)
+	if err != nil {
+		return err
+	}
+
 	if !ok {
 		return fmt.Errorf("unable to lookup service ID")
 	}
 
-	planID, ok := entry.Get(registry.PlanID)
+	planID, ok, err := entry.GetString(registry.PlanID)
+	if err != nil {
+		return err
+	}
+
 	if !ok {
 		return fmt.Errorf("unable to lookup plan ID")
 	}
@@ -164,6 +176,8 @@ func (p *Creator) Prepare(entry *registry.Entry) error {
 	for index := range templates.Parameters {
 		parameter := &templates.Parameters[index]
 
+		glog.Infof("rendering parameter %s", parameter.Name)
+
 		value, err := resolveTemplateParameter(parameter, entry, true)
 		if err != nil {
 			return err
@@ -173,17 +187,12 @@ func (p *Creator) Prepare(entry *registry.Entry) error {
 			continue
 		}
 
-		strValue, ok := value.(string)
-		if !ok {
-			return errors.NewConfigurationError("parameter %s is not a string %v", parameter.Name, value)
-		}
-
 		for _, destination := range parameter.Destinations {
 			if destination.Registry == nil {
 				return errors.NewConfigurationError("parameter %s must have a registry destination", parameter.Name)
 			}
 
-			if err := entry.SetUser(*destination.Registry, strValue); err != nil {
+			if err := entry.SetUser(*destination.Registry, value); err != nil {
 				return err
 			}
 		}

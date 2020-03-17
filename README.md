@@ -63,7 +63,7 @@ Select a configuration template to use.
 These define the permissions that are required by the service broker to deploy the service instances as defined in the configuration:
 
 ```bash
-$ kubectl create -f example/configurations/couchbase-server.yaml
+$ kubectl create -f example/configurations/couchbase-server/broker.yaml
 ```
 
 Install the service broker, ensuring the service broker deployment is running:
@@ -83,7 +83,13 @@ $ svcat get brokers
 Finally you can test the broker configuration by creating a service instance:
 
 ```bash
-$ kubectl create -f example/configurations/serviceinstance.yaml
+$ kubectl create -f example/configurations/couchbase-server/serviceinstance.yaml
+```
+
+And get access to a secret containing credentials:
+
+```bash
+$ kubectl create -f example/configurations/couchbase-server/servicebinding.yaml
 ```
 
 ## Architecture

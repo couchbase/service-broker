@@ -41,17 +41,29 @@ func NewUpdater(resourceType ResourceType, request *api.UpdateServiceInstanceReq
 // Prepare pre-processes the registry and templates.
 func (u *Updater) Prepare(entry *registry.Entry) error {
 	// Use the cached versions, as the request parameters may not be set.
-	serviceID, ok := entry.Get(registry.ServiceID)
+	serviceID, ok, err := entry.GetString(registry.ServiceID)
+	if err != nil {
+		return err
+	}
+
 	if !ok {
 		return fmt.Errorf("unable to lookup service instance service ID")
 	}
 
-	planID, ok := entry.Get(registry.PlanID)
+	planID, ok, err := entry.GetString(registry.PlanID)
+	if err != nil {
+		return err
+	}
+
 	if !ok {
 		return fmt.Errorf("unable to lookup service instance plan ID")
 	}
 
-	namespace, ok := entry.Get(registry.Namespace)
+	namespace, ok, err := entry.GetString(registry.Namespace)
+	if err != nil {
+		return err
+	}
+
 	if !ok {
 		return fmt.Errorf("unable to lookup namespace")
 	}
@@ -145,7 +157,11 @@ func (u *Updater) Prepare(entry *registry.Entry) error {
 func (u *Updater) run(entry *registry.Entry) error {
 	glog.Info("updating resources")
 
-	namespace, ok := entry.Get(registry.Namespace)
+	namespace, ok, err := entry.GetString(registry.Namespace)
+	if err != nil {
+		return err
+	}
+
 	if !ok {
 		return fmt.Errorf("unable to lookup namespace")
 	}

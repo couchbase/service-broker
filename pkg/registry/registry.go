@@ -295,27 +295,29 @@ func (e *Entry) Delete() error {
 }
 
 // Get gets a string from the entry.
-func (e *Entry) Get(key Key) (string, bool) {
+func (e *Entry) GetString(key Key) (string, bool, error) {
+	var value string
+
+	ok, err := e.Get(key, &value)
+	if !ok || err != nil {
+		return "", ok, err
+	}
+
+	return value, true, nil
+}
+
+// Get gets an entry item.
+func (e *Entry) Get(key Key, value interface{}) (bool, error) {
 	if e.secret.Data == nil {
-		return "", false
+		return false, nil
 	}
 
 	data, ok := e.secret.Data[string(key)]
 	if !ok {
-		return "", false
-	}
-
-	return string(data), true
-}
-
-// GetJSON gets and decodes a JSON object from the entry.
-func (e *Entry) GetJSON(key Key, value interface{}) (bool, error) {
-	data, ok := e.Get(key)
-	if !ok {
 		return false, nil
 	}
 
-	if err := json.Unmarshal([]byte(data), value); err != nil {
+	if err := json.Unmarshal(data, value); err != nil {
 		return true, err
 	}
 
@@ -323,48 +325,46 @@ func (e *Entry) GetJSON(key Key, value interface{}) (bool, error) {
 }
 
 // Set sets an entry item.
-func (e *Entry) Set(key Key, value string) {
-	if e.secret.Data == nil {
-		e.secret.Data = map[string][]byte{}
-	}
-
-	e.secret.Data[string(key)] = []byte(value)
-}
-
-// SetJSON encodes a JSON object and sets the entry item.
-func (e *Entry) SetJSON(key Key, value interface{}) error {
+func (e *Entry) Set(key Key, value interface{}) error {
 	data, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
 
-	e.Set(key, string(data))
+	if e.secret.Data == nil {
+		e.secret.Data = map[string][]byte{}
+	}
+
+	e.secret.Data[string(key)] = data
 
 	return nil
 }
 
-// GetJSONUser gets and decodes a JSON object from the registry.
-func (e *Entry) GetUser(key string) (string, bool, error) {
+// GetUser gets and decodes a JSON object from the registry.
+func (e *Entry) GetUser(key string) (interface{}, bool, error) {
 	if !isKeyReadable(key) {
 		return "", false, errors.NewConfigurationError("registry key %s cannot be read", key)
 	}
 
-	value, ok := e.Get(Key(key))
+	var value interface{}
 
-	return value, ok, nil
+	ok, err := e.Get(Key(key), &value)
+	if !ok || err != nil {
+		return nil, ok, err
+	}
+
+	return value, true, nil
 }
 
-// SetJSONUser encodes a JSON object and sets the entry item.
-func (e *Entry) SetUser(key string, value string) error {
+// SetUser encodes a JSON object and sets the entry item.
+func (e *Entry) SetUser(key string, value interface{}) error {
 	glog.Infof("setting registry entry %s to %s", key, value)
 
 	if !isKeyWritable(key) {
 		return errors.NewConfigurationError("registry key %s cannot be written", key)
 	}
 
-	e.Set(Key(key), value)
-
-	return nil
+	return e.Set(Key(key), value)
 }
 
 // Unset removes an item from the entry item.

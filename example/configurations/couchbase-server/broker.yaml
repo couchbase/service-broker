@@ -319,17 +319,26 @@ spec:
         parameter: /password
       destinations:
       - path: /data/password
+  - name: selector-snippet
+    template:
+      matchLabels: {}
+    parameters:
+    - name: instance-name
+      source:
+        registry: instance-name
+      destinations:
+      - path: /matchLabels/cluster
   - name: couchbase-developer-private
     template:
       apiVersion: couchbase.com/v2
       kind: CouchbaseCluster
       metadata: {}
       spec:
-        security: {}
+        security:
+          rbac:
+            managed: true
         buckets:
           managed: true
-          selector:
-            matchLabels: {}
         servers:
         - name: default
           services:
@@ -343,7 +352,12 @@ spec:
       destinations:
       - path: /metadata/name
       - path: /spec/security/adminSecret
-      - path: /spec/buckets/selector/matchLabels/cluster
+    - name: label-selector
+      source:
+        template: selector-snippet
+      destinations:
+      - path: /spec/buckets/selector
+      - path: /spec/security/rbac/selector
     - name: image
       source:
         parameter: /image
@@ -358,6 +372,120 @@ spec:
         int: 3
       destinations:
       - path: /spec/servers/0/size
+  - name: couchbase-bucket
+    template:
+      apiVersion: couchbase.com/v2
+      kind: CouchbaseBucket
+      metadata:
+        labels: {}
+    parameters:
+    - name: name
+      source:
+        registry: binding-name
+      destinations:
+      - path: /metadata/name
+    - name: instance-name
+      source:
+        registry: instance-name
+      destinations:
+      - path: /metadata/labels/cluster
+  - name: couchbase-user-secret
+    template:
+      apiVersion: v1
+      kind: Secret
+      metadata: {}
+      data: {}
+    parameters:
+    - name: name
+      source:
+        registry: binding-name
+      destinations:
+      - path: /metadata/name
+    - name: password
+      source:
+        registry: password
+      destinations:
+      - path: /data/password
+  - name: couchbase-user
+    template:
+      apiVersion: couchbase.com/v2
+      kind: CouchbaseUser
+      metadata:
+        labels: {}
+      spec:
+        authDomain: local
+    parameters:
+    - name: name
+      source:
+        registry: binding-name
+      destinations:
+      - path: /metadata/name
+      - path: /spec/authSecret
+    - name: instance-name
+      source:
+        registry: instance-name
+      destinations:
+      - path: /metadata/labels/cluster
+  - name: couchbase-group
+    template:
+      apiVersion: couchbase.com/v2
+      kind: CouchbaseGroup
+      metadata: {}
+      spec:
+        roles:
+        - name: bucket_admin
+    parameters:
+    - name: name
+      source:
+        registry: binding-name
+      destinations:
+      - path: /metadata/name
+      - path: /spec/roles/0/bucket
+  - name: couchbase-role-binding
+    template:
+      apiVersion: couchbase.com/v2
+      kind: CouchbaseRoleBinding
+      metadata: {}
+      spec:
+        subjects:
+        - kind: CouchbaseUser
+        roleRef:
+          kind: CouchbaseGroup
+    parameters:
+    - name: name
+      source:
+        registry: binding-id
+      destinations:
+      - path: /metadata/name
+      - path: /spec/subjects/0/name
+      - path: /spec/roleRef/name
+  - name: credentials
+    template: {}
+    parameters:
+    - name: connection-string
+      source:
+        format:
+          string: couchbase://%v.%v
+          parameters:
+          - registry: instance-name
+          - registry: namespace
+      destinations:
+      - path: /connection-string
+    - name: username
+      source:
+        registry: binding-name
+      destinations:
+      - path: /username
+    - name: password
+      source:
+        registry: password
+      destinations:
+      - path: /password
+    - name: bucket
+      source:
+        registry: binding-name
+      destinations:
+      - path: /bucket
   # Bindings bind templates to service plans.  These allow the specification of
   # exactly what templates are created when a plan is instantiated or bound to.
   bindings:
@@ -381,7 +509,7 @@ spec:
         required: true
         source:
           format:
-            string: http://%v.%v.svc:8091
+            string: http://%v.%v:8091
             parameters:
             - registry: instance-name
             - registry: namespace
@@ -395,5 +523,39 @@ spec:
       - couchbase-secret
       - couchbase-developer-private
     serviceBinding:
+      parameters:
+      - name: instance-name
+        required: true
+        source:
+          format:
+            string: instance-%v
+            parameters:
+            - registry: instance-id
+        destinations:
+        - registry: instance-name
+      - name: binding-name
+        required: true
+        source:
+          format:
+            string: binding-%v
+            parameters:
+            - registry: binding-id
+        destinations:
+        - registry: binding-name
+      - name: password
+        source:
+          randomString:
+            length: 32
+        destinations:
+        - registry: password
+      - name: credentials
+        source:
+          template: credentials
+        destinations:
+        - registry: credentials
       templates:
       - couchbase-bucket
+      - couchbase-group
+      - couchbase-role-binding
+      - couchbase-user-secret
+      - couchbase-user

@@ -24,14 +24,24 @@ const (
 
 // Start begins an asynchronous operation on the registry entry.
 func Start(entry *registry.Entry, t Type) error {
-	if op, ok := entry.Get(registry.Operation); ok {
+	op, ok, err := entry.GetString(registry.Operation)
+	if err != nil {
+		return err
+	}
+
+	if ok {
 		return fmt.Errorf("%s operation already exists for instance", op)
 	}
 
 	id := uuid.New().String()
 
-	entry.Set(registry.Operation, string(t))
-	entry.Set(registry.OperationID, id)
+	if err := entry.Set(registry.Operation, string(t)); err != nil {
+		return err
+	}
+
+	if err := entry.Set(registry.OperationID, id); err != nil {
+		return err
+	}
 
 	if err := entry.Commit(); err != nil {
 		return err
@@ -41,17 +51,24 @@ func Start(entry *registry.Entry, t Type) error {
 }
 
 // Complete sets the asynchronous operation completion on the registry entry.
-func Complete(entry *registry.Entry, err error) error {
-	if op, ok := entry.Get(registry.Operation); !ok {
+func Complete(entry *registry.Entry, status error) error {
+	op, ok, err := entry.GetString(registry.Operation)
+	if err != nil {
+		return err
+	}
+
+	if !ok {
 		return fmt.Errorf("%s operation does not exist for instance", op)
 	}
 
 	errString := ""
-	if err != nil {
-		errString = err.Error()
+	if status != nil {
+		errString = status.Error()
 	}
 
-	entry.Set(registry.OperationStatus, errString)
+	if err := entry.Set(registry.OperationStatus, errString); err != nil {
+		return err
+	}
 
 	if err := entry.Commit(); err != nil {
 		return err
@@ -62,7 +79,12 @@ func Complete(entry *registry.Entry, err error) error {
 
 // End ends an asynchronous operation on the registry entry.
 func End(entry *registry.Entry) error {
-	if op, ok := entry.Get(registry.Operation); !ok {
+	op, ok, err := entry.GetString(registry.Operation)
+	if err != nil {
+		return err
+	}
+
+	if !ok {
 		return fmt.Errorf("%s operation does not exist for instance", op)
 	}
 

@@ -164,12 +164,6 @@ type CreateServiceBindingResponse struct {
 	Operation string `json:"operation"`
 }
 
-// PollServiceBindingResponse is returned by the server when an operation is being polled.
-type PollServiceBindingResponse struct {
-	State       PollState `json:"state"`
-	Description string    `json:"description,omitempty"`
-}
-
 // GetServiceBindingResponse is returned by the server when a service binding is read.
 type GetServiceBindingResponse struct {
 	Metadata        *BindingMetadata      `json:"metadata,omitempty"`
@@ -206,4 +200,8 @@ type Endpoint struct {
 	Host     string   `json:"host"`
 	Ports    []string `json:"ports"`
 	Protocol string   `json:"protocol,omitempty"`
+}
+
+// DeleteServiceBindingResponse is returned when a binding is deleted.
+type DeleteServiceBindingResponse struct {
 }

@@ -92,7 +92,7 @@ func MustHaveRegistryEntry(t *testing.T, entry *corev1.Secret, key registry.Key,
 		t.Fatalf("registry missing key %s", key)
 	}
 
-	if string(data) != value {
+	if string(data) != `"`+value+`"` {
 		t.Fatalf("registry entry %s, expected %s", data, value)
 	}
 }
