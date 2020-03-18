@@ -894,6 +894,11 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 		return
 	}
 
+	// The binding gets a copy of all service instance data, this could be used
+	// to communicate TLS or other password information.  The context and parameters
+	// are overridden buy those related to the binding.
+	entry.Inherit(instanceEntry)
+
 	context := &runtime.RawExtension{}
 	if request.Context != nil {
 		context = request.Context
@@ -904,33 +909,7 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 		parameters = request.Parameters
 	}
 
-	namespace, err := provisioners.GetNamespace(request.Context)
-	if err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	if err := entry.Set(registry.Namespace, namespace); err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	if err := entry.Set(registry.InstanceID, instanceID); err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
 	if err := entry.Set(registry.BindingID, bindingID); err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	if err := entry.Set(registry.ServiceID, request.ServiceID); err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	if err := entry.Set(registry.PlanID, request.PlanID); err != nil {
 		util.JSONError(w, err)
 		return
 	}

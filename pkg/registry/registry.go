@@ -244,6 +244,22 @@ func (e *Entry) Clone() *Entry {
 	}
 }
 
+// Inherit is used when creating a service binding registry entry.  It gets a copy
+// of all data cached in the service instance.
+func (e *Entry) Inherit(o *Entry) {
+	if o.secret.Data == nil {
+		return
+	}
+
+	if e.secret.Data == nil {
+		e.secret.Data = map[string][]byte{}
+	}
+
+	for k, v := range o.secret.Data {
+		e.secret.Data[k] = v
+	}
+}
+
 // Exists indicates whether the entry existed in Kubernetes when it was created.
 func (e *Entry) Exists() bool {
 	return e.exists

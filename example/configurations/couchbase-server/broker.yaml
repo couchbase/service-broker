@@ -496,13 +496,24 @@ spec:
       # Create any shared parameters or those exposed by the broker API
       # and commit to the registry.
       parameters:
+      # Usually we'd generate unique resource names by prefixing the instance UUID
+      # with a string to avoid the name starting with a number, however, there is
+      # a defect with couchbase server in that it silently doesn't work if the DNS
+      # names are "too long", thus it is not standards compliant.  To this end we
+      # use a short random ID.
+      - name: short-id
+        source:
+          generatePassword:
+            length: 8
+        destinations:
+        - registry: short-id
       - name: instance-name
         required: true
         source:
           format:
             string: instance-%v
             parameters:
-            - registry: instance-id
+            - registry: short-id
         destinations:
         - registry: instance-name
       - name: dashboard-url
@@ -524,15 +535,6 @@ spec:
       - couchbase-developer-private
     serviceBinding:
       parameters:
-      - name: instance-name
-        required: true
-        source:
-          format:
-            string: instance-%v
-            parameters:
-            - registry: instance-id
-        destinations:
-        - registry: instance-name
       - name: binding-name
         required: true
         source:
