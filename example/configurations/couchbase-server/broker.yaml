@@ -544,7 +544,7 @@ spec:
         - registry: binding-name
       - name: password
         source:
-          randomString:
+          generatePassword:
             length: 32
         destinations:
         - registry: password

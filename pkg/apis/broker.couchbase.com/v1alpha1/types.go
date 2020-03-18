@@ -281,9 +281,9 @@ type CouchbaseServiceBrokerConfigTemplateParameterSource struct {
 	// a string format.
 	Format *CouchbaseServiceBrokerConfigTemplateParameterSourceFormat `json:"format,omitempty"`
 
-	// RandomString allows the generation of a random string, useful for password
+	// GeneratePassword allows the generation of a random string, useful for password
 	// generation.
-	RandomString *CouchbaseServiceBrokerConfigTemplateParameterSourceRandomString `json:"randomString,omitempty"`
+	GeneratePassword *CouchbaseServiceBrokerConfigTemplateParameterSourceGeneratePassword `json:"randomString,omitempty"`
 
 	// Template allows the recursive rendering and inclusion of a named template.
 	Template *string `json:"template,omitempty"`
@@ -301,8 +301,8 @@ type CouchbaseServiceBrokerConfigTemplateParameterSourceFormat struct {
 	Parameters []CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"parameters"`
 }
 
-// CouchbaseServiceBrokerConfigTemplateParameterSourceRandomString defines a random string.
-type CouchbaseServiceBrokerConfigTemplateParameterSourceRandomString struct {
+// CouchbaseServiceBrokerConfigTemplateParameterSourceGeneratePassword defines a random string.
+type CouchbaseServiceBrokerConfigTemplateParameterSourceGeneratePassword struct {
 	// Length is the length of the string to generate.
 	// +kubebuilder:validation:Minimum=1
 	Length int `json:"length"`

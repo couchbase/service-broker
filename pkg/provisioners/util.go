@@ -191,8 +191,8 @@ func resolveFormat(format *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 	return fmt.Sprintf(format.String, parameters...), nil
 }
 
-// resolveRandomString generates a random string.
-func resolveRandomString(config *v1.CouchbaseServiceBrokerConfigTemplateParameterSourceRandomString) interface{} {
+// resolveGeneratePassword generates a random string.
+func resolveGeneratePassword(config *v1.CouchbaseServiceBrokerConfigTemplateParameterSourceGeneratePassword) interface{} {
 	now := time.Now()
 	rand.Seed(now.UnixNano())
 
@@ -269,9 +269,9 @@ func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 
 		value = v
 
-	// RandomString will randomly generate a password string for example.
-	case source.RandomString != nil:
-		value = resolveRandomString(source.RandomString)
+	// GeneratePassword will randomly generate a password string for example.
+	case source.GeneratePassword != nil:
+		value = resolveGeneratePassword(source.GeneratePassword)
 
 	// Template will recursively render a template and return an object.
 	// This allows sharing of common configuration.

@@ -704,9 +704,9 @@ func handlePollServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 	if ok {
 		if operationStatus == "" {
 			state = api.PollStateSucceeded
-			description = operationStatus
 		} else {
 			state = api.PollStateFailed
+			description = operationStatus
 		}
 
 		if err := operation.End(entry); err != nil {
