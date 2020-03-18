@@ -32,6 +32,7 @@ Through evolution, it was possible to abstract away all the domain specific know
 
 The Service Broker is designed to be used with the [Kubernetes Service Catalog](https://kubernetes.io/docs/concepts/extend-kubernetes/service-catalog/) which provides Kubernetes native bindings in the form of `ServiceInstance` and `ServiceBinding` resources.
 Using Kubernetes RBAC controls, platorm administrators can control precicely what users can provision and where.
+Due to how the service catalog works, a binding must reside in the same namespace as the service instance.
 This supports:
 
 * Self-service
@@ -46,7 +47,7 @@ The Service Broker is flexible enough so that resources created to realize a ser
 * Hard-coded namespaced service instances
   * Underlying resources are hidden from users, thus protecting sensitive configuration
 
-The Service Broker is deployed in its own namespace to keep its own configuration and runtime data separate and secured from other users.
+The Service Broker may be deployed in its own namespace to keep its own configuration and runtime data separate and secured from other users.
 Depending on how you wish to configure the Service Broker, it may only require permissions to create resources in its own namespace, or if provisioning resources in other namespaces, cluster wide permissions.
 
 ## Installation
