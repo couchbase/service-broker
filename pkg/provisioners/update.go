@@ -59,15 +59,6 @@ func (u *Updater) Prepare(entry *registry.Entry) error {
 		return fmt.Errorf("unable to lookup service instance plan ID")
 	}
 
-	namespace, ok, err := entry.GetString(registry.Namespace)
-	if err != nil {
-		return err
-	}
-
-	if !ok {
-		return fmt.Errorf("unable to lookup namespace")
-	}
-
 	// Collate and render our templates.
 	glog.Infof("looking up bindings for service %s, plan %s", serviceID, planID)
 
@@ -112,6 +103,25 @@ func (u *Updater) Prepare(entry *registry.Entry) error {
 			return err
 		}
 
+		// The namespace defaults to that configured in the object, if not
+		// specified we use the namespace defined in the context (where the
+		// service instance or binding is created).
+		namespace := object.GetNamespace()
+		if namespace == "" {
+			n, ok, err := entry.GetString(registry.Namespace)
+			if err != nil {
+				return err
+			}
+
+			if !ok {
+				return fmt.Errorf("unable to lookup namespace")
+			}
+
+			namespace = n
+		}
+
+		glog.Infof("using namespace %s", namespace)
+
 		// Get the resource.
 		objectCurr, err := client.Resource(mapping.Resource).Namespace(namespace).Get(object.GetName(), metav1.GetOptions{})
 		if err != nil {
@@ -154,17 +164,8 @@ func (u *Updater) Prepare(entry *registry.Entry) error {
 }
 
 // run performs asynchronous update tasks.
-func (u *Updater) run(entry *registry.Entry) error {
+func (u *Updater) run() error {
 	glog.Info("updating resources")
-
-	namespace, ok, err := entry.GetString(registry.Namespace)
-	if err != nil {
-		return err
-	}
-
-	if !ok {
-		return fmt.Errorf("unable to lookup namespace")
-	}
 
 	// Prepare the client code
 	client := config.Clients().Dynamic()
@@ -179,7 +180,7 @@ func (u *Updater) run(entry *registry.Entry) error {
 			return err
 		}
 
-		if _, err := client.Resource(mapping.Resource).Namespace(namespace).Update(resource, metav1.UpdateOptions{}); err != nil {
+		if _, err := client.Resource(mapping.Resource).Namespace(resource.GetNamespace()).Update(resource, metav1.UpdateOptions{}); err != nil {
 			return err
 		}
 	}
@@ -189,7 +190,7 @@ func (u *Updater) run(entry *registry.Entry) error {
 
 // Run performs asynchronous update tasks.
 func (u *Updater) Run(entry *registry.Entry) {
-	if err := operation.Complete(entry, u.run(entry)); err != nil {
+	if err := operation.Complete(entry, u.run()); err != nil {
 		glog.Infof("failed to delete instance")
 	}
 }

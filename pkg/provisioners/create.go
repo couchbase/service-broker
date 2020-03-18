@@ -78,14 +78,24 @@ func (p *Creator) createResource(template *v1.CouchbaseServiceBrokerConfigTempla
 		return err
 	}
 
-	namespace, ok, err := entry.GetString(registry.Namespace)
-	if err != nil {
-		return err
+	// The namespace defaults to that configured in the object, if not
+	// specified we use the namespace defined in the context (where the
+	// service instance or binding is created).
+	namespace := object.GetNamespace()
+	if namespace == "" {
+		n, ok, err := entry.GetString(registry.Namespace)
+		if err != nil {
+			return err
+		}
+
+		if !ok {
+			return fmt.Errorf("unable to lookup namespace")
+		}
+
+		namespace = n
 	}
 
-	if !ok {
-		return fmt.Errorf("unable to lookup namespace")
-	}
+	glog.Infof("using namespace %s", namespace)
 
 	client := config.Clients().Dynamic()
 
