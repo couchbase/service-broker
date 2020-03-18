@@ -280,7 +280,7 @@ spec:
           spec:
             containers:
             - name: couchbase-operator
-              image: couchbase/couchbase-operator:v1
+              image: couchbase/operator:2.0.0-beta
               args:
               - --pod-create-timeout=10m
               command:
@@ -430,7 +430,8 @@ spec:
     template:
       apiVersion: couchbase.com/v2
       kind: CouchbaseGroup
-      metadata: {}
+      metadata:
+        labels: {}
       spec:
         roles:
         - name: bucket_admin
@@ -441,11 +442,17 @@ spec:
       destinations:
       - path: /metadata/name
       - path: /spec/roles/0/bucket
+    - name: instance-name
+      source:
+        registry: instance-name
+      destinations:
+      - path: /metadata/labels/cluster
   - name: couchbase-role-binding
     template:
       apiVersion: couchbase.com/v2
       kind: CouchbaseRoleBinding
-      metadata: {}
+      metadata:
+        labels: {}
       spec:
         subjects:
         - kind: CouchbaseUser
@@ -459,6 +466,11 @@ spec:
       - path: /metadata/name
       - path: /spec/subjects/0/name
       - path: /spec/roleRef/name
+    - name: instance-name
+      source:
+        registry: instance-name
+      destinations:
+      - path: /metadata/labels/cluster
   - name: credentials
     template: {}
     parameters:
@@ -505,6 +517,7 @@ spec:
         source:
           generatePassword:
             length: 8
+            dictionary: abcdefghijklmnopqrstuvwxyz0123456789
         destinations:
         - registry: short-id
       - name: instance-name

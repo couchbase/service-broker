@@ -283,7 +283,7 @@ type CouchbaseServiceBrokerConfigTemplateParameterSource struct {
 
 	// GeneratePassword allows the generation of a random string, useful for password
 	// generation.
-	GeneratePassword *CouchbaseServiceBrokerConfigTemplateParameterSourceGeneratePassword `json:"randomString,omitempty"`
+	GeneratePassword *CouchbaseServiceBrokerConfigTemplateParameterSourceGeneratePassword `json:"generatePassword,omitempty"`
 
 	// Template allows the recursive rendering and inclusion of a named template.
 	Template *string `json:"template,omitempty"`
