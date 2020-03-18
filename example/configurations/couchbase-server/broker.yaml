@@ -300,17 +300,20 @@ spec:
               - containerPort: 8383
                 name: prometheus
             serviceAccountName: couchbase-operator
-  - name: couchbase-secret
+  - name: couchbase-admin-secret
     template:
       apiVersion: v1
       kind: Secret
       metadata: {}
-      data:
-        username: QWRtaW5pc3RyYXRvcg==
+      stringData:
+        username: Administrator
     parameters:
     - name: name
       source:
-        registry: instance-name
+        format:
+          string: "%v-admin"
+          parameters:
+          - registry: instance-name
       destinations:
       - path: /metadata/name
     - name: password
@@ -318,7 +321,52 @@ spec:
       source:
         parameter: /password
       destinations:
-      - path: /data/password
+      - path: /stringData/password
+  - name: couchbase-operator-tls-secret
+    template:
+      apiVersion: v1
+      kind: Secret
+      metadata: {}
+      stringData: {}
+    parameters:
+    - name: name
+      source:
+        format:
+          string: "%v-operator-tls"
+          parameters:
+          - registry: instance-name
+      destinations:
+      - path: /metadata/name
+    - name: ca-cert
+      source:
+        registry: ca-cert
+      destinations:
+      - path: /stringData/ca.crt
+  - name: couchbase-server-tls-secret
+    template:
+      apiVersion: v1
+      kind: Secret
+      metadata: {}
+      stringData: {}
+    parameters:
+    - name: name
+      source:
+        format:
+          string: "%v-server-tls"
+          parameters:
+          - registry: instance-name
+      destinations:
+      - path: /metadata/name
+    - name: server-key
+      source:
+        registry: server-key
+      destinations:
+      - path: /stringData/pkey.key
+    - name: server-cert
+      source:
+        registry: server-cert
+      destinations:
+      - path: /stringData/chain.pem
   - name: selector-snippet
     template:
       matchLabels: {}
@@ -337,6 +385,9 @@ spec:
         security:
           rbac:
             managed: true
+        networking:
+          tls:
+            static: {}
         buckets:
           managed: true
         servers:
@@ -351,7 +402,30 @@ spec:
         registry: instance-name
       destinations:
       - path: /metadata/name
+    - name: admin-secret
+      source:
+        format:
+          string: "%v-admin"
+          parameters:
+          - registry: instance-name
+      destinations:
       - path: /spec/security/adminSecret
+    - name: operator-tls-secret
+      source:
+        format:
+          string: "%v-operator-tls"
+          parameters:
+          - registry: instance-name
+      destinations:
+      - path: /spec/networking/tls/static/operatorSecret
+    - name: server-tls-secret
+      source:
+        format:
+          string: "%v-server-tls"
+          parameters:
+          - registry: instance-name
+      destinations:
+      - path: /spec/networking/tls/static/serverSecret
     - name: label-selector
       source:
         template: selector-snippet
@@ -477,12 +551,17 @@ spec:
     - name: connection-string
       source:
         format:
-          string: couchbase://%v.%v
+          string: couchbases://%v-srv.%v
           parameters:
           - registry: instance-name
           - registry: namespace
       destinations:
       - path: /connection-string
+    - name: ca-cert
+      source:
+        registry: ca-cert
+      destinations:
+      - path: /ca.pem
     - name: username
       source:
         registry: binding-name
@@ -529,6 +608,8 @@ spec:
             - registry: short-id
         destinations:
         - registry: instance-name
+      # Dashboard URL is returned to the client after service instance provisioning
+      # has completed.
       - name: dashboard-url
         required: true
         source:
@@ -539,12 +620,126 @@ spec:
             - registry: namespace
         destinations:
         - registry: dashboard-url
+      # Bootstrap a CA.
+      - name: ca-key
+        source:
+          generateKey:
+            type: rsa
+            encoding: pkcs8
+            bits: 2048
+        destinations:
+        - registry: ca-key
+      - name: ca-cert
+        source:
+          generateCertificate:
+            key:
+              registry: ca-key
+            name:
+              commonName: Couchbase Server CA
+            lifetime: 87600h
+            usage: ca
+        destinations:
+        - registry: ca-cert
+      # Create the server certificate.
+      # Note this must be a pkcs#1 formatted RSA key.
+      - name: server-key
+        source:
+          generateKey:
+            type: rsa
+            encoding: pkcs1
+            bits: 2048
+        destinations:
+        - registry: server-key
+      - name: dns-short-srv
+        source:
+          format:
+            string: "%v-srv"
+            parameters:
+            - registry: instance-name
+        destinations:
+        - registry: dns-short-srv
+      - name: dns-namespaced-srv
+        source:
+          format:
+            string: "%v-srv.%v"
+            parameters:
+            - registry: instance-name
+            - registry: namespace
+        destinations:
+        - registry: dns-namespaced-srv
+      - name: dns-full-srv
+        source:
+          format:
+            string: "%v-srv.%v.svc"
+            parameters:
+            - registry: instance-name
+            - registry: namespace
+        destinations:
+        - registry: dns-full-srv
+      - name: dns-short-wildcard
+        source:
+          format:
+            string: "*.%v"
+            parameters:
+            - registry: instance-name
+        destinations:
+        - registry: dns-short-wildcard
+      - name: dns-namespaced-wildcard
+        source:
+          format:
+            string: "*.%v.%v"
+            parameters:
+            - registry: instance-name
+            - registry: namespace
+        destinations:
+        - registry: dns-namespaced-wildcard
+      - name: dns-full-wildcard
+        source:
+          format:
+            string: "*.%v.%v.svc"
+            parameters:
+            - registry: instance-name
+            - registry: namespace
+        destinations:
+        - registry: dns-full-wildcard
+      - name: dns-localhost
+        default:
+          string: localhost
+        destinations:
+        - registry: dns-localhost
+      - name: server-cert
+        source:
+          generateCertificate:
+            key:
+              registry: server-key
+            name:
+              commonName: Couchbase Server
+            lifetime: 8760h
+            usage: server
+            alternativeNames:
+              dns:
+              - registry: dns-short-srv
+              - registry: dns-namespaced-srv
+              - registry: dns-full-srv
+              - registry: dns-short-wildcard
+              - registry: dns-namespaced-wildcard
+              - registry: dns-full-wildcard
+              - registry: dns-localhost
+            ca:
+              certificate:
+                registry: ca-cert
+              key:
+                registry: ca-key
+        destinations:
+        - registry: server-cert
       templates:
       - couchbase-operator-serviceaccount
       - couchbase-operator-role
       - couchbase-operator-rolebinding
       - couchbase-operator-deployment
-      - couchbase-secret
+      - couchbase-admin-secret
+      - couchbase-operator-tls-secret
+      - couchbase-server-tls-secret
       - couchbase-developer-private
     serviceBinding:
       parameters:

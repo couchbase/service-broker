@@ -1,9 +1,20 @@
 package provisioners
 
 import (
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha1" // nolint:gosec
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"strings"
 	"time"
 
@@ -153,49 +164,87 @@ func resolveParameter(path string, entry *registry.Entry) (interface{}, bool, er
 	return value, true, nil
 }
 
+// resolveFormatParameter looks up a registry or parameter.
+func resolveFormatParameter(parameter *v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter, entry *registry.Entry) (interface{}, error) {
+	var value interface{}
+
+	switch {
+	case parameter.Registry != nil:
+		v, ok, err := entry.GetUser(*parameter.Registry)
+		if err != nil {
+			return nil, err
+		}
+
+		if !ok {
+			return nil, nil
+		}
+
+		value = v
+
+	case parameter.Parameter != nil:
+		v, ok, err := resolveParameter(*parameter.Parameter, entry)
+		if err != nil {
+			return nil, err
+		}
+
+		if !ok {
+			return nil, nil
+		}
+
+		value = v
+	default:
+		return nil, fmt.Errorf("format parameter type not specified")
+	}
+
+	glog.Infof("resolved parameter value %v", value)
+
+	return value, nil
+}
+
+// resolveFormatParameterStringList looks up a list of parameters trhrowing an error if
+// any member is not a string.
+func resolveFormatParameterStringList(parameters []v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter, entry *registry.Entry) ([]string, error) {
+	list := []string{}
+
+	for index := range parameters {
+		value, err := resolveFormatParameter(&parameters[index], entry)
+		if err != nil {
+			return nil, err
+		}
+
+		if value == nil {
+			continue
+		}
+
+		strValue, ok := value.(string)
+		if !ok {
+			return nil, errors.NewConfigurationError("string list parameter not a string %v", value)
+		}
+
+		list = append(list, strValue)
+	}
+
+	return list, nil
+}
+
 // resolveFormat attepts to render a format parameter.
 func resolveFormat(format *v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormat, entry *registry.Entry) (interface{}, error) {
 	parameters := make([]interface{}, len(format.Parameters))
 
-	for index, parameter := range format.Parameters {
-		switch {
-		case parameter.Registry != nil:
-			value, ok, err := entry.GetUser(*parameter.Registry)
-			if err != nil {
-				return nil, err
-			}
-
-			if !ok {
-				return nil, nil
-			}
-
-			parameters[index] = value
-
-		case parameter.Parameter != nil:
-			value, ok, err := resolveParameter(*parameter.Parameter, entry)
-			if err != nil {
-				return nil, err
-			}
-
-			if !ok {
-				return nil, nil
-			}
-
-			parameters[index] = value
-
-		default:
-			return nil, fmt.Errorf("format parameter type not specified")
+	for index := range format.Parameters {
+		value, err := resolveFormatParameter(&format.Parameters[index], entry)
+		if err != nil {
+			return nil, err
 		}
+
+		parameters[index] = value
 	}
 
 	return fmt.Sprintf(format.String, parameters...), nil
 }
 
 // resolveGeneratePassword generates a random string.
-func resolveGeneratePassword(config *v1.CouchbaseServiceBrokerConfigTemplateParameterSourceGeneratePassword) interface{} {
-	now := time.Now()
-	rand.Seed(now.UnixNano())
-
+func resolveGeneratePassword(config *v1.CouchbaseServiceBrokerConfigTemplateParameterSourceGeneratePassword) (interface{}, error) {
 	dictionary := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	if config.Dictionary != nil {
 		dictionary = *config.Dictionary
@@ -203,19 +252,344 @@ func resolveGeneratePassword(config *v1.CouchbaseServiceBrokerConfigTemplatePara
 
 	glog.Infof("generating string with length %d using dictionary %s", config.Length, dictionary)
 
-	dictionaryLength := len(dictionary)
+	// Adjust so the length is within array bounds.
+	arrayIndexOffset := 1
+	dictionaryLength := len(dictionary) - arrayIndexOffset
 
+	limit := big.NewInt(int64(dictionaryLength))
 	value := ""
 
 	for i := 0; i < config.Length; i++ {
-		arrayIndexOffset := 1
+		indexBig, err := rand.Int(rand.Reader, limit)
+		if err != nil {
+			return nil, err
+		}
 
-		index := rand.Intn(dictionaryLength - arrayIndexOffset)
+		if !indexBig.IsInt64() {
+			return nil, errors.NewConfigurationError("random index overflow")
+		}
+
+		index := int(indexBig.Int64())
 
 		value += dictionary[index : index+1]
 	}
 
-	return value
+	return value, nil
+}
+
+// resolveGenerateKey will create a PEM encoded private key.
+func resolveGenerateKey(config *v1.CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateKey) (interface{}, error) {
+	var key crypto.PrivateKey
+
+	var err error
+
+	switch config.Type {
+	case v1.KeyTypeRSA:
+		if config.Bits == nil {
+			return nil, errors.NewConfigurationError("RSA key length not specified")
+		}
+
+		key, err = rsa.GenerateKey(rand.Reader, *config.Bits)
+	case v1.KeyTypeEllipticP224:
+		key, err = ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
+	case v1.KeyTypeEllipticP256:
+		key, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	case v1.KeyTypeEllipticP384:
+		key, err = ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	case v1.KeyTypeEllipticP521:
+		key, err = ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+	case v1.KeyTypeED25519:
+		_, key, err = ed25519.GenerateKey(rand.Reader)
+	default:
+		return nil, errors.NewConfigurationError("invalid key type %s", config.Type)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	var t string
+
+	var b []byte
+
+	switch config.Encoding {
+	case v1.KeyEncodingPKCS1:
+		t = "RSA PRIVATE KEY"
+
+		rsaKey, ok := key.(*rsa.PrivateKey)
+		if !ok {
+			return nil, errors.NewConfigurationError("invalid key for PKCS#1 encoding")
+		}
+
+		b = x509.MarshalPKCS1PrivateKey(rsaKey)
+	case v1.KeyEncodingPKCS8:
+		t = "PRIVATE KEY"
+
+		b, err = x509.MarshalPKCS8PrivateKey(key)
+		if err != nil {
+			return nil, err
+		}
+	case v1.KeyEncodingEC:
+		t = "EC PRIVATE KEY"
+
+		ecKey, ok := key.(*ecdsa.PrivateKey)
+		if !ok {
+			return nil, errors.NewConfigurationError("invalid key for EC encoding")
+		}
+
+		b, err = x509.MarshalECPrivateKey(ecKey)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, errors.NewConfigurationError("invalid encoding type %s", config.Type)
+	}
+
+	block := &pem.Block{
+		Type:  t,
+		Bytes: b,
+	}
+
+	pemData := pem.EncodeToMemory(block)
+
+	return string(pemData), nil
+}
+
+// generateSerial creates a unique certificate serial number as defined
+// in RFC 3280.  It is upto 20 octets in length and non-negative
+func generateSerial() (*big.Int, error) {
+	one := 1
+	shift := 128
+	serialLimit := new(big.Int).Lsh(big.NewInt(int64(one)), uint(shift))
+
+	serialNumber, err := rand.Int(rand.Reader, serialLimit)
+	if err != nil {
+		return nil, err
+	}
+
+	return new(big.Int).Abs(serialNumber), nil
+}
+
+// generateSubjectKeyIdentifier creates a hash of the public key as defined in
+// RFC3280 used to create certificate paths from a leaf to a CA
+func generateSubjectKeyIdentifier(pub interface{}) ([]byte, error) {
+	var subjectPublicKey []byte
+
+	var err error
+
+	switch pub := pub.(type) {
+	case *rsa.PublicKey:
+		subjectPublicKey, err = asn1.Marshal(*pub)
+	case *ecdsa.PublicKey:
+		subjectPublicKey = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
+	default:
+		return nil, fmt.Errorf("invalid public key type")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	sum := sha1.Sum(subjectPublicKey) // nolint:gosec
+
+	return sum[:], nil
+}
+
+// decodePrivateKey reads a PEM formatted private key and parses it.
+func decodePrivateKey(parameter *v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter, entry *registry.Entry) (crypto.PrivateKey, error) {
+	keyPEM, err := resolveFormatParameter(parameter, entry)
+	if err != nil {
+		return nil, err
+	}
+
+	data, ok := keyPEM.(string)
+	if !ok {
+		return nil, errors.NewConfigurationError("private key is not a string")
+	}
+
+	block, rest := pem.Decode([]byte(data))
+	if block == nil {
+		return nil, errors.NewConfigurationError("unable to decode certificate key PEM file")
+	}
+
+	emptyArray := 0
+	if rest != nil && len(rest) > emptyArray {
+		return nil, errors.NewConfigurationError("unexpected content in PEM file")
+	}
+
+	var key crypto.PrivateKey
+
+	switch block.Type {
+	case "RSA PRIVATE KEY":
+		v, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+
+		key = v
+	case "PRIVATE KEY":
+		v, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+
+		key = v
+	case "EC PRIVATE KEY":
+		v, err := x509.ParseECPrivateKey(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+
+		key = v
+	default:
+		return nil, errors.NewConfigurationError("private key format %s unsupported", block.Type)
+	}
+
+	return key, nil
+}
+
+// decodeCertificate resolves and parses a PEM formatted certificate.
+func decodeCertificate(parameter *v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter, entry *registry.Entry) (*x509.Certificate, error) {
+	certPEM, err := resolveFormatParameter(parameter, entry)
+	if err != nil {
+		return nil, err
+	}
+
+	data, ok := certPEM.(string)
+	if !ok {
+		return nil, errors.NewConfigurationError("private key is not a string")
+	}
+
+	block, rest := pem.Decode([]byte(data))
+	if block == nil {
+		return nil, errors.NewConfigurationError("unable to decode certificate key PEM file")
+	}
+
+	emptyArray := 0
+	if rest != nil && len(rest) > emptyArray {
+		return nil, errors.NewConfigurationError("unexpected content in PEM file")
+	}
+
+	if block.Type != "CERTIFICATE" {
+		return nil, errors.NewConfigurationError("certificate format %s unsupported", block.Type)
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return cert, err
+}
+
+// resolveGenerateCertificate will create a PEM encoded X.509 certificate.
+func resolveGenerateCertificate(config *v1.CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificate, entry *registry.Entry) (interface{}, error) {
+	key, err := decodePrivateKey(&config.Key, entry)
+	if err != nil {
+		return nil, err
+	}
+
+	req := &x509.CertificateRequest{
+		Subject: pkix.Name{
+			CommonName: config.Name.CommonName,
+		},
+	}
+
+	csr, err := x509.CreateCertificateRequest(rand.Reader, req, key)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err = x509.ParseCertificateRequest(csr)
+	if err != nil {
+		return nil, err
+	}
+
+	serialNumber, err := generateSerial()
+	if err != nil {
+		return nil, err
+	}
+
+	subjectKeyID, err := generateSubjectKeyIdentifier(req.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	notBefore := time.Now()
+	notAfter := notBefore.Add(config.Lifetime.Duration)
+
+	certificate := &x509.Certificate{
+		SerialNumber:          serialNumber,
+		Subject:               req.Subject,
+		NotBefore:             notBefore,
+		NotAfter:              notAfter,
+		BasicConstraintsValid: true,
+		SubjectKeyId:          subjectKeyID,
+	}
+
+	switch config.Usage {
+	case v1.CA:
+		certificate.IsCA = true
+		certificate.KeyUsage = x509.KeyUsageCertSign | x509.KeyUsageCRLSign
+	case v1.Server:
+		certificate.KeyUsage = x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment
+		certificate.ExtKeyUsage = []x509.ExtKeyUsage{
+			x509.ExtKeyUsageServerAuth,
+		}
+	case v1.Client:
+		certificate.KeyUsage = x509.KeyUsageDigitalSignature
+		certificate.ExtKeyUsage = []x509.ExtKeyUsage{
+			x509.ExtKeyUsageClientAuth,
+		}
+	default:
+		return nil, errors.NewConfigurationError("unknown usage type %v", config.Usage)
+	}
+
+	if config.AlternativeNames != nil {
+		list, err := resolveFormatParameterStringList(config.AlternativeNames.DNS, entry)
+		if err != nil {
+			return nil, err
+		}
+
+		certificate.DNSNames = list
+
+		list, err = resolveFormatParameterStringList(config.AlternativeNames.Email, entry)
+		if err != nil {
+			return nil, err
+		}
+
+		certificate.EmailAddresses = list
+	}
+
+	// Default to self signing.
+	caCertificate := certificate
+	caKey := key
+
+	if config.CA != nil {
+		caKey, err = decodePrivateKey(&config.CA.Key, entry)
+		if err != nil {
+			return nil, err
+		}
+
+		caCertificate, err = decodeCertificate(&config.CA.Certificate, entry)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	cert, err := x509.CreateCertificate(rand.Reader, certificate, caCertificate, req.PublicKey, caKey)
+	if err != nil {
+		return nil, err
+	}
+
+	certPEMBlock := &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: cert,
+	}
+
+	certPEM := pem.EncodeToMemory(certPEMBlock)
+
+	return string(certPEM), nil
 }
 
 // resolveSource gets a parameter source from either metadata or a JSON path into user specified parameters.
@@ -271,7 +645,30 @@ func resolveSource(source *v1.CouchbaseServiceBrokerConfigTemplateParameterSourc
 
 	// GeneratePassword will randomly generate a password string for example.
 	case source.GeneratePassword != nil:
-		value = resolveGeneratePassword(source.GeneratePassword)
+		v, err := resolveGeneratePassword(source.GeneratePassword)
+		if err != nil {
+			return nil, err
+		}
+
+		value = v
+
+	// GenerateKey will create a PEM encoded private key.
+	case source.GenerateKey != nil:
+		v, err := resolveGenerateKey(source.GenerateKey)
+		if err != nil {
+			return nil, err
+		}
+
+		value = v
+
+	// GenerateCertificate will create a PEM encoded X.509 certificate.
+	case source.GenerateCertificate != nil:
+		v, err := resolveGenerateCertificate(source.GenerateCertificate, entry)
+		if err != nil {
+			return nil, err
+		}
+
+		value = v
 
 	// Template will recursively render a template and return an object.
 	// This allows sharing of common configuration.

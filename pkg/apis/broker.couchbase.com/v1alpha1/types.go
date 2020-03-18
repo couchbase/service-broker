@@ -285,6 +285,12 @@ type CouchbaseServiceBrokerConfigTemplateParameterSource struct {
 	// generation.
 	GeneratePassword *CouchbaseServiceBrokerConfigTemplateParameterSourceGeneratePassword `json:"generatePassword,omitempty"`
 
+	// GenerateKey allow the generation of a private key.
+	GenerateKey *CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateKey `json:"generateKey,omitempty"`
+
+	// GenerateCertificate allows the generation of a public certificate.
+	GenerateCertificate *CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificate `json:"generateCertificate,omitempty"`
+
 	// Template allows the recursive rendering and inclusion of a named template.
 	Template *string `json:"template,omitempty"`
 }
@@ -309,6 +315,117 @@ type CouchbaseServiceBrokerConfigTemplateParameterSourceGeneratePassword struct 
 
 	// Dictionary is the string of symbols to use.  This defaults to [a-zA-Z0-9].
 	Dictionary *string `json:"dictionary,omitempty"`
+}
+
+// CouchbaseKeyType is a private key type.
+type CouchbaseKeyType string
+
+const (
+	// RSA is widely supported, but the key sizes are large.
+	KeyTypeRSA CouchbaseKeyType = "rsa"
+
+	// KeyTypeEllipticP224 generates small keys relative to encryption strength.
+	KeyTypeEllipticP224 CouchbaseKeyType = "ecP244"
+
+	// KeyTypeEllipticP256 generates small keys relative to encryption strength.
+	KeyTypeEllipticP256 CouchbaseKeyType = "ecP256"
+
+	// KeyTypeEllipticP384 generates small keys relative to encryption strength.
+	KeyTypeEllipticP384 CouchbaseKeyType = "ecP384"
+
+	// KeyTypeEllipticP521 generates small keys relative to encryption strength.
+	KeyTypeEllipticP521 CouchbaseKeyType = "ecP521"
+
+	// KeyTypeED25519 generates small keys relative to encrption strength.
+	KeyTypeED25519 CouchbaseKeyType = "ed25519"
+)
+
+// CouchbaseKeyEncodingType is a private key encoding type.
+type CouchbaseKeyEncodingType string
+
+const (
+	// KeyEncodingPKCS1 may only be used with the RSA key type.
+	KeyEncodingPKCS1 CouchbaseKeyEncodingType = "pkcs1"
+
+	// KeyEncodingPKCS8 may be used for any key type.
+	KeyEncodingPKCS8 CouchbaseKeyEncodingType = "pkcs8"
+
+	// KeyEncodingEC may only be used with EC key types.
+	KeyEncodingEC CouchbaseKeyEncodingType = "ec"
+)
+
+// CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateKey defines a private key.
+type CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateKey struct {
+	// Type is the type of key as defined above.
+	Type CouchbaseKeyType `json:"type"`
+
+	// Encoding is how to package the key.
+	Encoding CouchbaseKeyEncodingType `json:"encoding"`
+
+	// Bits is the number of bits of key to generate, only relevant for RSA.
+	Bits *int `json:"bits,omitempty"`
+}
+
+// CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage defines the certificate use.
+type CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage string
+
+const (
+	// CA is used for signing certificates and providing a trust anchor.
+	CA CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage = "ca"
+
+	// Server is used for server certificates.
+	Server CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage = "server"
+
+	// Client is used for client certificates.
+	Client CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage = "client"
+)
+
+// CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificate defines a certificate.
+type CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificate struct {
+	// Key is the private key to generate the certificate from.
+	Key CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"key"`
+
+	// Name is the certificate name.
+	Name CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateName `json:"name"`
+
+	// Lifetime is how long the certificate will last.
+	Lifetime metav1.Duration `json:"lifetime"`
+
+	// Usage is what the certificate is used for.  If server or client is specified
+	// then the CA parameter must be populated.  If CA is not specified for a "ca"
+	// certificate then it will be self signed.
+	// +kubebuilder:validation:Enum=ca;server;client
+	Usage CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage `json:"usage"`
+
+	// AlternativeNames are only valid for "server" and "client" certificates.
+	AlternativeNames *CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames `json:"alternativeNames,omitempty"`
+
+	// CA is the CA to sign with, it will self sign otherwise.
+	CA *CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateCA `json:"ca,omitempty"`
+}
+
+// CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateName defines a certificate name.
+type CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateName struct {
+	// CommonName is what the certificate name is usually referred to.
+	CommonName string `json:"commonName"`
+}
+
+// CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames defines alternative names for a certificate.
+type CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames struct {
+	// DNS is only relevant for "server" certificate types.
+	DNS []CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"dns,omitempty"`
+
+	// Email is only relevant for "client" certificate types.
+	Email []CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"email,omitempty"`
+}
+
+// CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateCA defines a CA.
+type CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateCA struct {
+	// Key is the CA's private key.
+	Key CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"key"`
+
+	// Certificate is the CA's certificate.
+	Certificate CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"certificate"`
 }
 
 // CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter is a parameter

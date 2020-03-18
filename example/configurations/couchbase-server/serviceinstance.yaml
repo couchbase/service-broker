@@ -6,5 +6,5 @@ spec:
   clusterServiceClassExternalName: couchbase-developer
   clusterServicePlanExternalName: couchbase-developer-private
   parameters:
-    password: cGFzc3dvcmQ=
+    password: password
     size: 3
