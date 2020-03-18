@@ -31,6 +31,20 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+const (
+	// pemTypeRSAPrivateKey is used with PKCS#1 RSA keys.
+	pemTypeRSAPrivateKey = "RSA PRIVATE KEY"
+
+	// pemTypePrivateKey is used with PKCS#8 keys.
+	pemTypePrivateKey = "PRIVATE KEY"
+
+	// pemTypeECPrivateKey is used with EC private keys.
+	pemTypeECPrivateKey = "EC PRIVATE KEY"
+
+	// pemTypeCertificate is used with all certificates.
+	pemTypeCertificate = "CERTIFICATE"
+)
+
 // GetNamespace returns the namespace to provision resources in.  This is the namespace
 // the broker lives in by default, however when operating as a kubernetes cluster service
 // broker then this information is passed as request context.
@@ -314,7 +328,7 @@ func resolveGenerateKey(config *v1.CouchbaseServiceBrokerConfigTemplateParameter
 
 	switch config.Encoding {
 	case v1.KeyEncodingPKCS1:
-		t = "RSA PRIVATE KEY"
+		t = pemTypeRSAPrivateKey
 
 		rsaKey, ok := key.(*rsa.PrivateKey)
 		if !ok {
@@ -323,14 +337,14 @@ func resolveGenerateKey(config *v1.CouchbaseServiceBrokerConfigTemplateParameter
 
 		b = x509.MarshalPKCS1PrivateKey(rsaKey)
 	case v1.KeyEncodingPKCS8:
-		t = "PRIVATE KEY"
+		t = pemTypePrivateKey
 
 		b, err = x509.MarshalPKCS8PrivateKey(key)
 		if err != nil {
 			return nil, err
 		}
 	case v1.KeyEncodingEC:
-		t = "EC PRIVATE KEY"
+		t = pemTypeECPrivateKey
 
 		ecKey, ok := key.(*ecdsa.PrivateKey)
 		if !ok {
@@ -420,21 +434,21 @@ func decodePrivateKey(parameter *v1.CouchbaseServiceBrokerConfigTemplateParamete
 	var key crypto.PrivateKey
 
 	switch block.Type {
-	case "RSA PRIVATE KEY":
+	case pemTypeRSAPrivateKey:
 		v, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 		if err != nil {
 			return nil, err
 		}
 
 		key = v
-	case "PRIVATE KEY":
+	case pemTypePrivateKey:
 		v, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 		if err != nil {
 			return nil, err
 		}
 
 		key = v
-	case "EC PRIVATE KEY":
+	case pemTypeECPrivateKey:
 		v, err := x509.ParseECPrivateKey(block.Bytes)
 		if err != nil {
 			return nil, err
@@ -470,7 +484,7 @@ func decodeCertificate(parameter *v1.CouchbaseServiceBrokerConfigTemplateParamet
 		return nil, errors.NewConfigurationError("unexpected content in PEM file")
 	}
 
-	if block.Type != "CERTIFICATE" {
+	if block.Type != pemTypeCertificate {
 		return nil, errors.NewConfigurationError("certificate format %s unsupported", block.Type)
 	}
 
@@ -583,7 +597,7 @@ func resolveGenerateCertificate(config *v1.CouchbaseServiceBrokerConfigTemplateP
 	}
 
 	certPEMBlock := &pem.Block{
-		Type:  "CERTIFICATE",
+		Type:  pemTypeCertificate,
 		Bytes: cert,
 	}
 
