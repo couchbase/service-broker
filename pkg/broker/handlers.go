@@ -885,7 +885,6 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 				return
 			}
 
-			status = http.StatusAccepted
 			response.Operation = operationID
 		}
 
@@ -963,131 +962,7 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 	response := &api.GetServiceBindingResponse{
 		Credentials: credentials,
 	}
-	util.JSONResponse(w, http.StatusOK, response)
-}
-
-// handleReadServiceBinding
-func handleReadServiceBinding(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	instanceID := params.ByName("instance_id")
-	if instanceID == "" {
-		util.JSONError(w, fmt.Errorf("request missing instance_id parameter"))
-		return
-	}
-
-	instanceEntry, err := registry.New(registry.ServiceInstance, instanceID, true)
-	if err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	if !instanceEntry.Exists() {
-		util.JSONError(w, errors.NewParameterError("service instance %s not found", instanceID))
-		return
-	}
-
-	bindingID := params.ByName("binding_id")
-	if bindingID == "" {
-		util.JSONError(w, fmt.Errorf("request missing binding_id parameter"))
-		return
-	}
-
-	// Check if the instance exists.
-	entry, err := registry.New(registry.ServiceBinding, bindingID, true)
-	if err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	// Not found, return a 404
-	if !entry.Exists() {
-		util.JSONError(w, errors.NewResourceNotFoundError("service instance does not exist"))
-		return
-	}
-
-	// service_id is optional and provoded as a hint.
-	serviceID, serviceIDProvided, err := util.MayGetSingleParameter(r, "service_id")
-	if err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	// plan_id is optional and provoded as a hint.
-	planID, planIDProvided, err := util.MayGetSingleParameter(r, "plan_id")
-	if err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	serviceInstanceServiceID, ok, err := entry.GetString(registry.ServiceID)
-	if err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	if !ok {
-		util.JSONError(w, fmt.Errorf("unable to lookup existing service ID"))
-		return
-	}
-
-	serviceInstancePlanID, ok, err := entry.GetString(registry.PlanID)
-	if err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	if !ok {
-		util.JSONError(w, fmt.Errorf("unable to lookup existing plan ID"))
-		return
-	}
-
-	if serviceIDProvided && serviceID != serviceInstanceServiceID {
-		util.JSONError(w, errors.NewQueryError("specified service ID %s does not match %s", serviceID, serviceInstanceServiceID))
-		return
-	}
-
-	if planIDProvided && planID != serviceInstancePlanID {
-		util.JSONError(w, errors.NewQueryError("specified plan ID %s does not match %s", planID, serviceInstancePlanID))
-		return
-	}
-
-	parameters := &runtime.RawExtension{}
-
-	ok, err = entry.Get(registry.Parameters, parameters)
-	if err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	if !ok {
-		util.JSONError(w, fmt.Errorf("unable to lookup existing parameters"))
-		return
-	}
-
-	credentials := &runtime.RawExtension{}
-
-	if _, err := entry.Get(registry.Credentials, credentials); err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	// If the instance does not exist or an operation is still in progress return
-	// a 404.
-	op, ok, err := entry.GetString(registry.Operation)
-	if err != nil {
-		util.JSONError(w, err)
-		return
-	}
-
-	if ok {
-		util.JSONError(w, errors.NewParameterError("%s operation in progress", op))
-		return
-	}
-
-	response := &api.GetServiceBindingResponse{
-		Credentials: credentials,
-		Parameters:  parameters,
-	}
-	util.JSONResponse(w, http.StatusOK, response)
+	util.JSONResponse(w, http.StatusCreated, response)
 }
 
 // handleDeleteServiceBinding

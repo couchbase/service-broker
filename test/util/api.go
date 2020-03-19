@@ -410,7 +410,7 @@ func PollServiceInstanceQuery(req *api.CreateServiceInstanceRequest, rsp *api.Cr
 	return values
 }
 
-// DeleteServiceInstanceQuery creates a query string for use with the service instance polling
+// DeleteServiceInstanceQuery creates a query string for use with the service instance deletion
 // API.  It is generated from the original service instance creation request.
 func DeleteServiceInstanceQuery(req *api.CreateServiceInstanceRequest) url.Values {
 	values := url.Values{}
@@ -425,6 +425,17 @@ func DeleteServiceInstanceQuery(req *api.CreateServiceInstanceRequest) url.Value
 // ReadServiceInstanceQuery creates a query string for use with the service instance get
 // API.  It is generated from the original service instance creation request.
 func ReadServiceInstanceQuery(req *api.CreateServiceInstanceRequest) url.Values {
+	values := url.Values{}
+
+	values.Add("service_id", req.ServiceID)
+	values.Add("plan_id", req.PlanID)
+
+	return values
+}
+
+// DeleteServiceBindingQuery creates a query string for use with the service binding deletion
+// API.  It is generated from the original service binding creation request.
+func DeleteServiceBindingQuery(req *api.CreateServiceBindingRequest) url.Values {
 	values := url.Values{}
 
 	values.Add("service_id", req.ServiceID)
@@ -516,4 +527,14 @@ func MustUpdateServiceInstance(t *testing.T, name string, req *api.UpdateService
 func MustUpdateServiceInstanceSuccessfully(t *testing.T, name string, req *api.UpdateServiceInstanceRequest) {
 	rsp := MustUpdateServiceInstance(t, name, req)
 	MustPollServiceInstanceForCompletion(t, name, rsp)
+}
+
+// MustCreateServiceBinding wraps up service binding creation.
+func MustCreateServiceBinding(t *testing.T, instance, binding string, req *api.CreateServiceBindingRequest) {
+	MustPut(t, "/v2/service_instances/"+instance+"/service_bindings/"+binding, http.StatusCreated, req, nil)
+}
+
+// MustDeleteServiceBinding wraps up service binding deletion.
+func MustDeleteServiceBinding(t *testing.T, instance, binding string, req *api.CreateServiceBindingRequest) {
+	MustDelete(t, "/v2/service_instances/"+instance+"/service_bindings/"+binding+"?"+DeleteServiceBindingQuery(req).Encode(), http.StatusOK, nil)
 }

@@ -17,6 +17,9 @@ const (
 	// ServiceInstanceName is a name to use for a service instance.
 	ServiceInstanceName = "pinkiepie"
 
+	// ServiceBindingName is a name to use for a service binding.
+	ServiceBindingName = "spike"
+
 	// IllegalID is an illegal ID and must not be used as a service or plan ID.
 	IllegalID = "illegal"
 
@@ -245,6 +248,7 @@ var (
 						"test-template",
 					},
 				},
+				ServiceBinding: &v1.CouchbaseServiceBrokerTemplateList{},
 			},
 			{
 				Name:    "test-binding-2",
@@ -298,6 +302,13 @@ var (
 	basicServiceInstanceUpdateRequest = api.UpdateServiceInstanceRequest{
 		ServiceID: BasicConfigurationOfferingID,
 	}
+
+	// basicServiceBindingCreateRequest is the absolute minimum valid service bindinf create
+	// request to use against the basicConfiguration.
+	basicServiceBindingCreateRequest = api.CreateServiceBindingRequest{
+		ServiceID: BasicConfigurationOfferingID,
+		PlanID:    BasicConfigurationPlanID,
+	}
 )
 
 // EmptyConfiguration returns an empty configuration, useful for testing when users
@@ -341,6 +352,12 @@ func BasicServiceInstanceCreateRequest() *api.CreateServiceInstanceRequest {
 // request to use against the basicConfiguration.
 func BasicServiceInstanceUpdateRequest() *api.UpdateServiceInstanceRequest {
 	return basicServiceInstanceUpdateRequest.DeepCopy()
+}
+
+// BasicServiceBindingCreateRequest is the absolute minimum valid service bindinf create
+// request to use against the basicConfiguration.
+func BasicServiceBindingCreateRequest() *api.CreateServiceBindingRequest {
+	return basicServiceBindingCreateRequest.DeepCopy()
 }
 
 // RegistryParametersToRegistryWithDefault returns a parameter list as specified.
