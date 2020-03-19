@@ -436,3 +436,21 @@ func ParametersToRegistryWithDefault(path, destination, defaultValue string, req
 		},
 	}
 }
+
+func KeyToRegistry(t v1.CouchbaseKeyType, e v1.CouchbaseKeyEncodingType, bits *int, destination string) []v1.CouchbaseServiceBrokerConfigTemplateParameter {
+	return []v1.CouchbaseServiceBrokerConfigTemplateParameter{
+		{
+			Name: "test-private-key",
+			Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+				GenerateKey: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateKey{
+					Type:     t,
+					Encoding: e,
+					Bits:     bits,
+				},
+			},
+			Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+				{Registry: &destination},
+			},
+		},
+	}
+}
