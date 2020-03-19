@@ -21,6 +21,15 @@ const (
 	// pollTimeout is how long to poll for provisioning completion
 	// before giving up.
 	pollTimeout = 30 * time.Second
+
+	// QueryServiceID is the service ID identifier used in a query.
+	QueryServiceID = "service_id"
+
+	// QueryPlanID is the plan ID identifier used in a query.
+	QueryPlanID = "plan_id"
+
+	// QueryOperation is the operation ID identifier used in a query.
+	QueryOperation = "operation"
 )
 
 // MustBasicRequest creates a HTTP request object for the requested method
@@ -397,49 +406,103 @@ func MustPatchAndError(t *testing.T, path string, statusCode int, request interf
 	}
 }
 
+// ServiceInstanceURI generates a URI (path + query) to operate on a service instance.
+func ServiceInstanceURI(instance string, query *url.Values) string {
+	uri := "/v2/service_instances/" + instance
+
+	if query != nil {
+		uri = uri + "?" + query.Encode()
+	}
+
+	return uri
+}
+
+// ServiceInstancePollURI generates a URI (path + query) to operate on a service instance polling.
+func ServiceInstancePollURI(instance string, query *url.Values) string {
+	uri := "/v2/service_instances/" + instance + "/last_operation"
+
+	if query != nil {
+		uri = uri + "?" + query.Encode()
+	}
+
+	return uri
+}
+
+// ServiceBindingURI generates a URI (path + query) to operate on a service binding.
+func ServiceBindingURI(instance, binding string, query *url.Values) string {
+	uri := "/v2/service_instances/" + instance + "/service_bindings/" + binding
+
+	if query != nil {
+		uri = uri + "?" + query.Encode()
+	}
+
+	return uri
+}
+
+// CreateServiceInstanceQuery creates a query string for use with the service instance creation.
+func CreateServiceInstanceQuery() *url.Values {
+	values := &url.Values{}
+
+	values.Add("accepts_incomplete", "true")
+
+	return values
+}
+
 // PollServiceInstanceQuery creates a query string for use with the service instance polling
 // API.  It is generated from the original service instance creation request and the response
 // containing the operation ID.
-func PollServiceInstanceQuery(req *api.CreateServiceInstanceRequest, rsp *api.CreateServiceInstanceResponse) url.Values {
-	values := url.Values{}
+func PollServiceInstanceQuery(req *api.CreateServiceInstanceRequest, rsp *api.CreateServiceInstanceResponse) *url.Values {
+	values := &url.Values{}
 
-	values.Add("service_id", req.ServiceID)
-	values.Add("plan_id", req.PlanID)
-	values.Add("operation", rsp.Operation)
+	if req != nil {
+		values.Add(QueryServiceID, req.ServiceID)
+		values.Add(QueryPlanID, req.PlanID)
+	}
+
+	values.Add(QueryOperation, rsp.Operation)
 
 	return values
 }
 
 // DeleteServiceInstanceQuery creates a query string for use with the service instance deletion
 // API.  It is generated from the original service instance creation request.
-func DeleteServiceInstanceQuery(req *api.CreateServiceInstanceRequest) url.Values {
-	values := url.Values{}
+func DeleteServiceInstanceQuery(req *api.CreateServiceInstanceRequest) *url.Values {
+	values := &url.Values{}
 
 	values.Add("accepts_incomplete", "true")
-	values.Add("service_id", req.ServiceID)
-	values.Add("plan_id", req.PlanID)
+	values.Add(QueryServiceID, req.ServiceID)
+	values.Add(QueryPlanID, req.PlanID)
 
 	return values
 }
 
 // ReadServiceInstanceQuery creates a query string for use with the service instance get
 // API.  It is generated from the original service instance creation request.
-func ReadServiceInstanceQuery(req *api.CreateServiceInstanceRequest) url.Values {
-	values := url.Values{}
+func ReadServiceInstanceQuery(req *api.CreateServiceInstanceRequest) *url.Values {
+	values := &url.Values{}
 
-	values.Add("service_id", req.ServiceID)
-	values.Add("plan_id", req.PlanID)
+	values.Add(QueryServiceID, req.ServiceID)
+	values.Add(QueryPlanID, req.PlanID)
+
+	return values
+}
+
+// UpdateServiceInstanceQuery creates a query string for use with the service instance update.
+func UpdateServiceInstanceQuery() *url.Values {
+	values := &url.Values{}
+
+	values.Add("accepts_incomplete", "true")
 
 	return values
 }
 
 // DeleteServiceBindingQuery creates a query string for use with the service binding deletion
 // API.  It is generated from the original service binding creation request.
-func DeleteServiceBindingQuery(req *api.CreateServiceBindingRequest) url.Values {
-	values := url.Values{}
+func DeleteServiceBindingQuery(req *api.CreateServiceBindingRequest) *url.Values {
+	values := &url.Values{}
 
-	values.Add("service_id", req.ServiceID)
-	values.Add("plan_id", req.PlanID)
+	values.Add(QueryServiceID, req.ServiceID)
+	values.Add(QueryPlanID, req.PlanID)
 
 	return values
 }
@@ -447,7 +510,7 @@ func DeleteServiceBindingQuery(req *api.CreateServiceBindingRequest) url.Values 
 // MustCreateServiceInstance wraps up service instance creation.
 func MustCreateServiceInstance(t *testing.T, name string, req *api.CreateServiceInstanceRequest) *api.CreateServiceInstanceResponse {
 	rsp := &api.CreateServiceInstanceResponse{}
-	MustPut(t, "/v2/service_instances/"+name+"?accepts_incomplete=true", http.StatusAccepted, req, rsp)
+	MustPut(t, ServiceInstanceURI(name, CreateServiceInstanceQuery()), http.StatusAccepted, req, rsp)
 
 	// All create operations are asynchronous and must have an operation string.
 	Assert(t, rsp.Operation != "")
@@ -460,7 +523,7 @@ func MustPollServiceInstanceForCompletion(t *testing.T, name string, rsp *api.Cr
 	callback := func() bool {
 		// Polling will usually always return OK with the status embedded in the response.
 		poll := &api.PollServiceInstanceResponse{}
-		MustGet(t, "/v2/service_instances/"+name+"/last_operation?operation="+rsp.Operation, http.StatusOK, poll)
+		MustGet(t, ServiceInstancePollURI(name, PollServiceInstanceQuery(nil, rsp)), http.StatusOK, poll)
 
 		// A failed is always an error.
 		Assert(t, poll.State != api.PollStateFailed)
@@ -474,7 +537,7 @@ func MustPollServiceInstanceForCompletion(t *testing.T, name string, rsp *api.Cr
 // MustDeleteServiceInstance wraps up service instance deletion.
 func MustDeleteServiceInstance(t *testing.T, name string, req *api.CreateServiceInstanceRequest) *api.CreateServiceInstanceResponse {
 	rsp := &api.CreateServiceInstanceResponse{}
-	MustDelete(t, "/v2/service_instances/"+name+"?"+DeleteServiceInstanceQuery(req).Encode(), http.StatusAccepted, rsp)
+	MustDelete(t, ServiceInstanceURI(name, DeleteServiceInstanceQuery(req)), http.StatusAccepted, rsp)
 
 	// All delete operations are asynchronous and must have an operation string.
 	Assert(t, rsp.Operation != "")
@@ -488,7 +551,7 @@ func MustPollServiceInstanceForDeletion(t *testing.T, name string, rsp *api.Crea
 		// When polling for deletion, it will start as OK (as per MustPollServiceInstanceForCompletion)
 		// however will finally respond with Gone.
 		apiError := &api.Error{}
-		if err := Get("/v2/service_instances/"+name+"/last_operation?operation="+rsp.Operation, http.StatusGone, apiError); err != nil {
+		if err := Get(ServiceInstancePollURI(name, PollServiceInstanceQuery(nil, rsp)), http.StatusGone, apiError); err != nil {
 			return false
 		}
 
@@ -515,7 +578,7 @@ func MustDeleteServiceInstanceSuccessfully(t *testing.T, name string, req *api.C
 // MustUpdateServiceInstance wraps up service instance creation.
 func MustUpdateServiceInstance(t *testing.T, name string, req *api.UpdateServiceInstanceRequest) *api.CreateServiceInstanceResponse {
 	rsp := &api.CreateServiceInstanceResponse{}
-	MustPatch(t, "/v2/service_instances/"+name+"?accepts_incomplete=true", http.StatusAccepted, req, rsp)
+	MustPatch(t, ServiceInstanceURI(name, UpdateServiceInstanceQuery()), http.StatusAccepted, req, rsp)
 
 	// All create operations are asynchronous and must have an operation string.
 	Assert(t, rsp.Operation != "")
@@ -531,10 +594,10 @@ func MustUpdateServiceInstanceSuccessfully(t *testing.T, name string, req *api.U
 
 // MustCreateServiceBinding wraps up service binding creation.
 func MustCreateServiceBinding(t *testing.T, instance, binding string, req *api.CreateServiceBindingRequest) {
-	MustPut(t, "/v2/service_instances/"+instance+"/service_bindings/"+binding, http.StatusCreated, req, nil)
+	MustPut(t, ServiceBindingURI(instance, binding, nil), http.StatusCreated, req, nil)
 }
 
 // MustDeleteServiceBinding wraps up service binding deletion.
 func MustDeleteServiceBinding(t *testing.T, instance, binding string, req *api.CreateServiceBindingRequest) {
-	MustDelete(t, "/v2/service_instances/"+instance+"/service_bindings/"+binding+"?"+DeleteServiceBindingQuery(req).Encode(), http.StatusOK, nil)
+	MustDelete(t, ServiceBindingURI(instance, binding, DeleteServiceBindingQuery(req)), http.StatusOK, nil)
 }

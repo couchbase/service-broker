@@ -272,6 +272,13 @@ var (
 				},
 			},
 		},
+		ServiceBinding: &v1.ServiceBindingSchema{
+			Create: &v1.InputParamtersSchema{
+				Parameters: &runtime.RawExtension{
+					Raw: []byte(BasicSchemaParameters),
+				},
+			},
+		},
 	}
 
 	// basicSchemaRequired is a schema for service instance validation with required parameters.
@@ -283,6 +290,17 @@ var (
 				},
 			},
 			Update: &v1.InputParamtersSchema{
+				Parameters: &runtime.RawExtension{
+					Raw: []byte(BasicSchemaParametersRequired),
+				},
+			},
+		},
+	}
+
+	// basicSchemaBindingRequired is a schema for a service binding with required parameters.
+	basicSchemaBindingRequired = &v1.Schemas{
+		ServiceBinding: &v1.ServiceBindingSchema{
+			Create: &v1.InputParamtersSchema{
 				Parameters: &runtime.RawExtension{
 					Raw: []byte(BasicSchemaParametersRequired),
 				},
@@ -340,6 +358,11 @@ func BasicSchema() *v1.Schemas {
 // BasicSchemaRequired is a schema for service instance create validation with required parameters.
 func BasicSchemaRequired() *v1.Schemas {
 	return basicSchemaRequired.DeepCopy()
+}
+
+// BasicSchemaBindingRequired is a schema for service binding create validation with required parameters.
+func BasicSchemaBindingRequired() *v1.Schemas {
+	return basicSchemaBindingRequired.DeepCopy()
 }
 
 // BasicServiceInstanceCreateRequest is the absolute minimum valid service instance create
