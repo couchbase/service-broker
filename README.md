@@ -50,6 +50,42 @@ The Service Broker is flexible enough so that resources created to realize a ser
 The Service Broker may be deployed in its own namespace to keep its own configuration and runtime data separate and secured from other users.
 Depending on how you wish to configure the Service Broker, it may only require permissions to create resources in its own namespace, or if provisioning resources in other namespaces, cluster wide permissions.
 
+## Building
+
+### Building an Official Container from Release Archives
+
+Official releases are avaliable to download from [GitHub](https://github.com/spjmurray/service-broker/releases).
+They contain the service broker binary, an example docker file and example YAML.
+
+Download the package, decompress it, then from the root director of the archive you can build the container image:
+
+```bash
+$ docker build . -t couchbase/service-broker:0.0.0
+```
+
+This will create the container image `couchbase/service-broker:x.y.z`.
+
+The tag should mirror the official version numbering, however the image name may be whatever you choose.
+
+### Building A Container Image from Source
+
+To build a container from source you can use the following command:
+
+```bash
+$ make container -e APPLICATION=acme-service-broker IMAGE=acme/service-broker VERSION=x.y.z
+```
+
+This allows you to change the application and image's name and the version.
+This will require modification to the example files.
+
+### Building a Release from Source
+
+To build a release from source:
+
+```bash
+$ make archive -e APPLICATION=acme-service-broker VERSION=1.0.0-beta1
+```
+
 ## Installation
 
 Ensure the [Kubernetes Service Catalog is installed](https://svc-cat.io/docs/install/).

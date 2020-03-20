@@ -1,11 +1,9 @@
 package version
 
-const (
-	// Application is the application name.
-	Application = "couchbase-service-broker"
-)
-
 var (
+	// Application is the application name.
+	Application string
+
 	// Version is the release version, this is set during the build process.
 	Version string
 

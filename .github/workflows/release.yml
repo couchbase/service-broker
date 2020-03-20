@@ -1,0 +1,67 @@
+name: Release
+on:
+  push:
+    branches-ignore:
+    - '*'
+    tags:
+    - '*'
+jobs:
+  build:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+      with:
+        path: github.com/couchbase/service-broker
+    - name: Configure Go
+      uses: actions/setup-go@v2-beta
+      with:
+        go-version: '^1.13.3'
+    # The release is triggered by pushing an annotated tag to the repository.
+    # First step is to extract the versioning information and make it available
+    # for other steps in the build pipeline.
+    - name: Constants
+      id: constants
+      run: |
+        VERSION=$(basename ${{ github.ref }})
+        ARCHIVE=couchbase-service-broker
+        echo ::set-output name=version::${VERSION}
+        echo ::set-output name=archive-tgz::${ARCHIVE}-${VERSION}.tar.gz
+        echo ::set-output name=archive-zip::${ARCHIVE}-${VERSION}.zip
+    # Build the artifacts now that the Makefile has been updated with release
+    # versioning.
+    - name: Build Archive
+      run: make archive -e VERSION=${{ steps.constants.outputs.version }}
+    # Create a release for the version.
+    # TODO: we could also have pre-releases triggered by some logic.
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@latest
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.constants.outputs.version }}
+        release_name: Version ${{ steps.constants.outputs.version }}
+        draft: false
+        prerelease: false
+    # Finally upload the TGZ and ZIP build artifacts to the release page for
+    # easy access.
+    - name: Upload TGZ Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ steps.constants.outputs.archive-tgz }}
+        asset_name: ${{ steps.constants.outputs.archive-tgz }}
+        asset_content_type: application/gzip
+    - name: Upload ZIP Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ steps.constants.outputs.archive-zip }}
+        asset_name: ${{ steps.constants.outputs.archive-zip }}
+        asset_content_type: application/zip

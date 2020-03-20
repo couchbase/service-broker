@@ -6,8 +6,12 @@
 *~
 *.deepcopy.go
 *.sw[a-z]
+*.zip
+*.tar.gz
 
+/archives/
 /build/
+/crds
 /vendor/
 /generated/
-/example/broker.couchbase.com_*
+/broker.couchbase.com_*

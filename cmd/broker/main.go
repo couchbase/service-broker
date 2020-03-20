@@ -35,7 +35,7 @@ func main() {
 	flag.Parse()
 
 	// Start the server.
-	glog.Infof("%s v%s (git commit %s)", version.Application, version.Version, version.GitCommit)
+	glog.Infof("%s %s (git commit %s)", version.Application, version.Version, version.GitCommit)
 
 	// Parse implicit configuration.
 	namespace, ok := os.LookupEnv("NAMESPACE")
