@@ -8,7 +8,7 @@ APPLICATION = couchbase-service-broker
 VERSION = 0.0.0
 IMPORT_PATH = github.com/couchbase/service-broker
 DOCKER_IMAGE = couchbase/service-broker
-
+PREFIX = /usr
 
 ################################################################################
 # Constants
@@ -18,7 +18,6 @@ DOCKER_IMAGE = couchbase/service-broker
 BUILD_DIR = build
 EXAMPLE_DIR = examples
 GENERATED_DIR = generated
-ARCHIVE_DIR = archives
 CRD_DIR = crds
 COMMIT = $(shell git rev-parse HEAD)
 SOURCE = $(shell find . -name *.go -type f)
@@ -29,17 +28,17 @@ GENSRC = pkg/revision/revision.go
 BROKER_BIN = $(BUILD_DIR)/bin/broker
 COVER_FILE = /tmp/cover.out
 ARCHIVE_BASE = $(APPLICATION)-$(VERSION)
+ARCHIVE_DIR = $(BUILD_DIR)/$(ARCHIVE_BASE)
 ARCHIVE_TGZ = $(ARCHIVE_BASE).tar.gz
 ARCHIVE_ZIP = $(ARCHIVE_BASE).zip
 STATIC_FILES = LICENSE README.md Dockerfile
 GENAPIBASE = github.com/couchbase/service-broker/pkg/apis
-GENAPIS = broker.couchbase.com:v1alpha1
+GENAPIS = $(GENAPIBASE)/broker.couchbase.com/v1alpha1
 GENARGS = --go-header-file hack/boilerplate.go.txt --output-base ../../..
 GENCLIENTNAME = servicebroker
 GENCLIENTS = $(IMPORT_PATH)/$(GENERATED_DIR)/clientset
 GENLISTERS = $(IMPORT_PATH)/$(GENERATED_DIR)/listers
 GENINFORMERS = $(IMPORT_PATH)/$(GENERATED_DIR)/informers
-
 
 ################################################################################
 # Top level make targets.
@@ -47,7 +46,7 @@ GENINFORMERS = $(IMPORT_PATH)/$(GENERATED_DIR)/informers
 
 # These phony targets do not refer to actual files and are intended to be
 # invoked by the end user.
-.PHONY: all build crd container test unit lint cover archive archive-tgz archive-zip
+.PHONY: all build crd container test unit lint cover archive archive-tgz archive-zip install
 
 # Main build target, makes the binary and CRD.
 all: build crd
@@ -91,20 +90,24 @@ archive-zip: $(ARCHIVE_ZIP)
 clean:
 	rm -rf $(BUILD_DIR) $(CRD_DIR) $(ARCHIVE_DIR) $(ARCHIVE_TGZ) $(ARCHIVE_ZIP)
 
+# Install copies from the processed install directory to the specified
+# prefix.  Used for DEB and RPM builds.
+install: $(ARCHIVE_DIR)
+	cp -a $(ARCHIVE_DIR) $(PREFIX)/share
 
 ################################################################################
 # Make rules
 ################################################################################
 
-# Generated code depends upon the kubernetes code generator and API sources.
-# The code generator still requires a GOPATH style install hence the hacks
-# with GOPATH and the output base.  This should be fixed in a later release.
+# Generated code depends upon API sources. The code generator still requires a
+# GOPATH style install hence the hacks with the output base.  This may get fixed
+# in a later release.
 $(GENERATED_DIR): $(APISRC)
 	rm -rf $(GENERATED_DIR)
-	go run k8s.io/code-generator/cmd/deepcopy-gen --input-dirs $(GENAPIBASE)/broker.couchbase.com/v1alpha1 -O zz_generated.deepcopy --bounding-dirs $(GENAPIBASE) $(GENARGS)
-	go run k8s.io/code-generator/cmd/client-gen --clientset-name $(GENCLIENTNAME) --input-base "" --input $(GENAPIBASE)/broker.couchbase.com/v1alpha1 --output-package $(GENCLIENTS) $(GENARGS)
-	go run k8s.io/code-generator/cmd/lister-gen --input-dirs $(GENAPIBASE)/broker.couchbase.com/v1alpha1 --output-package $(GENLISTERS) $(GENARGS)
-	go run k8s.io/code-generator/cmd/informer-gen --input-dirs $(GENAPIBASE)/broker.couchbase.com/v1alpha1 --versioned-clientset-package $(GENCLIENTS)/$(GENCLIENTNAME) --listers-package $(GENLISTERS) --output-package $(GENINFORMERS) $(GENARGS)
+	go run k8s.io/code-generator/cmd/deepcopy-gen --input-dirs $(GENAPIS) -O zz_generated.deepcopy --bounding-dirs $(GENAPIBASE) $(GENARGS)
+	go run k8s.io/code-generator/cmd/client-gen --clientset-name $(GENCLIENTNAME) --input-base "" --input $(GENAPIS) --output-package $(GENCLIENTS) $(GENARGS)
+	go run k8s.io/code-generator/cmd/lister-gen --input-dirs $(GENAPIS) --output-package $(GENLISTERS) $(GENARGS)
+	go run k8s.io/code-generator/cmd/informer-gen --input-dirs $(GENAPIS) --versioned-clientset-package $(GENCLIENTS)/$(GENCLIENTNAME) --listers-package $(GENLISTERS) --output-package $(GENINFORMERS) $(GENARGS)
 
 # The main broker binary depends on generated code and all source.
 # This should be the contents of pkg/ and the main file for correctness.
@@ -119,12 +122,12 @@ $(CRD_DIR): $(APISRC)
 
 # The TGZ archive relies on the archive directory.
 $(ARCHIVE_TGZ): $(ARCHIVE_DIR)
-	tar -czf $@ -C $(ARCHIVE_DIR) $(ARCHIVE_BASE)
+	tar -czf $@ -C $(BUILD_DIR) $(ARCHIVE_BASE)
 
 # The ZIP archive relies on the archive directory.
 $(ARCHIVE_ZIP): $(ARCHIVE_DIR)
-	cd $(ARCHIVE_DIR); zip -r $@ $(ARCHIVE_BASE)
-	mv $(ARCHIVE_DIR)/$@ .
+	cd $(BUILD_DIR); zip -r $@ $(ARCHIVE_BASE)
+	mv $(BUILD_DIR)/$@ .
 
 # The archive directory is used to generate release packages (tar.gz or zip).
 # Static resources are copied over first and processed to replace the magic
@@ -134,8 +137,8 @@ $(ARCHIVE_ZIP): $(ARCHIVE_DIR)
 # for both RPM and DEB generation in future.
 $(ARCHIVE_DIR): $(STATIC_FILES) $(EXAMPLES) $(CRD_DIR) $(BROKER_BIN)
 	rm -rf $@
-	mkdir -p $@/$(ARCHIVE_BASE)
-	cp -a $(EXAMPLE_DIR) $(STATIC_FILES) $@/$(ARCHIVE_BASE)
-	find $@/$(ARCHIVE_BASE) -type f -exec sed -i "s/0\.0\.0/$(VERSION)/g" {} \;
-	cp -a $(CRD_DIR)/* $@/$(ARCHIVE_BASE)/$(EXAMPLE_DIR)
-	cp -a $(BUILD_DIR) $@/$(ARCHIVE_BASE)
+	mkdir -p $@
+	cp -a $(EXAMPLE_DIR) $(STATIC_FILES) $@
+	find $@ -type f -exec sed -i "s/0\.0\.0/$(VERSION)/g" {} \;
+	cp -a $(CRD_DIR)/* $@/$(EXAMPLE_DIR)
+	cp -a $(BUILD_DIR)/bin $@
