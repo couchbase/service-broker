@@ -4,14 +4,11 @@
 .idea
 
 *~
-*.deepcopy.go
 *.sw[a-z]
 *.zip
 *.tar.gz
 
 /archives/
 /build/
-/crds
+/crds/
 /vendor/
-/generated/
-/broker.couchbase.com_*
