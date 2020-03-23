@@ -10,7 +10,7 @@ package v1alpha1
 import (
 	time "time"
 
-	versioned "github.com/couchbase/service-broker/generated/clientset/versioned"
+	servicebroker "github.com/couchbase/service-broker/generated/clientset/servicebroker"
 	internalinterfaces "github.com/couchbase/service-broker/generated/informers/externalversions/internalinterfaces"
 	v1alpha1 "github.com/couchbase/service-broker/generated/listers/broker.couchbase.com/v1alpha1"
 	brokercouchbasecomv1alpha1 "github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1alpha1"
@@ -36,14 +36,14 @@ type couchbaseServiceBrokerConfigInformer struct {
 // NewCouchbaseServiceBrokerConfigInformer constructs a new informer for CouchbaseServiceBrokerConfig type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewCouchbaseServiceBrokerConfigInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+func NewCouchbaseServiceBrokerConfigInformer(client servicebroker.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewFilteredCouchbaseServiceBrokerConfigInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
 // NewFilteredCouchbaseServiceBrokerConfigInformer constructs a new informer for CouchbaseServiceBrokerConfig type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredCouchbaseServiceBrokerConfigInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredCouchbaseServiceBrokerConfigInformer(client servicebroker.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
@@ -65,7 +65,7 @@ func NewFilteredCouchbaseServiceBrokerConfigInformer(client versioned.Interface,
 	)
 }
 
-func (f *couchbaseServiceBrokerConfigInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+func (f *couchbaseServiceBrokerConfigInformer) defaultInformer(client servicebroker.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
 	return NewFilteredCouchbaseServiceBrokerConfigInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 

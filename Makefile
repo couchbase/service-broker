@@ -28,11 +28,17 @@ DEPSRC = go.mod
 GENSRC = pkg/revision/revision.go
 BROKER_BIN = $(BUILD_DIR)/bin/broker
 COVER_FILE = /tmp/cover.out
-CODEGEN = vendor/k8s.io/code-generator
 ARCHIVE_BASE = $(APPLICATION)-$(VERSION)
 ARCHIVE_TGZ = $(ARCHIVE_BASE).tar.gz
 ARCHIVE_ZIP = $(ARCHIVE_BASE).zip
 STATIC_FILES = LICENSE README.md Dockerfile
+GENAPIBASE = github.com/couchbase/service-broker/pkg/apis
+GENAPIS = broker.couchbase.com:v1alpha1
+GENARGS = --go-header-file hack/boilerplate.go.txt --output-base ../../..
+GENCLIENTNAME = servicebroker
+GENCLIENTS = $(IMPORT_PATH)/$(GENERATED_DIR)/clientset
+GENLISTERS = $(IMPORT_PATH)/$(GENERATED_DIR)/listers
+GENINFORMERS = $(IMPORT_PATH)/$(GENERATED_DIR)/informers
 
 
 ################################################################################
@@ -93,14 +99,12 @@ clean:
 # Generated code depends upon the kubernetes code generator and API sources.
 # The code generator still requires a GOPATH style install hence the hacks
 # with GOPATH and the output base.  This should be fixed in a later release.
-$(GENERATED_DIR): $(CODEGEN) $(APISRC)
+$(GENERATED_DIR): $(APISRC)
 	rm -rf $(GENERATED_DIR)
-	GOPATH=$(HOME) ./vendor/k8s.io/code-generator/generate-groups.sh all github.com/couchbase/service-broker/generated github.com/couchbase/service-broker/pkg/apis broker.couchbase.com:v1alpha1 --go-header-file hack/boilerplate.go.txt --output-base ../../..
-
-# The code generator is run as a script expects to be able to install itself
-# and many other horrors, so needs to be cloned.
-$(CODEGEN):
-	git clone -b kubernetes-1.13.4 https://github.com/kubernetes/code-generator $(CODEGEN)
+	go run k8s.io/code-generator/cmd/deepcopy-gen --input-dirs $(GENAPIBASE)/broker.couchbase.com/v1alpha1 -O zz_generated.deepcopy --bounding-dirs $(GENAPIBASE) $(GENARGS)
+	go run k8s.io/code-generator/cmd/client-gen --clientset-name $(GENCLIENTNAME) --input-base "" --input $(GENAPIBASE)/broker.couchbase.com/v1alpha1 --output-package $(GENCLIENTS) $(GENARGS)
+	go run k8s.io/code-generator/cmd/lister-gen --input-dirs $(GENAPIBASE)/broker.couchbase.com/v1alpha1 --output-package $(GENLISTERS) $(GENARGS)
+	go run k8s.io/code-generator/cmd/informer-gen --input-dirs $(GENAPIBASE)/broker.couchbase.com/v1alpha1 --versioned-clientset-package $(GENCLIENTS)/$(GENCLIENTNAME) --listers-package $(GENLISTERS) --output-package $(GENINFORMERS) $(GENARGS)
 
 # The main broker binary depends on generated code and all source.
 # This should be the contents of pkg/ and the main file for correctness.

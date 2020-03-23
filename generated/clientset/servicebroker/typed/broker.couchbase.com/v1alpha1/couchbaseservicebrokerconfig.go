@@ -10,7 +10,7 @@ package v1alpha1
 import (
 	"time"
 
-	scheme "github.com/couchbase/service-broker/generated/clientset/versioned/scheme"
+	scheme "github.com/couchbase/service-broker/generated/clientset/servicebroker/scheme"
 	v1alpha1 "github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"

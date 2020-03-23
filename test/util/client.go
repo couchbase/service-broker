@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	brokerclient "github.com/couchbase/service-broker/generated/clientset/versioned"
-	brokerclientfake "github.com/couchbase/service-broker/generated/clientset/versioned/fake"
+	"github.com/couchbase/service-broker/generated/clientset/servicebroker"
+	servicebrokerfake "github.com/couchbase/service-broker/generated/clientset/servicebroker/fake"
 	v1 "github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/client"
 
@@ -59,7 +59,7 @@ var (
 // control over behaviour driven development.
 type clientsImpl struct {
 	kubernetes kubernetesclient.Interface
-	broker     brokerclient.Interface
+	broker     servicebroker.Interface
 	dynamic    dynamicclient.Interface
 	mapper     meta.RESTMapper
 }
@@ -68,7 +68,7 @@ type clientsImpl struct {
 func NewClients() (client.Clients, error) {
 	// Create all the clients, seeding with default objects.
 	kubernetes := kubernetesclientfake.NewSimpleClientset()
-	broker := brokerclientfake.NewSimpleClientset(defaultBrokerObjects...)
+	broker := servicebrokerfake.NewSimpleClientset(defaultBrokerObjects...)
 	dynamic := dynamicclientfake.NewSimpleDynamicClient(scheme.Scheme)
 
 	// Initialize the discovery API.
@@ -146,7 +146,7 @@ func (c *clientsImpl) Kubernetes() kubernetesclient.Interface {
 }
 
 // Broker returns a typed client for service broker resources.
-func (c *clientsImpl) Broker() brokerclient.Interface {
+func (c *clientsImpl) Broker() servicebroker.Interface {
 	return c.broker
 }
 

@@ -12,7 +12,7 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/couchbase/service-broker/generated/clientset/versioned"
+	servicebroker "github.com/couchbase/service-broker/generated/clientset/servicebroker"
 	brokercouchbasecom "github.com/couchbase/service-broker/generated/informers/externalversions/broker.couchbase.com"
 	internalinterfaces "github.com/couchbase/service-broker/generated/informers/externalversions/internalinterfaces"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,7 +25,7 @@ import (
 type SharedInformerOption func(*sharedInformerFactory) *sharedInformerFactory
 
 type sharedInformerFactory struct {
-	client           versioned.Interface
+	client           servicebroker.Interface
 	namespace        string
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	lock             sync.Mutex
@@ -65,7 +65,7 @@ func WithNamespace(namespace string) SharedInformerOption {
 }
 
 // NewSharedInformerFactory constructs a new instance of sharedInformerFactory for all namespaces.
-func NewSharedInformerFactory(client versioned.Interface, defaultResync time.Duration) SharedInformerFactory {
+func NewSharedInformerFactory(client servicebroker.Interface, defaultResync time.Duration) SharedInformerFactory {
 	return NewSharedInformerFactoryWithOptions(client, defaultResync)
 }
 
@@ -73,12 +73,12 @@ func NewSharedInformerFactory(client versioned.Interface, defaultResync time.Dur
 // Listers obtained via this SharedInformerFactory will be subject to the same filters
 // as specified here.
 // Deprecated: Please use NewSharedInformerFactoryWithOptions instead
-func NewFilteredSharedInformerFactory(client versioned.Interface, defaultResync time.Duration, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) SharedInformerFactory {
+func NewFilteredSharedInformerFactory(client servicebroker.Interface, defaultResync time.Duration, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) SharedInformerFactory {
 	return NewSharedInformerFactoryWithOptions(client, defaultResync, WithNamespace(namespace), WithTweakListOptions(tweakListOptions))
 }
 
 // NewSharedInformerFactoryWithOptions constructs a new instance of a SharedInformerFactory with additional options.
-func NewSharedInformerFactoryWithOptions(client versioned.Interface, defaultResync time.Duration, options ...SharedInformerOption) SharedInformerFactory {
+func NewSharedInformerFactoryWithOptions(client servicebroker.Interface, defaultResync time.Duration, options ...SharedInformerOption) SharedInformerFactory {
 	factory := &sharedInformerFactory{
 		client:           client,
 		namespace:        v1.NamespaceAll,

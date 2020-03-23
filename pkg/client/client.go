@@ -1,7 +1,7 @@
 package client
 
 import (
-	"github.com/couchbase/service-broker/generated/clientset/versioned"
+	"github.com/couchbase/service-broker/generated/clientset/servicebroker"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
@@ -16,7 +16,7 @@ type Clients interface {
 	Kubernetes() kubernetes.Interface
 
 	// Broker returns a typed client for service broker resources.
-	Broker() versioned.Interface
+	Broker() servicebroker.Interface
 
 	// Dynamic returns a dynamic client for Kubernetes resources.
 	Dynamic() dynamic.Interface
@@ -30,7 +30,7 @@ type Clients interface {
 type clientsImpl struct {
 	config     *rest.Config
 	kubernetes kubernetes.Interface
-	broker     versioned.Interface
+	broker     servicebroker.Interface
 	dynamic    dynamic.Interface
 	mapper     meta.RESTMapper
 }
@@ -48,7 +48,7 @@ func New() (Clients, error) {
 		return nil, err
 	}
 
-	broker, err := versioned.NewForConfig(config)
+	broker, err := servicebroker.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (c *clientsImpl) Kubernetes() kubernetes.Interface {
 }
 
 // Broker returns a typed client for service broker resources.
-func (c *clientsImpl) Broker() versioned.Interface {
+func (c *clientsImpl) Broker() servicebroker.Interface {
 	return c.broker
 }
 

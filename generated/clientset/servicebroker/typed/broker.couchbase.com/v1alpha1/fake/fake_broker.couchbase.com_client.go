@@ -8,7 +8,7 @@
 package fake
 
 import (
-	v1alpha1 "github.com/couchbase/service-broker/generated/clientset/versioned/typed/broker.couchbase.com/v1alpha1"
+	v1alpha1 "github.com/couchbase/service-broker/generated/clientset/servicebroker/typed/broker.couchbase.com/v1alpha1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )

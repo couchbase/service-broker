@@ -8,7 +8,7 @@
 package v1alpha1
 
 import (
-	"github.com/couchbase/service-broker/generated/clientset/versioned/scheme"
+	"github.com/couchbase/service-broker/generated/clientset/servicebroker/scheme"
 	v1alpha1 "github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1alpha1"
 	rest "k8s.io/client-go/rest"
 )

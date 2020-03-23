@@ -10,14 +10,14 @@ package internalinterfaces
 import (
 	time "time"
 
-	versioned "github.com/couchbase/service-broker/generated/clientset/versioned"
+	servicebroker "github.com/couchbase/service-broker/generated/clientset/servicebroker"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// NewInformerFunc takes versioned.Interface and time.Duration to return a SharedIndexInformer.
-type NewInformerFunc func(versioned.Interface, time.Duration) cache.SharedIndexInformer
+// NewInformerFunc takes servicebroker.Interface and time.Duration to return a SharedIndexInformer.
+type NewInformerFunc func(servicebroker.Interface, time.Duration) cache.SharedIndexInformer
 
 // SharedInformerFactory a small interface to allow for adding an informer without an import cycle
 type SharedInformerFactory interface {
