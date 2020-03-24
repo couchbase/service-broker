@@ -7,5 +7,6 @@
 *.sw[a-z]
 *.zip
 *.tar.gz
+*.rpm
 
 /build/

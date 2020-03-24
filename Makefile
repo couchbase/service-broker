@@ -3,7 +3,7 @@
 #
 # These are controlled by the CI/CD system when an official build is produced.
 # Development builds are distinguished by git commit.
-# These should be set via "make -e VERSION=1.0.0-electric-emu"
+# These should be set via "make -e VERSION=1.0.0" REVISION="beta1"
 ################################################################################
 
 # This is the application name, this affects version strings and packaging.
@@ -17,6 +17,10 @@ APPLICATION = couchbase-service-broker
 # release is created then the source is pre-processed and instances of 0.0.0
 # are replaced with whatever VERSION has been set to.
 VERSION = 0.0.0
+
+# Revision is a packaging thing, but does allow the addition of beta suffixes.
+# This is usually a patchset on top of the official release.
+REVISION = 1
 
 # This is the go import path of the module and affects client code.
 IMPORT_PATH = github.com/couchbase/service-broker
@@ -66,7 +70,7 @@ APISRC = $(shell find pkg/apis -name [^z]*.go -type f)
 
 # All files in the examples directory will cause a rebuild of the package
 # archives.
-EXAMPLES = $(shell find $(EXAMPLE_DIR))
+EXAMPLES = $(shell find $(EXAMPLE_DIR) -type f)
 
 # Module dependencies managed by go dep trigger a rebuild of all binaries.
 DEPSRC = go.mod
@@ -77,24 +81,30 @@ BROKER_BIN = $(BUILD_DIR)/bin/broker
 # A list of all binary targets to be copied into an archive.
 BINARIES = $(BROKER_BIN)
 
-# A list of all example files.
-EXAMPLES = $(shell find $(EXAMPLE_DIR) -type f)
-
 # This is the code coverage file used by unit testing.
 COVER_FILE = /tmp/cover.out
 
 # This is the base name for build archives e.g. package-0.0.0.
+# This is especially important for RPM builds where the tarball and
+# directory must be named this.
 INSTALL_BASE = $(APPLICATION)-$(VERSION)
+
+# This is the full name of the release, the pase version plus the
+# packaged revision (e.g. patch set).
+INSTALL_FULL = $(INSTALL_BASE)-$(REVISION)
 
 # This is the directory into which resources are installed before they are
 # archived.
-INSTALL_DIR = $(PREFIX)/$(INSTALL_BASE)
+INSTALL_DIR = $(PREFIX)/$(INSTALL_FULL)
 
 # This is the name for the UNIX archive.
-ARCHIVE_TGZ = $(INSTALL_BASE).tar.gz
+ARCHIVE_TGZ = $(INSTALL_FULL).tar.gz
 
 # This is the name for the Windows archive.
-ARCHIVE_ZIP = $(INSTALL_BASE).zip
+ARCHIVE_ZIP = $(INSTALL_FULL).zip
+
+# This is the name for the RPM archive.
+RPM = $(INSTALL_FULL).x86_64.rpm
 
 # Binary targets in the install, these are translated from build/bin to bin
 # in the final install.
@@ -137,7 +147,7 @@ GENINFORMERS = $(IMPORT_PATH)/$(GENERATED_DIR)/informers
 
 # These phony targets do not refer to actual files and are intended to be
 # invoked by the end user.
-.PHONY: all build crd container test unit lint cover install archive archive-tgz archive-zip
+.PHONY: all build crd container test unit lint cover install archive archive-tgz archive-zip rpm
 
 # Main build target, makes the binary and CRD.
 all: build crd
@@ -180,9 +190,12 @@ archive-tgz: $(ARCHIVE_TGZ)
 # Create a ZIP release artifacts.
 archive-zip: $(ARCHIVE_ZIP)
 
+# Build an RPM package.
+rpm: $(RPM)
+
 # Clean all generated code and artifacts.
 clean:
-	rm -rf $(BUILD_DIR) $(CRD_DIR) $(ARCHIVE_TGZ) $(ARCHIVE_ZIP)
+	rm -rf $(BUILD_DIR) $(CRD_DIR) $(ARCHIVE_TGZ) $(ARCHIVE_ZIP) $(RPM)
 
 ################################################################################
 # Make rules
@@ -211,12 +224,23 @@ $(CRD_DIR)/%: $(APISRC)
 
 # The TGZ archive relies on the archive directory.
 $(ARCHIVE_TGZ): $(INSTALL_TARGETS)
-	tar -czf $@ -C $(PREFIX) $(INSTALL_BASE)
+	tar -czf $@ -C $(PREFIX) $(INSTALL_FULL)
 
 # The ZIP archive relies on the archive directory.
 $(ARCHIVE_ZIP): $(INSTALL_TARGETS)
-	@cd $(PREFIX); zip -r $@ $(INSTALL_BASE)
+	@cd $(PREFIX); zip -r $@ $(INSTALL_FULL)
 	@mv $(PREFIX)/$@ .
+
+# The RPM build target archives the source directory and installs it
+# along with the spec into the RPM build directory.  The spec is updated
+# to contain the correct application and versioning.  The final RPM is
+# copied back locally.
+%.rpm: $(SOURCE) $(EXAMPLES)
+	@mkdir -p $(HOME)/rpmbuild/{SPECS,SOURCES}
+	cd ..; cp -a service-broker $(INSTALL_BASE); tar czf $(INSTALL_BASE).tar.gz $(INSTALL_BASE); cp $(INSTALL_BASE).tar.gz $(HOME)/rpmbuild/SOURCES
+	sed -e "s,0\.0\.0,$(VERSION),g" -e "s,99999,$(REVISION),g" -e "s,couchbase-service-broker,$(APPLICATION),g" redhat/servicebroker.spec > $(HOME)/rpmbuild/SPECS/servicebroker.spec
+	rpmbuild -ba $(HOME)/rpmbuild/SPECS/servicebroker.spec
+	cp $(HOME)/rpmbuild/RPMS/x86_64/$(RPM) .
 
 # Default make target for install files copies them over with existing permissions.
 $(INSTALL_DIR)/%: %
