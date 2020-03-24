@@ -11,7 +11,7 @@ import (
 	"time"
 
 	scheme "github.com/couchbase/service-broker/generated/clientset/servicebroker/scheme"
-	v1alpha1 "github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1alpha1"
+	v1alpha1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -44,7 +44,7 @@ type serviceBrokerConfigs struct {
 }
 
 // newServiceBrokerConfigs returns a ServiceBrokerConfigs
-func newServiceBrokerConfigs(c *BrokerV1alpha1Client, namespace string) *serviceBrokerConfigs {
+func newServiceBrokerConfigs(c *ServicebrokerV1alpha1Client, namespace string) *serviceBrokerConfigs {
 	return &serviceBrokerConfigs{
 		client: c.RESTClient(),
 		ns:     namespace,

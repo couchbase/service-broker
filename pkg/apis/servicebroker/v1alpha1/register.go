@@ -9,7 +9,7 @@ const (
 	ServiceBrokerConfigKind = "ServiceBrokerConfig"
 	ServiceBrokerConfigName = "servicebrokerconfigs"
 	GroupVersion            = "v1alpha1"
-	GroupName               = "broker.couchbase.com"
+	GroupName               = "servicebroker.couchbase.com"
 	Group                   = GroupName + "/" + GroupVersion
 )
 

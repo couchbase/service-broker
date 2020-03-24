@@ -9,8 +9,8 @@ package fake
 
 import (
 	clientset "github.com/couchbase/service-broker/generated/clientset/servicebroker"
-	brokerv1alpha1 "github.com/couchbase/service-broker/generated/clientset/servicebroker/typed/broker.couchbase.com/v1alpha1"
-	fakebrokerv1alpha1 "github.com/couchbase/service-broker/generated/clientset/servicebroker/typed/broker.couchbase.com/v1alpha1/fake"
+	servicebrokerv1alpha1 "github.com/couchbase/service-broker/generated/clientset/servicebroker/typed/servicebroker/v1alpha1"
+	fakeservicebrokerv1alpha1 "github.com/couchbase/service-broker/generated/clientset/servicebroker/typed/servicebroker/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -65,7 +65,7 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 
 var _ clientset.Interface = &Clientset{}
 
-// BrokerV1alpha1 retrieves the BrokerV1alpha1Client
-func (c *Clientset) BrokerV1alpha1() brokerv1alpha1.BrokerV1alpha1Interface {
-	return &fakebrokerv1alpha1.FakeBrokerV1alpha1{Fake: &c.Fake}
+// ServicebrokerV1alpha1 retrieves the ServicebrokerV1alpha1Client
+func (c *Clientset) ServicebrokerV1alpha1() servicebrokerv1alpha1.ServicebrokerV1alpha1Interface {
+	return &fakeservicebrokerv1alpha1.FakeServicebrokerV1alpha1{Fake: &c.Fake}
 }

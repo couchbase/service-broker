@@ -8,22 +8,22 @@
 package fake
 
 import (
-	v1alpha1 "github.com/couchbase/service-broker/generated/clientset/servicebroker/typed/broker.couchbase.com/v1alpha1"
+	v1alpha1 "github.com/couchbase/service-broker/generated/clientset/servicebroker/typed/servicebroker/v1alpha1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )
 
-type FakeBrokerV1alpha1 struct {
+type FakeServicebrokerV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeBrokerV1alpha1) ServiceBrokerConfigs(namespace string) v1alpha1.ServiceBrokerConfigInterface {
+func (c *FakeServicebrokerV1alpha1) ServiceBrokerConfigs(namespace string) v1alpha1.ServiceBrokerConfigInterface {
 	return &FakeServiceBrokerConfigs{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeBrokerV1alpha1) RESTClient() rest.Interface {
+func (c *FakeServicebrokerV1alpha1) RESTClient() rest.Interface {
 	var ret *rest.RESTClient
 	return ret
 }

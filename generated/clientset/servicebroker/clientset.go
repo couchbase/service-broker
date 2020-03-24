@@ -10,7 +10,7 @@ package servicebroker
 import (
 	"fmt"
 
-	brokerv1alpha1 "github.com/couchbase/service-broker/generated/clientset/servicebroker/typed/broker.couchbase.com/v1alpha1"
+	servicebrokerv1alpha1 "github.com/couchbase/service-broker/generated/clientset/servicebroker/typed/servicebroker/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -18,19 +18,19 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	BrokerV1alpha1() brokerv1alpha1.BrokerV1alpha1Interface
+	ServicebrokerV1alpha1() servicebrokerv1alpha1.ServicebrokerV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	brokerV1alpha1 *brokerv1alpha1.BrokerV1alpha1Client
+	servicebrokerV1alpha1 *servicebrokerv1alpha1.ServicebrokerV1alpha1Client
 }
 
-// BrokerV1alpha1 retrieves the BrokerV1alpha1Client
-func (c *Clientset) BrokerV1alpha1() brokerv1alpha1.BrokerV1alpha1Interface {
-	return c.brokerV1alpha1
+// ServicebrokerV1alpha1 retrieves the ServicebrokerV1alpha1Client
+func (c *Clientset) ServicebrokerV1alpha1() servicebrokerv1alpha1.ServicebrokerV1alpha1Interface {
+	return c.servicebrokerV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -54,7 +54,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.brokerV1alpha1, err = brokerv1alpha1.NewForConfig(&configShallowCopy)
+	cs.servicebrokerV1alpha1, err = servicebrokerv1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.brokerV1alpha1 = brokerv1alpha1.NewForConfigOrDie(c)
+	cs.servicebrokerV1alpha1 = servicebrokerv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -79,7 +79,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.brokerV1alpha1 = brokerv1alpha1.New(c)
+	cs.servicebrokerV1alpha1 = servicebrokerv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

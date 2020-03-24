@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	informerv1 "github.com/couchbase/service-broker/generated/informers/externalversions/broker.couchbase.com/v1alpha1"
-	v1 "github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1alpha1"
+	informerv1 "github.com/couchbase/service-broker/generated/informers/externalversions/servicebroker/v1alpha1"
+	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/client"
 	"github.com/couchbase/service-broker/pkg/log"
 	"github.com/golang/glog"

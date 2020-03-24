@@ -9,7 +9,7 @@ metadata:
   name: couchbase-service-broker
 rules:
 - apiGroups:
-  - broker.couchbase.com
+  - servicebroker.couchbase.com
   resources:
   - servicebrokerconfigs
   verbs:
@@ -80,7 +80,7 @@ rules:
 # can see, along with what can be configured.  Templates are bound to a plan and
 # are rendered and created when a service instance/binding is created, then cleaned
 # up when deleted.
-apiVersion: broker.couchbase.com/v1alpha1
+apiVersion: servicebroker.couchbase.com/v1alpha1
 kind: ServiceBrokerConfig
 metadata:
   name: couchbase-service-broker

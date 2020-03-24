@@ -13,8 +13,8 @@ import (
 	time "time"
 
 	servicebroker "github.com/couchbase/service-broker/generated/clientset/servicebroker"
-	brokercouchbasecom "github.com/couchbase/service-broker/generated/informers/externalversions/broker.couchbase.com"
 	internalinterfaces "github.com/couchbase/service-broker/generated/informers/externalversions/internalinterfaces"
+	externalversionsservicebroker "github.com/couchbase/service-broker/generated/informers/externalversions/servicebroker"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -161,9 +161,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Broker() brokercouchbasecom.Interface
+	Servicebroker() externalversionsservicebroker.Interface
 }
 
-func (f *sharedInformerFactory) Broker() brokercouchbasecom.Interface {
-	return brokercouchbasecom.New(f, f.namespace, f.tweakListOptions)
+func (f *sharedInformerFactory) Servicebroker() externalversionsservicebroker.Interface {
+	return externalversionsservicebroker.New(f, f.namespace, f.tweakListOptions)
 }

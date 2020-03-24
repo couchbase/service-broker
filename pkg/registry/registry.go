@@ -18,7 +18,7 @@ import (
 
 const (
 	// labelBase is the root of all labels and annotations.
-	labelBase = "broker.couchbase.com"
+	labelBase = "servicebroker.couchbase.com"
 
 	// versionAnnotaiton recorder the broker version for upgrades.
 	versionAnnotaiton = labelBase + "/version"

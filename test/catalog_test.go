@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	v1 "github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1alpha1"
+	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/test/util"
 )
 

@@ -90,7 +90,7 @@ STATIC_FILES = LICENSE README.md Dockerfile
 GENAPIBASE = github.com/couchbase/service-broker/pkg/apis
 
 # This is the list of APIs to generate clients for.
-GENAPIS = $(GENAPIBASE)/broker.couchbase.com/v1alpha1
+GENAPIS = $(GENAPIBASE)/servicebroker/v1alpha1
 
 # These are generic arguments that need to be passed to client generation.
 GENARGS = --go-header-file hack/boilerplate.go.txt --output-base ../../..

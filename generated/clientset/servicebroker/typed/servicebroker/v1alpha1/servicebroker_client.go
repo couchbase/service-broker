@@ -9,26 +9,26 @@ package v1alpha1
 
 import (
 	"github.com/couchbase/service-broker/generated/clientset/servicebroker/scheme"
-	v1alpha1 "github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1alpha1"
+	v1alpha1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	rest "k8s.io/client-go/rest"
 )
 
-type BrokerV1alpha1Interface interface {
+type ServicebrokerV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	ServiceBrokerConfigsGetter
 }
 
-// BrokerV1alpha1Client is used to interact with features provided by the broker.couchbase.com group.
-type BrokerV1alpha1Client struct {
+// ServicebrokerV1alpha1Client is used to interact with features provided by the servicebroker.couchbase.com group.
+type ServicebrokerV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *BrokerV1alpha1Client) ServiceBrokerConfigs(namespace string) ServiceBrokerConfigInterface {
+func (c *ServicebrokerV1alpha1Client) ServiceBrokerConfigs(namespace string) ServiceBrokerConfigInterface {
 	return newServiceBrokerConfigs(c, namespace)
 }
 
-// NewForConfig creates a new BrokerV1alpha1Client for the given config.
-func NewForConfig(c *rest.Config) (*BrokerV1alpha1Client, error) {
+// NewForConfig creates a new ServicebrokerV1alpha1Client for the given config.
+func NewForConfig(c *rest.Config) (*ServicebrokerV1alpha1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
@@ -37,12 +37,12 @@ func NewForConfig(c *rest.Config) (*BrokerV1alpha1Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &BrokerV1alpha1Client{client}, nil
+	return &ServicebrokerV1alpha1Client{client}, nil
 }
 
-// NewForConfigOrDie creates a new BrokerV1alpha1Client for the given config and
+// NewForConfigOrDie creates a new ServicebrokerV1alpha1Client for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *rest.Config) *BrokerV1alpha1Client {
+func NewForConfigOrDie(c *rest.Config) *ServicebrokerV1alpha1Client {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -50,9 +50,9 @@ func NewForConfigOrDie(c *rest.Config) *BrokerV1alpha1Client {
 	return client
 }
 
-// New creates a new BrokerV1alpha1Client for the given RESTClient.
-func New(c rest.Interface) *BrokerV1alpha1Client {
-	return &BrokerV1alpha1Client{c}
+// New creates a new ServicebrokerV1alpha1Client for the given RESTClient.
+func New(c rest.Interface) *ServicebrokerV1alpha1Client {
+	return &ServicebrokerV1alpha1Client{c}
 }
 
 func setConfigDefaults(config *rest.Config) error {
@@ -70,7 +70,7 @@ func setConfigDefaults(config *rest.Config) error {
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *BrokerV1alpha1Client) RESTClient() rest.Interface {
+func (c *ServicebrokerV1alpha1Client) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}

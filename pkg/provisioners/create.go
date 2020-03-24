@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	v1 "github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1alpha1"
+	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/pkg/errors"
 	"github.com/couchbase/service-broker/pkg/operation"

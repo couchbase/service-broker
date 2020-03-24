@@ -8,7 +8,7 @@
 package fake
 
 import (
-	v1alpha1 "github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1alpha1"
+	v1alpha1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -19,13 +19,13 @@ import (
 
 // FakeServiceBrokerConfigs implements ServiceBrokerConfigInterface
 type FakeServiceBrokerConfigs struct {
-	Fake *FakeBrokerV1alpha1
+	Fake *FakeServicebrokerV1alpha1
 	ns   string
 }
 
-var servicebrokerconfigsResource = schema.GroupVersionResource{Group: "broker.couchbase.com", Version: "v1alpha1", Resource: "servicebrokerconfigs"}
+var servicebrokerconfigsResource = schema.GroupVersionResource{Group: "servicebroker.couchbase.com", Version: "v1alpha1", Resource: "servicebrokerconfigs"}
 
-var servicebrokerconfigsKind = schema.GroupVersionKind{Group: "broker.couchbase.com", Version: "v1alpha1", Kind: "ServiceBrokerConfig"}
+var servicebrokerconfigsKind = schema.GroupVersionKind{Group: "servicebroker.couchbase.com", Version: "v1alpha1", Kind: "ServiceBrokerConfig"}
 
 // Get takes name of the serviceBrokerConfig, and returns the corresponding serviceBrokerConfig object, and an error if there is any.
 func (c *FakeServiceBrokerConfigs) Get(name string, options v1.GetOptions) (result *v1alpha1.ServiceBrokerConfig, err error) {

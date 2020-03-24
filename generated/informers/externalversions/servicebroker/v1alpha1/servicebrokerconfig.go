@@ -12,8 +12,8 @@ import (
 
 	servicebroker "github.com/couchbase/service-broker/generated/clientset/servicebroker"
 	internalinterfaces "github.com/couchbase/service-broker/generated/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/couchbase/service-broker/generated/listers/broker.couchbase.com/v1alpha1"
-	brokercouchbasecomv1alpha1 "github.com/couchbase/service-broker/pkg/apis/broker.couchbase.com/v1alpha1"
+	v1alpha1 "github.com/couchbase/service-broker/generated/listers/servicebroker/v1alpha1"
+	servicebrokerv1alpha1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -50,16 +50,16 @@ func NewFilteredServiceBrokerConfigInformer(client servicebroker.Interface, name
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.BrokerV1alpha1().ServiceBrokerConfigs(namespace).List(options)
+				return client.ServicebrokerV1alpha1().ServiceBrokerConfigs(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.BrokerV1alpha1().ServiceBrokerConfigs(namespace).Watch(options)
+				return client.ServicebrokerV1alpha1().ServiceBrokerConfigs(namespace).Watch(options)
 			},
 		},
-		&brokercouchbasecomv1alpha1.ServiceBrokerConfig{},
+		&servicebrokerv1alpha1.ServiceBrokerConfig{},
 		resyncPeriod,
 		indexers,
 	)
@@ -70,7 +70,7 @@ func (f *serviceBrokerConfigInformer) defaultInformer(client servicebroker.Inter
 }
 
 func (f *serviceBrokerConfigInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&brokercouchbasecomv1alpha1.ServiceBrokerConfig{}, f.defaultInformer)
+	return f.factory.InformerFor(&servicebrokerv1alpha1.ServiceBrokerConfig{}, f.defaultInformer)
 }
 
 func (f *serviceBrokerConfigInformer) Lister() v1alpha1.ServiceBrokerConfigLister {
