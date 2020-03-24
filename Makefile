@@ -41,6 +41,12 @@ DESTDIR =
 # These are specific to the build system and should not be changed.
 ################################################################################
 
+# The go binary.
+GO_BINARY = $(shell which go)
+
+# The path to the go binary.
+GO_BINARY_PATH = $(dir $(GO_BINARY))
+
 # Binary and packaging builds are created in this directory.
 BUILD_DIR = build
 
@@ -92,6 +98,9 @@ COVER_FILE = /tmp/cover.out
 # directory must be named this.
 PACKAGE_BASENAME = $(APPLICATION)-$(VERSION)
 
+# As above but with under scores because debian is different.
+PACKAGE_BASENAME_DEB = $(APPLICATION)_$(VERSION)
+
 # This is the name for the UNIX archive.
 ARCHIVE_TGZ = $(PACKAGE_BASENAME)-$(REVISION).tar.gz
 
@@ -100,6 +109,9 @@ ARCHIVE_ZIP = $(PACKAGE_BASENAME)-$(REVISION).zip
 
 # This is the name for the RPM archive.
 ARCHIVE_RPM = $(PACKAGE_BASENAME)-$(REVISION).x86_64.rpm
+
+# This is the name of the DEB archive.
+ARCHIVE_DEB = $(PACKAGE_BASENAME_DEB)-$(REVISION)_amd64.deb
 
 # This is the directory into which resources are installed before they are
 # archived.
@@ -157,7 +169,7 @@ GENINFORMERS = $(IMPORT_PATH)/$(GENERATED_DIR)/informers
 
 # These phony targets do not refer to actual files and are intended to be
 # invoked by the end user.
-.PHONY: all build crd container test unit lint cover install archive archive-tgz archive-zip rpm
+.PHONY: all build crd container test unit lint cover install archive archive-tgz archive-zip rpm deb
 
 # Main build target, makes the binary and CRD.
 all: build crd
@@ -203,9 +215,12 @@ archive-zip: $(ARCHIVE_ZIP)
 # Build an RPM package.
 rpm: $(ARCHIVE_RPM)
 
+# Build a DEB package.
+deb: $(ARCHIVE_DEB)
+
 # Clean all generated code and artifacts.
 clean:
-	rm -rf $(BUILD_DIR) *.tar.gz *.zip *.rpm
+	rm -rf $(BUILD_DIR) *.tar.gz *.zip *.rpm *.deb
 
 ################################################################################
 # Make rules
@@ -245,15 +260,30 @@ $(ARCHIVE_ZIP): $(INSTALL_TARGETS)
 # along with the spec into the RPM build directory.  The spec is updated
 # to contain the correct application and versioning.  The final RPM is
 # copied back locally.
-%.rpm: $(SOURCE) $(EXAMPLES)
-	@mkdir -p $(HOME)/rpmbuild/{SPECS,SOURCES}
+$(ARCHIVE_RPM): $(SOURCE) $(EXAMPLES)
+	@mkdir -p $(HOME)/rpmbuild/SPECS
+	@mkdir -p $(HOME)/rpmbuild/SOURCES
 	cd ..; cp -a service-broker $(PACKAGE_BASENAME); tar czf $(PACKAGE_BASENAME).tar.gz $(PACKAGE_BASENAME); mv $(PACKAGE_BASENAME).tar.gz $(HOME)/rpmbuild/SOURCES
 	sed -e "s,0\.0\.0,$(VERSION),g" -e "s,99999,$(REVISION),g" -e "s,couchbase-service-broker,$(APPLICATION),g" redhat/servicebroker.spec > $(HOME)/rpmbuild/SPECS/servicebroker.spec
 	rpmbuild -ba $(HOME)/rpmbuild/SPECS/servicebroker.spec
 	cp $(HOME)/rpmbuild/RPMS/x86_64/$(ARCHIVE_RPM) .
 
+# The DEB build target creates a debian archive.
+$(ARCHIVE_DEB): $(SOURCE) $(EXAMPLES)
+	sed -i -e "s,0\.0\.0,$(VERSION),g" -e "s,99999,$(REVISION),g" -e "s,couchbase-service-broker,$(APPLICATION),g" debian/changelog
+	sed -i -e "s,couchbase-service-broker,$(APPLICATION),g" debian/control
+	sed -i -e "s,couchbase-service-broker,$(APPLICATION),g" debian/copyright
+	cd ..; cp -a service-broker $(PACKAGE_BASENAME_DEB); tar czf $(PACKAGE_BASENAME_DEB).orig.tar.gz $(PACKAGE_BASENAME_DEB)
+	DEB_BUILD_OPTIONS=nocheck debuild --prepend-path=$(GO_BINARY_PATH) -uc -us
+	mv ../$(ARCHIVE_DEB) .
+
 # Default make target for install files copies them over with existing permissions.
 $(INSTALL_SHARE)/%: %
+	@mkdir -p `dirname $@`
+	cp $< $@
+
+# Default make target for binary files copies them over with existing permissions.
+$(INSTALL_BIN)/%: build/bin/%
 	@mkdir -p `dirname $@`
 	cp $< $@
 

@@ -1,0 +1,18 @@
+Source: couchbase-service-broker
+Maintainer: Simon Murray <spjmurray@yahoo.co.uk>
+Section: misc
+Priority: optional
+Standards-Version: 4.5.0
+Build-Depends: debhelper (>=9)
+
+Package: couchbase-service-broker
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Kubernetes Generic Service Broker
+ Kubernetes daemon that implements the Open Service Broker API.  It is powered
+ by a flexible templating engine that allows any Kubernetes resource or set of
+ resources to be configured and deployed with a single API call.  The broker
+ administrator is responsible for controlling what is deployed, therefore the
+ broker provides an abstraction layer around an application - hiding domain
+ specific complexity - and allows delegation of required privilege escalation
+ to the broker and not an end user.

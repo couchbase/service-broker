@@ -1,0 +1,6 @@
+#!/usr/bin/make -f
+override_dh_auto_install:
+	dh_auto_install -- -e PREFIX=/usr
+
+%:
+	dh $@

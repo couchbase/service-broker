@@ -8,5 +8,9 @@
 *.zip
 *.tar.gz
 *.rpm
+*.deb
 
 /build/
+/debian/.debhelper
+/debian/couchbase-service-broker*
+/debian/files
