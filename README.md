@@ -60,6 +60,8 @@ They contain the service broker binary, an example docker file and example YAML.
 Download the package, decompress it, then from the root director of the archive you can build the container image:
 
 ```bash
+$ sudo tar xf -C / couchbase-service-broker-0.0.0-99999.tar.gz
+$ cd /usr/local/share/couchbase-service-broker
 $ docker build . -t couchbase/service-broker:0.0.0
 ```
 
@@ -83,17 +85,23 @@ This will require modification to the example files.
 To build a release from source:
 
 ```bash
-$ make archive -e APPLICATION=acme-service-broker VERSION=1.0.0-beta1
+$ make archive -e APPLICATION=acme-service-broker VERSION=1.0.0 REVISION=beta1
 ```
 
 ## Installation
 
 Ensure the [Kubernetes Service Catalog is installed](https://svc-cat.io/docs/install/).
 
+Change to the install directory:
+
+```bash
+$ cd /usr/local/share/couchbase-service-broker
+```
+
 Install the custom resource definition:
 
 ```bash
-$ kubectl create -f example/servicebroker.couchbsae.com_servicebrokerconfigs.yaml
+$ kubectl create -f crds
 ```
 
 Select a configuration template to use.

@@ -93,27 +93,38 @@ COVER_FILE = /tmp/cover.out
 PACKAGE_BASENAME = $(APPLICATION)-$(VERSION)
 
 # This is the name for the UNIX archive.
-ARCHIVE_TGZ = $(PACKAGE_BASENAME).tar.gz
+ARCHIVE_TGZ = $(PACKAGE_BASENAME)-$(REVISION).tar.gz
 
 # This is the name for the Windows archive.
-ARCHIVE_ZIP = $(PACKAGE_BASENAME).zip
+ARCHIVE_ZIP = $(PACKAGE_BASENAME)-$(REVISION).zip
 
 # This is the name for the RPM archive.
 ARCHIVE_RPM = $(PACKAGE_BASENAME)-$(REVISION).x86_64.rpm
 
 # This is the directory into which resources are installed before they are
 # archived.
-INSTALL_DIR = $(DESTDIR)$(PREFIX)/share/$(APPLICATION)
+INSTALL_ROOT = $(DESTDIR)$(PREFIX)
+
+# This is where binaries live.  It needs to be under the directory
+# where the docker file resides or it won't work.
+INSTALL_BIN = $(INSTALL_ROOT)/share/$(APPLICATION)/bin
+
+# This is where shared files live e.g. documentation and examples.
+INSTALL_SHARE = $(INSTALL_ROOT)/share/$(APPLICATION)
 
 # Binary targets in the install, these are translated from build/bin to bin
 # in the final install.
-INSTALL_BIN_TARGETS = $(patsubst $(BUILD_DIR)/%,$(INSTALL_DIR)/%,$(BINARIES))
+INSTALL_BIN_TARGETS = $(patsubst $(BUILD_DIR)/bin/%,$(INSTALL_BIN)/%,$(BINARIES))
 
-# All source files to add to the archive (excluding binaries)
-INSTALL_SOURCES = LICENSE README.md Dockerfile $(EXAMPLES) $(CRDS)
+# All shared source files to install (excluding binaries)
+INSTALL_SHARE_SOURCES = LICENSE README.md Dockerfile $(EXAMPLES) $(CRDS)
 
-# Archive target files (excluding binaries)
-INSTALL_TARGETS = $(addprefix $(INSTALL_DIR)/,$(INSTALL_SOURCES)) $(INSTALL_BIN_TARGETS)
+# Archive target files that live under share (excluding binaries)
+INSTALL_SHARE_TARGETS = $(addprefix $(INSTALL_SHARE)/,$(INSTALL_SHARE_SOURCES))
+
+# All install targets, changing any of these will result in the rebuild
+# of an archive.
+INSTALL_TARGETS = $(INSTALL_SHARE_TARGETS) $(INSTALL_BIN_TARGETS)
 
 # This is the base directory to generate kubernetes API primitives from e.g.
 # clients and CRDs.
@@ -223,11 +234,11 @@ $(CRD_DIR)/%: $(APISRC)
 
 # The TGZ archive relies on the archive directory.
 $(ARCHIVE_TGZ): $(INSTALL_TARGETS)
-	tar -czf $@ -C $(DESTDIR) *
+	tar -czf $@ -C $(DESTDIR) .
 
 # The ZIP archive relies on the archive directory.
 $(ARCHIVE_ZIP): $(INSTALL_TARGETS)
-	@cd $(DESTDIR); zip -r $@ *
+	@cd $(DESTDIR); zip -r $@ .
 	@mv $(DESTDIR)/$@ .
 
 # The RPM build target archives the source directory and installs it
@@ -242,28 +253,24 @@ $(ARCHIVE_ZIP): $(INSTALL_TARGETS)
 	cp $(HOME)/rpmbuild/RPMS/x86_64/$(ARCHIVE_RPM) .
 
 # Default make target for install files copies them over with existing permissions.
-$(INSTALL_DIR)/%: %
-	@mkdir -p `dirname $@`
-	cp $< $@
-
-# Default make target for binary install files copies them over with existing permissions.
-$(INSTALL_DIR)/%: $(BUILD_DIR)/%
+$(INSTALL_SHARE)/%: %
 	@mkdir -p `dirname $@`
 	cp $< $@
 
 # Default make target for docker files does a translation of the binary paths.
-$(INSTALL_DIR)/Dockerfile: Dockerfile
+$(INSTALL_SHARE)/Dockerfile: Dockerfile
 	@mkdir -p `dirname $@`
 	sed -e "s,build/bin,bin,g" $< > $@
 
 # Default make target for Kubernetes YAML files does a translation of version numbers from
 # 0.0.0 to VERSION and couchbase/service-broker to DOCKER_IMAGE.
-$(INSTALL_DIR)/$(EXAMPLE_DIR)/%.yaml: $(EXAMPLE_DIR)/%.yaml
+$(INSTALL_SHARE)/$(EXAMPLE_DIR)/%.yaml: $(EXAMPLE_DIR)/%.yaml
 	@mkdir -p `dirname $@`
 	sed -e "s,0\.0\.0,$(VERSION),g" -e "s,couchbase/service-broker,$(DOCKER_IMAGE),g" $< > $@
 
 # Default make target for documentation does a translation of version numbers from
-# 0.0.0 to VERSION and couchbase/service-broker to DOCKER_IMAGE.
-$(INSTALL_DIR)/%.md: %.md
+# 0.0.0 to VERSION, 99999 to REVISION, couchbase/service-broker to DOCKER_IMAGE and
+# couchbase-sevice-broker to APPLICATION.
+$(INSTALL_SHARE)/%.md: %.md
 	@mkdir -p `dirname $@`
-	sed -e "s,0\.0\.0,$(VERSION),g" -e "s,couchbase/service-broker,$(DOCKER_IMAGE),g" $< > $@
+	sed -e "s,0\.0\.0,$(VERSION),g" -e "s,99999,$(REVISION),g" -e "s,couchbase/service-broker,$(DOCKER_IMAGE),g" -e "s,couchbase-sevice-broker,$(APPLICATION),g" -e "s,/usr/local,$(PREFIX),g" $< > $@
