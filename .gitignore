@@ -8,7 +8,4 @@
 *.zip
 *.tar.gz
 
-/archives/
 /build/
-/crds/
-/vendor/
