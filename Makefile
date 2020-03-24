@@ -25,6 +25,9 @@ IMPORT_PATH = github.com/couchbase/service-broker
 # VERSION variable.
 DOCKER_IMAGE = couchbase/service-broker
 
+# This is the install prefix.
+PREFIX = build
+
 ################################################################################
 # Constants
 #
@@ -43,6 +46,12 @@ GENERATED_DIR = generated
 
 # Custom resource definitions are generated in this directory.
 CRD_DIR = crds
+
+# CRD resource file names that will be generated.
+CRD_FILES = servicebroker.couchbase.com_servicebrokerconfigs.yaml
+
+# CRD target files that will be generated.
+CRDS = $(addprefix $(CRD_DIR)/,$(CRD_FILES))
 
 # This is the git commit used to build the binaries.
 COMMIT = $(shell git rev-parse HEAD)
@@ -65,25 +74,37 @@ DEPSRC = go.mod
 # This is the main broker binary output file.
 BROKER_BIN = $(BUILD_DIR)/bin/broker
 
+# A list of all binary targets to be copied into an archive.
+BINARIES = $(BROKER_BIN)
+
+# A list of all example files.
+EXAMPLES = $(shell find $(EXAMPLE_DIR) -type f)
+
 # This is the code coverage file used by unit testing.
 COVER_FILE = /tmp/cover.out
 
 # This is the base name for build archives e.g. package-0.0.0.
-ARCHIVE_BASE = $(APPLICATION)-$(VERSION)
+INSTALL_BASE = $(APPLICATION)-$(VERSION)
 
 # This is the directory into which resources are installed before they are
 # archived.
-ARCHIVE_DIR = $(BUILD_DIR)/$(ARCHIVE_BASE)
+INSTALL_DIR = $(PREFIX)/$(INSTALL_BASE)
 
 # This is the name for the UNIX archive.
-ARCHIVE_TGZ = $(ARCHIVE_BASE).tar.gz
+ARCHIVE_TGZ = $(INSTALL_BASE).tar.gz
 
 # This is the name for the Windows archive.
-ARCHIVE_ZIP = $(ARCHIVE_BASE).zip
+ARCHIVE_ZIP = $(INSTALL_BASE).zip
 
-# These are the files that will be copied into the archive that do not need
-# to be processed (e.g. have version and application names replaced).
-STATIC_FILES = LICENSE README.md Dockerfile
+# Binary targets in the install, these are translated from build/bin to bin
+# in the final install.
+INSTALL_BIN_TARGETS = $(patsubst $(BUILD_DIR)/%,$(INSTALL_DIR)/%,$(BINARIES))
+
+# All source files to add to the archive (excluding binaries)
+INSTALL_SOURCES = LICENSE README.md Dockerfile $(EXAMPLES) $(CRDS)
+
+# Archive target files (excluding binaries)
+INSTALL_TARGETS = $(addprefix $(INSTALL_DIR)/,$(INSTALL_SOURCES)) $(INSTALL_BIN_TARGETS)
 
 # This is the base directory to generate kubernetes API primitives from e.g.
 # clients and CRDs.
@@ -116,7 +137,7 @@ GENINFORMERS = $(IMPORT_PATH)/$(GENERATED_DIR)/informers
 
 # These phony targets do not refer to actual files and are intended to be
 # invoked by the end user.
-.PHONY: all build crd container test unit lint cover archive archive-tgz archive-zip
+.PHONY: all build crd container test unit lint cover install archive archive-tgz archive-zip
 
 # Main build target, makes the binary and CRD.
 all: build crd
@@ -125,7 +146,7 @@ all: build crd
 build: $(BROKER_BIN)
 
 # Build the CRDs.
-crd: $(CRD_DIR)
+crd: $(CRDS)
 
 # Build a container image.
 container: build
@@ -147,8 +168,11 @@ lint: ${GENERATED_DIR}
 unit: ${GENERATED_DIR}
 	go test -v -race -cover -coverpkg github.com/couchbase/service-broker/pkg/... -coverprofile=$(COVER_FILE) ./test
 
-# Main archival target, creates TGZ and ZIP artifacts.
-archive: archive-tgz archive-zip
+# Main install target, creates all archive files.
+install: $(INSTALL_TARGETS)
+
+# Main archival target, creates TGZ and ZIP archives.
+archive: install archive-tgz archive-zip
 
 # Create a TGZ release artefact.
 archive-tgz: $(ARCHIVE_TGZ)
@@ -158,7 +182,7 @@ archive-zip: $(ARCHIVE_ZIP)
 
 # Clean all generated code and artifacts.
 clean:
-	rm -rf $(BUILD_DIR) $(CRD_DIR) $(ARCHIVE_DIR) $(ARCHIVE_TGZ) $(ARCHIVE_ZIP)
+	rm -rf $(BUILD_DIR) $(CRD_DIR) $(ARCHIVE_TGZ) $(ARCHIVE_ZIP)
 
 ################################################################################
 # Make rules
@@ -170,7 +194,6 @@ clean:
 # GOPATH style install hence the hacks with the output base.  This may get fixed
 # in a later release.
 $(GENERATED_DIR): $(APISRC)
-	rm -rf $(GENERATED_DIR)
 	go run k8s.io/code-generator/cmd/deepcopy-gen --input-dirs $(GENAPIS) -O zz_generated.deepcopy --bounding-dirs $(GENAPIBASE) $(GENARGS)
 	go run k8s.io/code-generator/cmd/client-gen --clientset-name $(GENCLIENTNAME) --input-base "" --input $(GENAPIS) --output-package $(GENCLIENTS) $(GENARGS)
 	go run k8s.io/code-generator/cmd/lister-gen --input-dirs $(GENAPIS) --output-package $(GENLISTERS) $(GENARGS)
@@ -182,30 +205,42 @@ $(BROKER_BIN): $(GENERATED_DIR) $(SOURCE) $(DEPSRC)
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X $(IMPORT_PATH)/pkg/version.Application=$(APPLICATION) -X $(IMPORT_PATH)/pkg/version.Version=$(VERSION) -X $(IMPORT_PATH)/pkg/version.GitCommit=$(COMMIT)" -o $@ ./cmd/broker
 
 # The CRDs are auto generated and depend on the API source only.
-$(CRD_DIR): $(APISRC)
-	rm -rf $@
-	mkdir -p $@
+$(CRD_DIR)/%: $(APISRC)
+	@mkdir -p $(CRD_DIR)
 	go run sigs.k8s.io/controller-tools/cmd/controller-gen crd paths=./pkg/apis/... output:dir=$(CRD_DIR)
 
 # The TGZ archive relies on the archive directory.
-$(ARCHIVE_TGZ): $(ARCHIVE_DIR)
-	tar -czf $@ -C $(BUILD_DIR) $(ARCHIVE_BASE)
+$(ARCHIVE_TGZ): $(INSTALL_TARGETS)
+	tar -czf $@ -C $(PREFIX) $(INSTALL_BASE)
 
 # The ZIP archive relies on the archive directory.
-$(ARCHIVE_ZIP): $(ARCHIVE_DIR)
-	cd $(BUILD_DIR); zip -r $@ $(ARCHIVE_BASE)
-	mv $(BUILD_DIR)/$@ .
+$(ARCHIVE_ZIP): $(INSTALL_TARGETS)
+	@cd $(PREFIX); zip -r $@ $(INSTALL_BASE)
+	@mv $(PREFIX)/$@ .
 
-# The archive directory is used to generate release packages (tar.gz or zip).
-# Static resources are copied over first and processed to replace the magic
-# 0.0.0 with the version supplied by the environment.  This affects docs and
-# things like makefiles.  Finally the binaries are copied in.
-# This is a quick hack, and it should use an install target that can be used
-# for both RPM and DEB generation in future.
-$(ARCHIVE_DIR): $(STATIC_FILES) $(EXAMPLES) $(CRD_DIR) $(BROKER_BIN)
-	rm -rf $@
-	mkdir -p $@
-	cp -a $(EXAMPLE_DIR) $(STATIC_FILES) $@
-	find $@ -type f -exec sed -i "s/0\.0\.0/$(VERSION)/g" {} \;
-	cp -a $(CRD_DIR)/* $@/$(EXAMPLE_DIR)
-	cp -a $(BUILD_DIR)/bin $@
+# Default make target for install files copies them over with existing permissions.
+$(INSTALL_DIR)/%: %
+	@mkdir -p `dirname $@`
+	cp $< $@
+
+# Default make target for binary install files copies them over with existing permissions.
+$(INSTALL_DIR)/%: $(BUILD_DIR)/%
+	@mkdir -p `dirname $@`
+	cp $< $@
+
+# Default make target for docker files does a translation of the binary paths.
+$(INSTALL_DIR)/Dockerfile: Dockerfile
+	@mkdir -p `dirname $@`
+	sed -e "s,build/bin,bin,g" $< > $@
+
+# Default make target for Kubernetes YAML files does a translation of version numbers from
+# 0.0.0 to VERSION and couchbase/service-broker to DOCKER_IMAGE.
+$(INSTALL_DIR)/$(EXAMPLE_DIR)/%.yaml: $(EXAMPLE_DIR)/%.yaml
+	@mkdir -p `dirname $@`
+	sed -e "s,0\.0\.0,$(VERSION),g" -e "s,couchbase/service-broker,$(DOCKER_IMAGE),g" $< > $@
+
+# Default make target for documentation does a translation of version numbers from
+# 0.0.0 to VERSION and couchbase/service-broker to DOCKER_IMAGE.
+$(INSTALL_DIR)/%.md: %.md
+	@mkdir -p `dirname $@`
+	sed -e "s,0\.0\.0,$(VERSION),g" -e "s,couchbase/service-broker,$(DOCKER_IMAGE),g" $< > $@
