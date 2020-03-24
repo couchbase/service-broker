@@ -11,7 +11,7 @@ rules:
 - apiGroups:
   - broker.couchbase.com
   resources:
-  - couchbaseservicebrokerconfigs
+  - servicebrokerconfigs
   verbs:
   - list
   - watch
@@ -81,7 +81,7 @@ rules:
 # are rendered and created when a service instance/binding is created, then cleaned
 # up when deleted.
 apiVersion: broker.couchbase.com/v1alpha1
-kind: CouchbaseServiceBrokerConfig
+kind: ServiceBrokerConfig
 metadata:
   name: couchbase-service-broker
 spec:

@@ -106,7 +106,7 @@ var (
 
 	// basicConfiguration is the absolute minimum valid configuration allowed by the
 	// service broker configuration schema.
-	basicConfiguration = &v1.CouchbaseServiceBrokerConfigSpec{
+	basicConfiguration = &v1.ServiceBrokerConfigSpec{
 		Catalog: &v1.ServiceCatalog{
 			Services: []v1.ServiceOffering{
 				{
@@ -128,19 +128,19 @@ var (
 				},
 			},
 		},
-		Templates: []v1.CouchbaseServiceBrokerConfigTemplate{
+		Templates: []v1.ServiceBrokerConfigTemplate{
 			{
 				Name: dnsSnippetName,
 				Template: &runtime.RawExtension{
 					Raw: []byte(`{"nameservers":[]}`),
 				},
-				Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameter{
+				Parameters: []v1.ServiceBrokerConfigTemplateParameter{
 					{
 						Name: "nameserver",
-						Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterDefault{
+						Default: &v1.ServiceBrokerConfigTemplateParameterDefault{
 							String: &dnsDefault,
 						},
-						Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+						Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
 							{Path: &dnsSnippetNamespacePath},
 						},
 					},
@@ -150,86 +150,86 @@ var (
 				Name: "test-template",
 				// Populated by the configuration function.
 				Template: &runtime.RawExtension{},
-				Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameter{
+				Parameters: []v1.ServiceBrokerConfigTemplateParameter{
 					{
 						Name: "instance-name",
-						Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+						Source: &v1.ServiceBrokerConfigTemplateParameterSource{
 							Registry: &instanceNameRegistryEntry,
 						},
-						Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+						Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
 							{Path: &basicResourceNamePath},
 						},
 					},
 					{
 						Name: "automount-service-token",
-						Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterDefault{
+						Default: &v1.ServiceBrokerConfigTemplateParameterDefault{
 							Bool: &falseBool,
 						},
-						Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+						Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
 							{Path: &basicResourceAutomountPath},
 						},
 					},
 					{
 						Name: "priority",
-						Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterDefault{
+						Default: &v1.ServiceBrokerConfigTemplateParameterDefault{
 							Int: &zeroInt,
 						},
-						Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+						Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
 							{Path: &basicResourcePriorityPath},
 						},
 					},
 					{
 						Name: "sidecar",
-						Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterDefault{
+						Default: &v1.ServiceBrokerConfigTemplateParameterDefault{
 							Object: &runtime.RawExtension{
 								Raw: []byte(`{"name":"sidecar","image":"org/sidecar:tag"}`),
 							},
 						},
-						Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+						Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
 							{Path: &basicResourceContainersPath},
 						},
 					},
 					{
 						Name: "dns",
-						Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+						Source: &v1.ServiceBrokerConfigTemplateParameterSource{
 							Template: &dnsSnippetName,
 						},
-						Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+						Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
 							{Path: &basicResourceDNSPath},
 						},
 					},
 				},
 			},
 		},
-		Bindings: []v1.CouchbaseServiceBrokerConfigBinding{
+		Bindings: []v1.ServiceBrokerConfigBinding{
 			{
 				Name:    "test-binding",
 				Service: "test-offering",
 				Plan:    "test-plan",
-				ServiceInstance: &v1.CouchbaseServiceBrokerTemplateList{
-					Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameter{
+				ServiceInstance: &v1.ServiceBrokerTemplateList{
+					Parameters: []v1.ServiceBrokerConfigTemplateParameter{
 						{
 							Name: "instance-name",
-							Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
-								Format: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormat{
+							Source: &v1.ServiceBrokerConfigTemplateParameterSource{
+								Format: &v1.ServiceBrokerConfigTemplateParameterSourceFormat{
 									String: "instance-%s",
-									Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter{
+									Parameters: []v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter{
 										{
 											Registry: &instanceIDRegistryEntry,
 										},
 									},
 								},
 							},
-							Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+							Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
 								{Registry: &instanceNameRegistryEntry},
 							},
 						},
 						{
 							Name: "dashboard-url",
-							Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
-								Format: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormat{
+							Source: &v1.ServiceBrokerConfigTemplateParameterSource{
+								Format: &v1.ServiceBrokerConfigTemplateParameterSourceFormat{
 									String: dashboardURLMutationFormat,
-									Parameters: []v1.CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter{
+									Parameters: []v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter{
 										{
 											Registry: &instanceNameRegistryEntry,
 										},
@@ -239,7 +239,7 @@ var (
 									},
 								},
 							},
-							Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+							Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
 								{Registry: &dashboardURLRegistryKey},
 							},
 						},
@@ -248,7 +248,7 @@ var (
 						"test-template",
 					},
 				},
-				ServiceBinding: &v1.CouchbaseServiceBrokerTemplateList{},
+				ServiceBinding: &v1.ServiceBrokerTemplateList{},
 			},
 			{
 				Name:    "test-binding-2",
@@ -331,13 +331,13 @@ var (
 
 // EmptyConfiguration returns an empty configuration, useful for testing when users
 // really screw up.
-func EmptyConfiguration() *v1.CouchbaseServiceBrokerConfigSpec {
-	return &v1.CouchbaseServiceBrokerConfigSpec{}
+func EmptyConfiguration() *v1.ServiceBrokerConfigSpec {
+	return &v1.ServiceBrokerConfigSpec{}
 }
 
 // BasicConfiguration is the absolute minimum valid configuration allowed by the
 // service broker configuration schema.
-func BasicConfiguration() *v1.CouchbaseServiceBrokerConfigSpec {
+func BasicConfiguration() *v1.ServiceBrokerConfigSpec {
 	configuration := basicConfiguration.DeepCopy()
 
 	raw, err := json.Marshal(basicResource)
@@ -384,18 +384,18 @@ func BasicServiceBindingCreateRequest() *api.CreateServiceBindingRequest {
 }
 
 // RegistryParametersToRegistryWithDefault returns a parameter list as specified.
-func RegistryParametersToRegistryWithDefault(key, destination, defaultValue string, required bool) []v1.CouchbaseServiceBrokerConfigTemplateParameter {
-	return []v1.CouchbaseServiceBrokerConfigTemplateParameter{
+func RegistryParametersToRegistryWithDefault(key, destination, defaultValue string, required bool) []v1.ServiceBrokerConfigTemplateParameter {
+	return []v1.ServiceBrokerConfigTemplateParameter{
 		{
 			Name:     "test-parameter",
 			Required: required,
-			Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+			Source: &v1.ServiceBrokerConfigTemplateParameterSource{
 				Registry: &key,
 			},
-			Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterDefault{
+			Default: &v1.ServiceBrokerConfigTemplateParameterDefault{
 				String: &defaultValue,
 			},
-			Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+			Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
 				{Registry: &destination},
 			},
 		},
@@ -403,15 +403,15 @@ func RegistryParametersToRegistryWithDefault(key, destination, defaultValue stri
 }
 
 // ParametersToRegistry returns a parameter list as specified.
-func ParametersToRegistry(path, destination string, required bool) []v1.CouchbaseServiceBrokerConfigTemplateParameter {
-	return []v1.CouchbaseServiceBrokerConfigTemplateParameter{
+func ParametersToRegistry(path, destination string, required bool) []v1.ServiceBrokerConfigTemplateParameter {
+	return []v1.ServiceBrokerConfigTemplateParameter{
 		{
 			Name:     "test-parameter",
 			Required: required,
-			Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+			Source: &v1.ServiceBrokerConfigTemplateParameterSource{
 				Parameter: &path,
 			},
-			Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+			Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
 				{Registry: &destination},
 			},
 		},
@@ -419,36 +419,36 @@ func ParametersToRegistry(path, destination string, required bool) []v1.Couchbas
 }
 
 // ParametersToRegistryWithDefault returns a parameter list as specified.
-func ParametersToRegistryWithDefault(path, destination, defaultValue string, required bool) []v1.CouchbaseServiceBrokerConfigTemplateParameter {
-	return []v1.CouchbaseServiceBrokerConfigTemplateParameter{
+func ParametersToRegistryWithDefault(path, destination, defaultValue string, required bool) []v1.ServiceBrokerConfigTemplateParameter {
+	return []v1.ServiceBrokerConfigTemplateParameter{
 		{
 			Name:     "test-parameter",
 			Required: required,
-			Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
+			Source: &v1.ServiceBrokerConfigTemplateParameterSource{
 				Parameter: &path,
 			},
-			Default: &v1.CouchbaseServiceBrokerConfigTemplateParameterDefault{
+			Default: &v1.ServiceBrokerConfigTemplateParameterDefault{
 				String: &defaultValue,
 			},
-			Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+			Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
 				{Registry: &destination},
 			},
 		},
 	}
 }
 
-func KeyToRegistry(t v1.CouchbaseKeyType, e v1.CouchbaseKeyEncodingType, bits *int, destination string) []v1.CouchbaseServiceBrokerConfigTemplateParameter {
-	return []v1.CouchbaseServiceBrokerConfigTemplateParameter{
+func KeyToRegistry(t v1.KeyType, e v1.KeyEncodingType, bits *int, destination string) []v1.ServiceBrokerConfigTemplateParameter {
+	return []v1.ServiceBrokerConfigTemplateParameter{
 		{
 			Name: "test-private-key",
-			Source: &v1.CouchbaseServiceBrokerConfigTemplateParameterSource{
-				GenerateKey: &v1.CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateKey{
+			Source: &v1.ServiceBrokerConfigTemplateParameterSource{
+				GenerateKey: &v1.ServiceBrokerConfigTemplateParameterSourceGenerateKey{
 					Type:     t,
 					Encoding: e,
 					Bits:     bits,
 				},
 			},
-			Destinations: []v1.CouchbaseServiceBrokerConfigTemplateParameterDestination{
+			Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
 				{Registry: &destination},
 			},
 		},

@@ -9,25 +9,25 @@ import (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:categories=all;couchbase
 // +kubebuilder:resource:scope=Namespaced
-type CouchbaseServiceBrokerConfig struct {
+type ServiceBrokerConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              CouchbaseServiceBrokerConfigSpec `json:"spec"`
+	Spec              ServiceBrokerConfigSpec `json:"spec"`
 }
 
-// CouchbaseServiceBrokerConfigSpec defines the top level service broker configuration
+// ServiceBrokerConfigSpec defines the top level service broker configuration
 // data structure.
-type CouchbaseServiceBrokerConfigSpec struct {
+type ServiceBrokerConfigSpec struct {
 	// Catalog is the service catalog definition and is required.
 	Catalog *ServiceCatalog `json:"catalog"`
 
 	// Templates is a set of resource templates that can be rendered by the service broker and is required.
 	// +kubebuilder:validation:MinItems=1
-	Templates []CouchbaseServiceBrokerConfigTemplate `json:"templates"`
+	Templates []ServiceBrokerConfigTemplate `json:"templates"`
 
 	// Bindings is a set of bindings that link service plans to resource templates and is required.
 	// +kubebuilder:validation:MinItems=1
-	Bindings []CouchbaseServiceBrokerConfigBinding `json:"bindings"`
+	Bindings []ServiceBrokerConfigBinding `json:"bindings"`
 }
 
 // ServiceCatalog is defined by:
@@ -217,9 +217,9 @@ type MaintenanceInfo struct {
 	Version string `json:"version,omitempty"`
 }
 
-// CouchbaseServiceBrokerConfigTemplate defines a resource template for use when either
+// ServiceBrokerConfigTemplate defines a resource template for use when either
 // creating a service instance or service binding.
-type CouchbaseServiceBrokerConfigTemplate struct {
+type ServiceBrokerConfigTemplate struct {
 	// Name is the name of the template
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`
@@ -234,7 +234,7 @@ type CouchbaseServiceBrokerConfigTemplate struct {
 	// will be left in place.  When there is no existing configuration and no
 	// parameter is specified in the request then an optional default value is
 	// used.
-	Parameters []CouchbaseServiceBrokerConfigTemplateParameter `json:"parameters,omitempty"`
+	Parameters []ServiceBrokerConfigTemplateParameter `json:"parameters,omitempty"`
 
 	// Singleton alters the behaviour of resource creation.  Typically we will
 	// create a resource and use parameters to alter it's name, ensuring it
@@ -243,9 +243,9 @@ type CouchbaseServiceBrokerConfigTemplate struct {
 	Singleton bool `json:"singleton,omitempty"`
 }
 
-// CouchbaseServiceBrokerConfigTemplateParameter defines a parameter substitution
+// ServiceBrokerConfigTemplateParameter defines a parameter substitution
 // on a resource template.
-type CouchbaseServiceBrokerConfigTemplateParameter struct {
+type ServiceBrokerConfigTemplateParameter struct {
 	// Name is a textual name used to uniquely identify the parameter for
 	// the template.
 	// +kubebuilder:validation:MinLength=1
@@ -255,19 +255,19 @@ type CouchbaseServiceBrokerConfigTemplateParameter struct {
 	Required bool `json:"required,omitempty"`
 
 	// Default specifies the default value is if the parameter is not defined.
-	Default *CouchbaseServiceBrokerConfigTemplateParameterDefault `json:"default,omitempty"`
+	Default *ServiceBrokerConfigTemplateParameterDefault `json:"default,omitempty"`
 
 	// Source is source of the parameter.
-	Source *CouchbaseServiceBrokerConfigTemplateParameterSource `json:"source,omitempty"`
+	Source *ServiceBrokerConfigTemplateParameterSource `json:"source,omitempty"`
 
 	// Destinations is the destination of the parameter.
 	// +kubebuilder:validation:MinItems=1
-	Destinations []CouchbaseServiceBrokerConfigTemplateParameterDestination `json:"destinations"`
+	Destinations []ServiceBrokerConfigTemplateParameterDestination `json:"destinations"`
 }
 
-// CouchbaseServiceBrokerConfigTemplateParameterSource defines where parameters
+// ServiceBrokerConfigTemplateParameterSource defines where parameters
 // are sourced from.
-type CouchbaseServiceBrokerConfigTemplateParameterSource struct {
+type ServiceBrokerConfigTemplateParameterSource struct {
 	// Registry, if set, uses the corresponding registry value for the
 	// parameter source.
 	// +kubebuilder:validation:Pattern="^(instance:)?[a-zA-Z0-9-]+$"
@@ -279,36 +279,36 @@ type CouchbaseServiceBrokerConfigTemplateParameterSource struct {
 
 	// Format allows the collection of an arbitrary number of parameters into
 	// a string format.
-	Format *CouchbaseServiceBrokerConfigTemplateParameterSourceFormat `json:"format,omitempty"`
+	Format *ServiceBrokerConfigTemplateParameterSourceFormat `json:"format,omitempty"`
 
 	// GeneratePassword allows the generation of a random string, useful for password
 	// generation.
-	GeneratePassword *CouchbaseServiceBrokerConfigTemplateParameterSourceGeneratePassword `json:"generatePassword,omitempty"`
+	GeneratePassword *ServiceBrokerConfigTemplateParameterSourceGeneratePassword `json:"generatePassword,omitempty"`
 
 	// GenerateKey allow the generation of a private key.
-	GenerateKey *CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateKey `json:"generateKey,omitempty"`
+	GenerateKey *ServiceBrokerConfigTemplateParameterSourceGenerateKey `json:"generateKey,omitempty"`
 
 	// GenerateCertificate allows the generation of a public certificate.
-	GenerateCertificate *CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificate `json:"generateCertificate,omitempty"`
+	GenerateCertificate *ServiceBrokerConfigTemplateParameterSourceGenerateCertificate `json:"generateCertificate,omitempty"`
 
 	// Template allows the recursive rendering and inclusion of a named template.
 	Template *string `json:"template,omitempty"`
 }
 
-// CouchbaseServiceBrokerConfigTemplateParameterSourceFormat defines a formatting
+// ServiceBrokerConfigTemplateParameterSourceFormat defines a formatting
 // string and parameters.
-type CouchbaseServiceBrokerConfigTemplateParameterSourceFormat struct {
+type ServiceBrokerConfigTemplateParameterSourceFormat struct {
 	// String is the format string to use.
 	String string `json:"string"`
 
 	// Parameters is the set of parameters corresponding to the format string.
 	// All parameters must exist or the formatting operation will return nil.
 	// +kubebuilder:validation:MinItems=1
-	Parameters []CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"parameters"`
+	Parameters []ServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"parameters"`
 }
 
-// CouchbaseServiceBrokerConfigTemplateParameterSourceGeneratePassword defines a random string.
-type CouchbaseServiceBrokerConfigTemplateParameterSourceGeneratePassword struct {
+// ServiceBrokerConfigTemplateParameterSourceGeneratePassword defines a random string.
+type ServiceBrokerConfigTemplateParameterSourceGeneratePassword struct {
 	// Length is the length of the string to generate.
 	// +kubebuilder:validation:Minimum=1
 	Length int `json:"length"`
@@ -317,76 +317,76 @@ type CouchbaseServiceBrokerConfigTemplateParameterSourceGeneratePassword struct 
 	Dictionary *string `json:"dictionary,omitempty"`
 }
 
-// CouchbaseKeyType is a private key type.
-type CouchbaseKeyType string
+// KeyType is a private key type.
+type KeyType string
 
 const (
 	// RSA is widely supported, but the key sizes are large.
-	KeyTypeRSA CouchbaseKeyType = "rsa"
+	KeyTypeRSA KeyType = "rsa"
 
 	// KeyTypeEllipticP224 generates small keys relative to encryption strength.
-	KeyTypeEllipticP224 CouchbaseKeyType = "ecP244"
+	KeyTypeEllipticP224 KeyType = "ecP244"
 
 	// KeyTypeEllipticP256 generates small keys relative to encryption strength.
-	KeyTypeEllipticP256 CouchbaseKeyType = "ecP256"
+	KeyTypeEllipticP256 KeyType = "ecP256"
 
 	// KeyTypeEllipticP384 generates small keys relative to encryption strength.
-	KeyTypeEllipticP384 CouchbaseKeyType = "ecP384"
+	KeyTypeEllipticP384 KeyType = "ecP384"
 
 	// KeyTypeEllipticP521 generates small keys relative to encryption strength.
-	KeyTypeEllipticP521 CouchbaseKeyType = "ecP521"
+	KeyTypeEllipticP521 KeyType = "ecP521"
 
 	// KeyTypeED25519 generates small keys relative to encrption strength.
-	KeyTypeED25519 CouchbaseKeyType = "ed25519"
+	KeyTypeED25519 KeyType = "ed25519"
 )
 
-// CouchbaseKeyEncodingType is a private key encoding type.
-type CouchbaseKeyEncodingType string
+// KeyEncodingType is a private key encoding type.
+type KeyEncodingType string
 
 const (
 	// KeyEncodingPKCS1 may only be used with the RSA key type.
-	KeyEncodingPKCS1 CouchbaseKeyEncodingType = "pkcs1"
+	KeyEncodingPKCS1 KeyEncodingType = "pkcs1"
 
 	// KeyEncodingPKCS8 may be used for any key type.
-	KeyEncodingPKCS8 CouchbaseKeyEncodingType = "pkcs8"
+	KeyEncodingPKCS8 KeyEncodingType = "pkcs8"
 
 	// KeyEncodingEC may only be used with EC key types.
-	KeyEncodingEC CouchbaseKeyEncodingType = "ec"
+	KeyEncodingEC KeyEncodingType = "ec"
 )
 
-// CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateKey defines a private key.
-type CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateKey struct {
+// ServiceBrokerConfigTemplateParameterSourceGenerateKey defines a private key.
+type ServiceBrokerConfigTemplateParameterSourceGenerateKey struct {
 	// Type is the type of key as defined above.
-	Type CouchbaseKeyType `json:"type"`
+	Type KeyType `json:"type"`
 
 	// Encoding is how to package the key.
-	Encoding CouchbaseKeyEncodingType `json:"encoding"`
+	Encoding KeyEncodingType `json:"encoding"`
 
 	// Bits is the number of bits of key to generate, only relevant for RSA.
 	Bits *int `json:"bits,omitempty"`
 }
 
-// CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage defines the certificate use.
-type CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage string
+// ServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage defines the certificate use.
+type ServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage string
 
 const (
 	// CA is used for signing certificates and providing a trust anchor.
-	CA CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage = "ca"
+	CA ServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage = "ca"
 
 	// Server is used for server certificates.
-	Server CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage = "server"
+	Server ServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage = "server"
 
 	// Client is used for client certificates.
-	Client CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage = "client"
+	Client ServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage = "client"
 )
 
-// CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificate defines a certificate.
-type CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificate struct {
+// ServiceBrokerConfigTemplateParameterSourceGenerateCertificate defines a certificate.
+type ServiceBrokerConfigTemplateParameterSourceGenerateCertificate struct {
 	// Key is the private key to generate the certificate from.
-	Key CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"key"`
+	Key ServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"key"`
 
 	// Name is the certificate name.
-	Name CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateName `json:"name"`
+	Name ServiceBrokerConfigTemplateParameterSourceGenerateCertificateName `json:"name"`
 
 	// Lifetime is how long the certificate will last.
 	Lifetime metav1.Duration `json:"lifetime"`
@@ -395,42 +395,42 @@ type CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificate stru
 	// then the CA parameter must be populated.  If CA is not specified for a "ca"
 	// certificate then it will be self signed.
 	// +kubebuilder:validation:Enum=ca;server;client
-	Usage CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage `json:"usage"`
+	Usage ServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage `json:"usage"`
 
 	// AlternativeNames are only valid for "server" and "client" certificates.
-	AlternativeNames *CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames `json:"alternativeNames,omitempty"`
+	AlternativeNames *ServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames `json:"alternativeNames,omitempty"`
 
 	// CA is the CA to sign with, it will self sign otherwise.
-	CA *CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateCA `json:"ca,omitempty"`
+	CA *ServiceBrokerConfigTemplateParameterSourceGenerateCertificateCA `json:"ca,omitempty"`
 }
 
-// CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateName defines a certificate name.
-type CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateName struct {
+// ServiceBrokerConfigTemplateParameterSourceGenerateCertificateName defines a certificate name.
+type ServiceBrokerConfigTemplateParameterSourceGenerateCertificateName struct {
 	// CommonName is what the certificate name is usually referred to.
 	CommonName string `json:"commonName"`
 }
 
-// CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames defines alternative names for a certificate.
-type CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames struct {
+// ServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames defines alternative names for a certificate.
+type ServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames struct {
 	// DNS is only relevant for "server" certificate types.
-	DNS []CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"dns,omitempty"`
+	DNS []ServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"dns,omitempty"`
 
 	// Email is only relevant for "client" certificate types.
-	Email []CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"email,omitempty"`
+	Email []ServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"email,omitempty"`
 }
 
-// CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateCA defines a CA.
-type CouchbaseServiceBrokerConfigTemplateParameterSourceGenerateCertificateCA struct {
+// ServiceBrokerConfigTemplateParameterSourceGenerateCertificateCA defines a CA.
+type ServiceBrokerConfigTemplateParameterSourceGenerateCertificateCA struct {
 	// Key is the CA's private key.
-	Key CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"key"`
+	Key ServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"key"`
 
 	// Certificate is the CA's certificate.
-	Certificate CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"certificate"`
+	Certificate ServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"certificate"`
 }
 
-// CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter is a parameter
+// ServiceBrokerConfigTemplateParameterSourceFormatParameter is a parameter
 // for a formatting operation.
-type CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter struct {
+type ServiceBrokerConfigTemplateParameterSourceFormatParameter struct {
 	// Registry , if set, uses the corresponding registry value for the
 	// parameter source.
 	// +kubebuilder:validation:Pattern="^(instance:)?[a-zA-Z0-9-]+$"
@@ -441,9 +441,9 @@ type CouchbaseServiceBrokerConfigTemplateParameterSourceFormatParameter struct {
 	Parameter *string `json:"parameter,omitempty"`
 }
 
-// CouchbaseServiceBrokerConfigTemplateParameterDefault defines a
+// ServiceBrokerConfigTemplateParameterDefault defines a
 // default value for a parameter source if it is not specified.
-type CouchbaseServiceBrokerConfigTemplateParameterDefault struct {
+type ServiceBrokerConfigTemplateParameterDefault struct {
 	// String specifies the default string value if the parameter is not defined.
 	String *string `json:"string,omitempty"`
 
@@ -457,9 +457,9 @@ type CouchbaseServiceBrokerConfigTemplateParameterDefault struct {
 	Object *runtime.RawExtension `json:"object,omitempty"`
 }
 
-// CouchbaseServiceBrokerConfigTemplateParameterDestination defines where to
+// ServiceBrokerConfigTemplateParameterDestination defines where to
 // patch parameters into the resource template.
-type CouchbaseServiceBrokerConfigTemplateParameterDestination struct {
+type ServiceBrokerConfigTemplateParameterDestination struct {
 	// Path is a JSON pointer in the resource template to patch
 	// the parameter.
 	Path *string `json:"path,omitempty"`
@@ -468,9 +468,9 @@ type CouchbaseServiceBrokerConfigTemplateParameterDestination struct {
 	Registry *string `json:"registry,omitempty"`
 }
 
-// CouchbaseServiceBrokerConfigBinding binds a service plan to a set of templates
+// ServiceBrokerConfigBinding binds a service plan to a set of templates
 // required to realize that plan.
-type CouchbaseServiceBrokerConfigBinding struct {
+type ServiceBrokerConfigBinding struct {
 	// Name is a unique identifier for the binding.
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`
@@ -485,20 +485,20 @@ type CouchbaseServiceBrokerConfigBinding struct {
 
 	// ServiceInstance defines the set of templates to render and create when
 	// a new service instance is created.
-	ServiceInstance *CouchbaseServiceBrokerTemplateList `json:"serviceInstance,omitempty"`
+	ServiceInstance *ServiceBrokerTemplateList `json:"serviceInstance,omitempty"`
 
 	// ServiceBinding defines the set of templates to render and create when
 	// a new service binding is created.  This attribute is optional based on
 	// whether the service plan allows binding.
-	ServiceBinding *CouchbaseServiceBrokerTemplateList `json:"serviceBinding,omitempty"`
+	ServiceBinding *ServiceBrokerTemplateList `json:"serviceBinding,omitempty"`
 }
 
-// CouchbaseServiceBrokerTemplateList is an ordered list of templates to use
+// ServiceBrokerTemplateList is an ordered list of templates to use
 // when performing a specific operation.
-type CouchbaseServiceBrokerTemplateList struct {
+type ServiceBrokerTemplateList struct {
 	// Parameters allows registry parameters to be mutated and cached when a
 	// service instance is created.  These are only executed on instance creation.
-	Parameters []CouchbaseServiceBrokerConfigTemplateParameter `json:"parameters,omitempty"`
+	Parameters []ServiceBrokerConfigTemplateParameter `json:"parameters,omitempty"`
 
 	// Templates defines all the templates that will be created, in order,
 	// by the service broker for this operation.
@@ -506,8 +506,8 @@ type CouchbaseServiceBrokerTemplateList struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type CouchbaseServiceBrokerConfigList struct {
+type ServiceBrokerConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []CouchbaseServiceBrokerConfig `json:"items"`
+	Items           []ServiceBrokerConfig `json:"items"`
 }

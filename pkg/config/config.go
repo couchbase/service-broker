@@ -26,7 +26,7 @@ type configuration struct {
 	clients client.Clients
 
 	// config is the user supplied configuration custom resource.
-	config *v1.CouchbaseServiceBrokerConfig
+	config *v1.ServiceBrokerConfig
 
 	// token is the API access token.
 	token string
@@ -48,7 +48,7 @@ var c *configuration
 // createHandler add the service broker configuration when the underlying
 // resource is created.
 func createHandler(obj interface{}) {
-	brokerConfiguration, ok := obj.(*v1.CouchbaseServiceBrokerConfig)
+	brokerConfiguration, ok := obj.(*v1.ServiceBrokerConfig)
 	if !ok {
 		glog.Error("unexpected object type in config add")
 		return
@@ -69,7 +69,7 @@ func createHandler(obj interface{}) {
 // updateHandler modifies the service broker configuration when the underlying
 // resource updates.
 func updateHandler(oldObj, newObj interface{}) {
-	brokerConfiguration, ok := newObj.(*v1.CouchbaseServiceBrokerConfig)
+	brokerConfiguration, ok := newObj.(*v1.ServiceBrokerConfig)
 	if !ok {
 		glog.Error("unexpected object type in config update")
 		return
@@ -90,7 +90,7 @@ func updateHandler(oldObj, newObj interface{}) {
 // deleteHandler deletes the service broker configuration when the underlying
 // resource is deleted.
 func deleteHandler(obj interface{}) {
-	brokerConfiguration, ok := obj.(*v1.CouchbaseServiceBrokerConfig)
+	brokerConfiguration, ok := obj.(*v1.ServiceBrokerConfig)
 	if !ok {
 		glog.Error("unexpected object type in config delete")
 		return
@@ -126,7 +126,7 @@ func Configure(clients client.Clients, namespace, token string) error {
 		DeleteFunc: deleteHandler,
 	}
 
-	informer := informerv1.NewCouchbaseServiceBrokerConfigInformer(clients.Broker(), namespace, time.Minute, nil)
+	informer := informerv1.NewServiceBrokerConfigInformer(clients.Broker(), namespace, time.Minute, nil)
 	informer.AddEventHandler(handlers)
 
 	stop := make(chan struct{})
@@ -158,7 +158,7 @@ func Clients() client.Clients {
 }
 
 // Config returns the user specified custom resource.
-func Config() *v1.CouchbaseServiceBrokerConfig {
+func Config() *v1.ServiceBrokerConfig {
 	return c.config
 }
 

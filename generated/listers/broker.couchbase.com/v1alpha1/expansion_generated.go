@@ -7,10 +7,10 @@
 
 package v1alpha1
 
-// CouchbaseServiceBrokerConfigListerExpansion allows custom methods to be added to
-// CouchbaseServiceBrokerConfigLister.
-type CouchbaseServiceBrokerConfigListerExpansion interface{}
+// ServiceBrokerConfigListerExpansion allows custom methods to be added to
+// ServiceBrokerConfigLister.
+type ServiceBrokerConfigListerExpansion interface{}
 
-// CouchbaseServiceBrokerConfigNamespaceListerExpansion allows custom methods to be added to
-// CouchbaseServiceBrokerConfigNamespaceLister.
-type CouchbaseServiceBrokerConfigNamespaceListerExpansion interface{}
+// ServiceBrokerConfigNamespaceListerExpansion allows custom methods to be added to
+// ServiceBrokerConfigNamespaceLister.
+type ServiceBrokerConfigNamespaceListerExpansion interface{}

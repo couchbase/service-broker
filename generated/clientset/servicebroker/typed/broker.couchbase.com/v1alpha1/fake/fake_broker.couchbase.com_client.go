@@ -17,8 +17,8 @@ type FakeBrokerV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeBrokerV1alpha1) CouchbaseServiceBrokerConfigs(namespace string) v1alpha1.CouchbaseServiceBrokerConfigInterface {
-	return &FakeCouchbaseServiceBrokerConfigs{c, namespace}
+func (c *FakeBrokerV1alpha1) ServiceBrokerConfigs(namespace string) v1alpha1.ServiceBrokerConfigInterface {
+	return &FakeServiceBrokerConfigs{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

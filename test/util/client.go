@@ -38,7 +38,7 @@ var (
 	}
 
 	// DefaultBrokerConfig is a minimal service broker config to allow initialization.
-	DefaultBrokerConfig = &v1.CouchbaseServiceBrokerConfig{
+	DefaultBrokerConfig = &v1.ServiceBrokerConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "couchbase-service-broker",
 			Namespace: Namespace,

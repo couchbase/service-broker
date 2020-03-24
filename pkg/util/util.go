@@ -163,7 +163,7 @@ func AsyncRequired(r *http.Request) error {
 }
 
 // getServicePlan returns the service plan for the given plan and service offering IDs.
-func getServicePlan(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID string) (*v1.ServicePlan, error) {
+func getServicePlan(config *v1.ServiceBrokerConfig, serviceID, planID string) (*v1.ServicePlan, error) {
 	if config.Spec.Catalog == nil {
 		return nil, errors.NewConfigurationError("service catalog not defined")
 	}
@@ -188,7 +188,7 @@ func getServicePlan(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID s
 }
 
 // ValidateServicePlan checks the parameters are valid for the configuration.
-func ValidateServicePlan(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID string) error {
+func ValidateServicePlan(config *v1.ServiceBrokerConfig, serviceID, planID string) error {
 	if _, err := getServicePlan(config, serviceID, planID); err != nil {
 		return err
 	}
@@ -214,7 +214,7 @@ const (
 
 // getSchema returns the schema associated with an operation on a resource type.  If none
 // is associated with the plan for the operation it will return nil.
-func getSchema(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID string, t schemaType, o schemaOperation) (*v1.InputParamtersSchema, error) {
+func getSchema(config *v1.ServiceBrokerConfig, serviceID, planID string, t schemaType, o schemaOperation) (*v1.InputParamtersSchema, error) {
 	plan, err := getServicePlan(config, serviceID, planID)
 	if err != nil {
 		return nil, err
@@ -255,7 +255,7 @@ func getSchema(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID string
 }
 
 // ValidateParameters validates any supplied parameters against an JSON schema if it exists.
-func ValidateParameters(config *v1.CouchbaseServiceBrokerConfig, serviceID, planID string, t schemaType, o schemaOperation, parametersRaw *runtime.RawExtension) error {
+func ValidateParameters(config *v1.ServiceBrokerConfig, serviceID, planID string, t schemaType, o schemaOperation, parametersRaw *runtime.RawExtension) error {
 	schemaRaw, err := getSchema(config, serviceID, planID, t, o)
 	if err != nil {
 		return err

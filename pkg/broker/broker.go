@@ -1,4 +1,4 @@
-// Package broker implements the Open Broker API for the Couchbase Operator.
+// Package broker implements the Open Broker API for the  Operator.
 package broker
 
 import (

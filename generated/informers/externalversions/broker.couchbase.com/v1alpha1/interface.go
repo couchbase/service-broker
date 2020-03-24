@@ -13,8 +13,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// CouchbaseServiceBrokerConfigs returns a CouchbaseServiceBrokerConfigInformer.
-	CouchbaseServiceBrokerConfigs() CouchbaseServiceBrokerConfigInformer
+	// ServiceBrokerConfigs returns a ServiceBrokerConfigInformer.
+	ServiceBrokerConfigs() ServiceBrokerConfigInformer
 }
 
 type version struct {
@@ -28,7 +28,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// CouchbaseServiceBrokerConfigs returns a CouchbaseServiceBrokerConfigInformer.
-func (v *version) CouchbaseServiceBrokerConfigs() CouchbaseServiceBrokerConfigInformer {
-	return &couchbaseServiceBrokerConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// ServiceBrokerConfigs returns a ServiceBrokerConfigInformer.
+func (v *version) ServiceBrokerConfigs() ServiceBrokerConfigInformer {
+	return &serviceBrokerConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

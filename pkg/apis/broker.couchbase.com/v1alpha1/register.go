@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	ServiceBrokerConfigKind = "CouchbaseServiceBrokerConfig"
-	ServiceBrokerConfigName = "couchbaseservicebrokerconfigs"
+	ServiceBrokerConfigKind = "ServiceBrokerConfig"
+	ServiceBrokerConfigName = "servicebrokerconfigs"
 	GroupVersion            = "v1alpha1"
 	GroupName               = "broker.couchbase.com"
 	Group                   = GroupName + "/" + GroupVersion
@@ -22,7 +22,7 @@ var (
 )
 
 func init() {
-	SchemeBuilder.Register(&CouchbaseServiceBrokerConfig{}, &CouchbaseServiceBrokerConfigList{})
+	SchemeBuilder.Register(&ServiceBrokerConfig{}, &ServiceBrokerConfigList{})
 }
 
 func Resource(resource string) schema.GroupResource {

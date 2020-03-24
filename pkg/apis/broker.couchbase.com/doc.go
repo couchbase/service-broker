@@ -1,2 +1,2 @@
-// Package couchbase defines Couchbase service broker Kubernetes custom resource types.
+// Package couchbase defines service broker Kubernetes custom resource types.
 package couchbase

@@ -15,7 +15,7 @@ import (
 
 type BrokerV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	CouchbaseServiceBrokerConfigsGetter
+	ServiceBrokerConfigsGetter
 }
 
 // BrokerV1alpha1Client is used to interact with features provided by the broker.couchbase.com group.
@@ -23,8 +23,8 @@ type BrokerV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *BrokerV1alpha1Client) CouchbaseServiceBrokerConfigs(namespace string) CouchbaseServiceBrokerConfigInterface {
-	return newCouchbaseServiceBrokerConfigs(c, namespace)
+func (c *BrokerV1alpha1Client) ServiceBrokerConfigs(namespace string) ServiceBrokerConfigInterface {
+	return newServiceBrokerConfigs(c, namespace)
 }
 
 // NewForConfig creates a new BrokerV1alpha1Client for the given config.

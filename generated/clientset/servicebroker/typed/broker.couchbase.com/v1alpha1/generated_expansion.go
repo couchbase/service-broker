@@ -7,4 +7,4 @@
 
 package v1alpha1
 
-type CouchbaseServiceBrokerConfigExpansion interface{}
+type ServiceBrokerConfigExpansion interface{}

@@ -93,7 +93,7 @@ Ensure the [Kubernetes Service Catalog is installed](https://svc-cat.io/docs/ins
 Install the custom resource definition:
 
 ```bash
-$ kubectl create -f example/broker.couchbase.com_couchbaseservicebrokerconfigs.yaml
+$ kubectl create -f example/broker.couchbase.com_servicebrokerconfigs.yaml
 ```
 
 Select a configuration template to use.
