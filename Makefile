@@ -30,7 +30,10 @@ IMPORT_PATH = github.com/couchbase/service-broker
 DOCKER_IMAGE = couchbase/service-broker
 
 # This is the install prefix.
-PREFIX = build
+PREFIX = /usr/local
+
+# This is the root of the install.
+DESTDIR =
 
 ################################################################################
 # Constants
@@ -87,24 +90,20 @@ COVER_FILE = /tmp/cover.out
 # This is the base name for build archives e.g. package-0.0.0.
 # This is especially important for RPM builds where the tarball and
 # directory must be named this.
-INSTALL_BASE = $(APPLICATION)-$(VERSION)
+PACKAGE_BASENAME = $(APPLICATION)-$(VERSION)
 
-# This is the full name of the release, the pase version plus the
-# packaged revision (e.g. patch set).
-INSTALL_FULL = $(INSTALL_BASE)-$(REVISION)
+# This is the name for the UNIX archive.
+ARCHIVE_TGZ = $(PACKAGE_BASENAME).tar.gz
+
+# This is the name for the Windows archive.
+ARCHIVE_ZIP = $(PACKAGE_BASENAME).zip
+
+# This is the name for the RPM archive.
+ARCHIVE_RPM = $(PACKAGE_BASENAME)-$(REVISION).x86_64.rpm
 
 # This is the directory into which resources are installed before they are
 # archived.
-INSTALL_DIR = $(PREFIX)/$(INSTALL_FULL)
-
-# This is the name for the UNIX archive.
-ARCHIVE_TGZ = $(INSTALL_FULL).tar.gz
-
-# This is the name for the Windows archive.
-ARCHIVE_ZIP = $(INSTALL_FULL).zip
-
-# This is the name for the RPM archive.
-RPM = $(INSTALL_FULL).x86_64.rpm
+INSTALL_DIR = $(DESTDIR)$(PREFIX)/share/$(APPLICATION)
 
 # Binary targets in the install, these are translated from build/bin to bin
 # in the final install.
@@ -191,11 +190,11 @@ archive-tgz: $(ARCHIVE_TGZ)
 archive-zip: $(ARCHIVE_ZIP)
 
 # Build an RPM package.
-rpm: $(RPM)
+rpm: $(ARCHIVE_RPM)
 
 # Clean all generated code and artifacts.
 clean:
-	rm -rf $(BUILD_DIR) $(CRD_DIR) $(ARCHIVE_TGZ) $(ARCHIVE_ZIP) $(RPM)
+	rm -rf $(BUILD_DIR) *.tar.gz *.zip *.rpm
 
 ################################################################################
 # Make rules
@@ -224,12 +223,12 @@ $(CRD_DIR)/%: $(APISRC)
 
 # The TGZ archive relies on the archive directory.
 $(ARCHIVE_TGZ): $(INSTALL_TARGETS)
-	tar -czf $@ -C $(PREFIX) $(INSTALL_FULL)
+	tar -czf $@ -C $(DESTDIR) *
 
 # The ZIP archive relies on the archive directory.
 $(ARCHIVE_ZIP): $(INSTALL_TARGETS)
-	@cd $(PREFIX); zip -r $@ $(INSTALL_FULL)
-	@mv $(PREFIX)/$@ .
+	@cd $(DESTDIR); zip -r $@ *
+	@mv $(DESTDIR)/$@ .
 
 # The RPM build target archives the source directory and installs it
 # along with the spec into the RPM build directory.  The spec is updated
@@ -237,10 +236,10 @@ $(ARCHIVE_ZIP): $(INSTALL_TARGETS)
 # copied back locally.
 %.rpm: $(SOURCE) $(EXAMPLES)
 	@mkdir -p $(HOME)/rpmbuild/{SPECS,SOURCES}
-	cd ..; cp -a service-broker $(INSTALL_BASE); tar czf $(INSTALL_BASE).tar.gz $(INSTALL_BASE); cp $(INSTALL_BASE).tar.gz $(HOME)/rpmbuild/SOURCES
+	cd ..; cp -a service-broker $(PACKAGE_BASENAME); tar czf $(PACKAGE_BASENAME).tar.gz $(PACKAGE_BASENAME); mv $(PACKAGE_BASENAME).tar.gz $(HOME)/rpmbuild/SOURCES
 	sed -e "s,0\.0\.0,$(VERSION),g" -e "s,99999,$(REVISION),g" -e "s,couchbase-service-broker,$(APPLICATION),g" redhat/servicebroker.spec > $(HOME)/rpmbuild/SPECS/servicebroker.spec
 	rpmbuild -ba $(HOME)/rpmbuild/SPECS/servicebroker.spec
-	cp $(HOME)/rpmbuild/RPMS/x86_64/$(RPM) .
+	cp $(HOME)/rpmbuild/RPMS/x86_64/$(ARCHIVE_RPM) .
 
 # Default make target for install files copies them over with existing permissions.
 $(INSTALL_DIR)/%: %

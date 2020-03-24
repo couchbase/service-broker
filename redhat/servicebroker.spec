@@ -20,10 +20,10 @@ to the broker and not an end user.
 %setup
 
 %build
-make VERSION=%{version}-%{release}
+make -e VERSION=%{version}-%{release}
 
 %install
-make install PREFIX=%{buildroot}/usr/share VERSION=%{version}-%{release}
+make install -e DESTDIR=%{buildroot} PREFIX=/usr VERSION=%{version} RELEASE=%{release}
 
 %files
 /
