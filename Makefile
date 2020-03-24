@@ -273,6 +273,7 @@ $(ARCHIVE_DEB): $(SOURCE) $(EXAMPLES)
 	sed -i -e "s,0\.0\.0,$(VERSION),g" -e "s,99999,$(REVISION),g" -e "s,couchbase-service-broker,$(APPLICATION),g" debian/changelog
 	sed -i -e "s,couchbase-service-broker,$(APPLICATION),g" debian/control
 	sed -i -e "s,couchbase-service-broker,$(APPLICATION),g" debian/copyright
+	sed -i -e "s,/usr/local,$(PREFIX),g" debian/rules
 	cd ..; cp -a service-broker $(PACKAGE_BASENAME_DEB); tar czf $(PACKAGE_BASENAME_DEB).orig.tar.gz $(PACKAGE_BASENAME_DEB)
 	DEB_BUILD_OPTIONS=nocheck debuild --prepend-path=$(GO_BINARY_PATH) -uc -us
 	mv ../$(ARCHIVE_DEB) .

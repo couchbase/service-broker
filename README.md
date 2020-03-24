@@ -65,16 +65,14 @@ $ cd /usr/local/share/couchbase-service-broker
 $ docker build . -t couchbase/service-broker:0.0.0
 ```
 
-This will create the container image `couchbase/service-broker:x.y.z`.
-
-The tag should mirror the official version numbering, however the image name may be whatever you choose.
+This will create the container image `couchbase/service-broker:0.0.0`.
 
 ### Building A Container Image from Source
 
 To build a container from source you can use the following command:
 
 ```bash
-$ make container -e APPLICATION=acme-service-broker IMAGE=acme/service-broker VERSION=x.y.z
+$ make container -e APPLICATION=acme-service-broker IMAGE=acme/service-broker VERSION=1.0.0 REVISION=beta1
 ```
 
 This allows you to change the application and image's name and the version.
@@ -85,7 +83,19 @@ This will require modification to the example files.
 To build a release from source:
 
 ```bash
-$ make archive -e APPLICATION=acme-service-broker VERSION=1.0.0 REVISION=beta1
+$ make archive -e APPLICATION=acme-service-broker VERSION=1.0.0 REVISION=beta1 PREFIX=/usr DESTDIR=/tmp/archive
+```
+
+Or for Red Hat RPMs:
+
+```bash
+$ make rpm -e APPLICATION=acme-service-broker VERSION=1.0.0 REVISION=beta1 PREFIX=/usr
+```
+
+Or for debian DEBs:
+
+```bash
+$ make deb -e APPLICATION=acme-service-broker VERSION=1.0.0 REVISION=beta1 PREFIX=/usr
 ```
 
 ## Installation

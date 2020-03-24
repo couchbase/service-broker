@@ -3,6 +3,9 @@ run:
   skip-dirs: generated
   skip-files: zz_generated.deepcopy.go
 
+  # For some reason this may take a while... #cloud
+  timeout: 5m
+
 linters:
   # Enable all linters
   presets:
