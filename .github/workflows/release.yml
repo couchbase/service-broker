@@ -25,14 +25,26 @@ jobs:
       id: constants
       run: |
         VERSION=$(basename ${{ github.ref }})
-        ARCHIVE=couchbase-service-broker
+        APPLICATION=couchbase-service-broker
         echo ::set-output name=version::${VERSION}
-        echo ::set-output name=archive-tgz::${ARCHIVE}-${VERSION}.tar.gz
-        echo ::set-output name=archive-zip::${ARCHIVE}-${VERSION}.zip
-    # Build the artifacts now that the Makefile has been updated with release
-    # versioning.
+        echo ::set-output name=archive-tgz::${APPLICATION}-${VERSION}-1.tar.gz
+        echo ::set-output name=archive-zip::${APPLICATION}-${VERSION}-1.zip
+        echo ::set-output name=archive-deb::${APPLICATION}_${VERSION}-1_amd64.deb
+        echo ::set-output name=archive-rpm::${APPLICATION}-${VERSION}-1.x86_64.rpm
+    # Install debhelper as it's not there by default, rpm is.
+    - name: Install Packages
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install devscripts debhelper
+    # Build the DEB first as it will run the clean target and clear out the directory.
+    - name: Build Debian
+      run: make deb -e PREFIX=/usr VERSION=${{ steps.constants.outputs.version }}
+    # Build the RPM.
+    - name: Build Red Hat
+      run: make rpm -e PREFIX=/usr VERSION=${{ steps.constants.outputs.version }}
+    # Build the standard archives.
     - name: Build Archive
-      run: make archive -e VERSION=${{ steps.constants.outputs.version }}
+      run: make archive -e DESTDIR=/tmp/archive VERSION=${{ steps.constants.outputs.version }}
     # Create a release for the version.
     # TODO: we could also have pre-releases triggered by some logic.
     - name: Create Release
@@ -65,3 +77,21 @@ jobs:
         asset_path: ${{ steps.constants.outputs.archive-zip }}
         asset_name: ${{ steps.constants.outputs.archive-zip }}
         asset_content_type: application/zip
+    - name: Upload DEB Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ steps.constants.outputs.archive-deb }}
+        asset_name: ${{ steps.constants.outputs.archive-deb }}
+        asset_content_type: application/vnd.debian.binary-package
+    - name: Upload RPM Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ steps.constants.outputs.archive-rpm }}
+        asset_name: ${{ steps.constants.outputs.archive-rpm }}
+        asset_content_type: application/x-rpm
