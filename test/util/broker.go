@@ -1,6 +1,7 @@
 package util
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"reflect"
 	"testing"
@@ -130,6 +131,34 @@ func MustHaveRegistryEntryPassword(t *testing.T, entry *corev1.Secret, key regis
 		if !byteInDictionary(c, dictionary) {
 			t.Fatalf("character %v at index %d not in dictionary %s", rune(c), index, dictionary)
 		}
+	}
+}
+
+// MustHaveRegistryEntriesTLS checks that the requested entries corresponding to a certificate
+// and key pair exist and they are valid.
+func MustHaveRegistryEntriesTLS(t *testing.T, entry *corev1.Secret, key, cert registry.Key) {
+	keyData, ok := entry.Data[string(key)]
+	if !ok {
+		t.Fatalf("registry missing private key key %s", key)
+	}
+
+	certData, ok := entry.Data[string(cert)]
+	if !ok {
+		t.Fatalf("registry missing certificate key %s", cert)
+	}
+
+	var keyPEM string
+	if err := json.Unmarshal(keyData, &keyPEM); err != nil {
+		t.Fatal(err)
+	}
+
+	var certPEM string
+	if err := json.Unmarshal(certData, &certPEM); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := tls.X509KeyPair([]byte(certPEM), []byte(keyPEM)); err != nil {
+		t.Fatal(err)
 	}
 }
 

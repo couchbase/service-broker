@@ -361,6 +361,9 @@ func TestParameterGenerateCACertificateRSAPKCS1(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
+	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(caKeyKey), registry.Key(caCertificateKey))
 }
 
 // TestParameterGenerateCACertificateRSAPKCS8 tests that we can create a CA certificate with an
@@ -377,6 +380,9 @@ func TestParameterGenerateCACertificateRSAPKCS8(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
+	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(caKeyKey), registry.Key(caCertificateKey))
 }
 
 // TestParameterGenerateCACertificateEllipticP224EC tests that we can create a CA certificate with an
@@ -393,6 +399,9 @@ func TestParameterGenerateCACertificateEllipticP224EC(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
+	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(caKeyKey), registry.Key(caCertificateKey))
 }
 
 // TestParameterGenerateCACertificateED25519PKCS8Invalid tests that creating a CA certificate with an
@@ -427,6 +436,9 @@ func TestParameterGenerateServerCertificateRSAPKCS1(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
+	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(childKeyKey), registry.Key(childCertificateKey))
 }
 
 // TestParameterGenerateServerCertificateRSAPKCS8 tests that we can create a server certificate with an
@@ -445,6 +457,9 @@ func TestParameterGenerateServerCertificateRSAPKCS8(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
+	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(childKeyKey), registry.Key(childCertificateKey))
 }
 
 // TestParameterGenerateServerCertificateEllipticP224EC tests that we can create a server certificate
@@ -463,6 +478,9 @@ func TestParameterGenerateServerCertificateEllipticP224EC(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
+	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(childKeyKey), registry.Key(childCertificateKey))
 }
 
 // TestParameterGenerateServerCertificateRSAPKCS8WithSANs tests that we can create a server certificate with an
@@ -478,7 +496,7 @@ func TestParameterGenerateServerCertificateRSAPKCS8WithSANs(t *testing.T) {
 	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, caKeyKey)
 	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
 	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, childKeyKey)...)
-	parameters = append(parameters, fixtures.SignedCertificateParameterToRegistryWithSANs(&childKeyKey, defaultCN, v1.Server, sans, &caKeyKey, &caCertificateKey, childCertificateKey)...)
+	parameters = append(parameters, fixtures.SignedCertificateParameterToRegistryWithDNSSANs(&childKeyKey, defaultCN, v1.Server, sans, &caKeyKey, &caCertificateKey, childCertificateKey)...)
 
 	configuration := fixtures.BasicConfiguration()
 	configuration.Bindings[0].ServiceInstance.Parameters = parameters
@@ -486,6 +504,97 @@ func TestParameterGenerateServerCertificateRSAPKCS8WithSANs(t *testing.T) {
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
+	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(childKeyKey), registry.Key(childCertificateKey))
+}
+
+// TestParameterGenerateClientCertificateRSAPKCS1 tests that we can create a client certificate with an
+// RSA private key.
+func TestParameterGenerateClientCertificateRSAPKCS1(t *testing.T) {
+	defer mustReset(t)
+
+	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS1, &defaultKeyLength, caKeyKey)
+	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
+	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS1, &defaultKeyLength, childKeyKey)...)
+	parameters = append(parameters, fixtures.SignedCertificateParameterToRegistry(&childKeyKey, defaultCN, v1.Client, &caKeyKey, &caCertificateKey, childCertificateKey)...)
+
+	configuration := fixtures.BasicConfiguration()
+	configuration.Bindings[0].ServiceInstance.Parameters = parameters
+	util.MustReplaceBrokerConfig(t, clients, configuration)
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
+	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(childKeyKey), registry.Key(childCertificateKey))
+}
+
+// TestParameterGenerateClientCertificateRSAPKCS8 tests that we can create a client certificate with an
+// RSA private key.
+func TestParameterGenerateClientCertificateRSAPKCS8(t *testing.T) {
+	defer mustReset(t)
+
+	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, caKeyKey)
+	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
+	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, childKeyKey)...)
+	parameters = append(parameters, fixtures.SignedCertificateParameterToRegistry(&childKeyKey, defaultCN, v1.Client, &caKeyKey, &caCertificateKey, childCertificateKey)...)
+
+	configuration := fixtures.BasicConfiguration()
+	configuration.Bindings[0].ServiceInstance.Parameters = parameters
+	util.MustReplaceBrokerConfig(t, clients, configuration)
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
+	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(childKeyKey), registry.Key(childCertificateKey))
+}
+
+// TestParameterGenerateClientCertificateEllipticP224EC tests that we can create a client certificate
+// with an elliptic private key.
+func TestParameterGenerateClientCertificateEllipticP224EC(t *testing.T) {
+	defer mustReset(t)
+
+	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingEC, &defaultKeyLength, caKeyKey)
+	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
+	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingEC, &defaultKeyLength, childKeyKey)...)
+	parameters = append(parameters, fixtures.SignedCertificateParameterToRegistry(&childKeyKey, defaultCN, v1.Client, &caKeyKey, &caCertificateKey, childCertificateKey)...)
+
+	configuration := fixtures.BasicConfiguration()
+	configuration.Bindings[0].ServiceInstance.Parameters = parameters
+	util.MustReplaceBrokerConfig(t, clients, configuration)
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
+	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(childKeyKey), registry.Key(childCertificateKey))
+}
+
+// TestParameterGenerateClientCertificateRSAPKCS8WithSANs tests that we can create a clientcertificate with an
+// RSA private key.
+func TestParameterGenerateClientCertificateRSAPKCS8WithSANs(t *testing.T) {
+	defer mustReset(t)
+
+	sans := []string{
+		"bugs.bunny@looneytunes.com",
+	}
+
+	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, caKeyKey)
+	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
+	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, childKeyKey)...)
+	parameters = append(parameters, fixtures.SignedCertificateParameterToRegistryWithEmailSANs(&childKeyKey, defaultCN, v1.Client, sans, &caKeyKey, &caCertificateKey, childCertificateKey)...)
+
+	configuration := fixtures.BasicConfiguration()
+	configuration.Bindings[0].ServiceInstance.Parameters = parameters
+	util.MustReplaceBrokerConfig(t, clients, configuration)
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
+	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(childKeyKey), registry.Key(childCertificateKey))
 }
 
 // TestParameterGeneratePassword tests that password generation works.

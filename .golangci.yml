@@ -35,3 +35,9 @@ linters:
   - interfacer
   - lll
   - maligned
+
+linters-settings:
+  # Code duplication filter catches a lot of duplication in test
+  # this needs refactoring at some point.
+  dupl:
+    threshold: 300

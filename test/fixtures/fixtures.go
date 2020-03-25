@@ -512,10 +512,10 @@ func SignedCertificateParameterToRegistry(key *string, cn string, usage v1.Certi
 	return parameters
 }
 
-// SignedCertificateParameterToRegistryWithSANs creates a parameter that creates a signed certificate.
+// SignedCertificateParameterToRegistryWithDNSSANs creates a parameter that creates a signed certificate.
 // This accepts a list of subject alternative names as a string array.  It builds defaulted parameters
 // of each and then returns this with the certificate request that consumes them appended.
-func SignedCertificateParameterToRegistryWithSANs(key *string, cn string, usage v1.CertificateUsage, sans []string, caKey, caCert *string, destination string) []v1.ServiceBrokerConfigTemplateParameter {
+func SignedCertificateParameterToRegistryWithDNSSANs(key *string, cn string, usage v1.CertificateUsage, sans []string, caKey, caCert *string, destination string) []v1.ServiceBrokerConfigTemplateParameter {
 	sanRegistryNames := make([]v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter, len(sans))
 	parameters := []v1.ServiceBrokerConfigTemplateParameter{}
 
@@ -531,6 +531,30 @@ func SignedCertificateParameterToRegistryWithSANs(key *string, cn string, usage 
 	certParameters := SignedCertificateParameterToRegistry(key, cn, usage, caKey, caCert, destination)
 	certParameters[0].Source.GenerateCertificate.AlternativeNames = &v1.ServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames{
 		DNS: sanRegistryNames,
+	}
+
+	return append(parameters, certParameters...)
+}
+
+// SignedCertificateParameterToRegistryWitEmailSANs creates a parameter that creates a signed certificate.
+// This accepts a list of subject alternative names as a string array.  It builds defaulted parameters
+// of each and then returns this with the certificate request that consumes them appended.
+func SignedCertificateParameterToRegistryWithEmailSANs(key *string, cn string, usage v1.CertificateUsage, sans []string, caKey, caCert *string, destination string) []v1.ServiceBrokerConfigTemplateParameter {
+	sanRegistryNames := make([]v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter, len(sans))
+	parameters := []v1.ServiceBrokerConfigTemplateParameter{}
+
+	for index, san := range sans {
+		name := fmt.Sprintf("san-%d", index)
+		sanRegistryNames[index] = v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter{
+			Registry: &name,
+		}
+
+		parameters = append(parameters, DefaultParameterToRegistry(name, san)...)
+	}
+
+	certParameters := SignedCertificateParameterToRegistry(key, cn, usage, caKey, caCert, destination)
+	certParameters[0].Source.GenerateCertificate.AlternativeNames = &v1.ServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames{
+		Email: sanRegistryNames,
 	}
 
 	return append(parameters, certParameters...)
