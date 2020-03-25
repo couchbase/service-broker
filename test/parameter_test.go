@@ -465,6 +465,29 @@ func TestParameterGenerateServerCertificateEllipticP224EC(t *testing.T) {
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 }
 
+// TestParameterGenerateServerCertificateRSAPKCS8WithSANs tests that we can create a server certificate with an
+// RSA private key.
+func TestParameterGenerateServerCertificateRSAPKCS8WithSANs(t *testing.T) {
+	defer mustReset(t)
+
+	sans := []string{
+		"localhost",
+		"bugs.looneytunes.com",
+	}
+
+	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, caKeyKey)
+	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
+	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, childKeyKey)...)
+	parameters = append(parameters, fixtures.SignedCertificateParameterToRegistryWithSANs(&childKeyKey, defaultCN, v1.Server, sans, &caKeyKey, &caCertificateKey, childCertificateKey)...)
+
+	configuration := fixtures.BasicConfiguration()
+	configuration.Bindings[0].ServiceInstance.Parameters = parameters
+	util.MustReplaceBrokerConfig(t, clients, configuration)
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+}
+
 // TestParameterGeneratePassword tests that password generation works.
 func TestParameterGeneratePassword(t *testing.T) {
 	defer mustReset(t)

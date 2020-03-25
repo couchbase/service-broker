@@ -2,6 +2,7 @@ package fixtures
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/couchbase/service-broker/pkg/api"
@@ -419,6 +420,21 @@ func ParametersToRegistry(path, destination string, required bool) []v1.ServiceB
 	}
 }
 
+// DefaultParameterToRegistry return a parameter with a string default only.
+func DefaultParameterToRegistry(destination, defaultValue string) []v1.ServiceBrokerConfigTemplateParameter {
+	return []v1.ServiceBrokerConfigTemplateParameter{
+		{
+			Name: "test-parameter",
+			Default: &v1.ServiceBrokerConfigTemplateParameterDefault{
+				String: &defaultValue,
+			},
+			Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+				{Registry: &destination},
+			},
+		},
+	}
+}
+
 // ParametersToRegistryWithDefault returns a parameter list as specified.
 func ParametersToRegistryWithDefault(path, destination, defaultValue string, required bool) []v1.ServiceBrokerConfigTemplateParameter {
 	return []v1.ServiceBrokerConfigTemplateParameter{
@@ -494,6 +510,30 @@ func SignedCertificateParameterToRegistry(key *string, cn string, usage v1.Certi
 	}
 
 	return parameters
+}
+
+// SignedCertificateParameterToRegistryWithSANs creates a parameter that creates a signed certificate.
+// This accepts a list of subject alternative names as a string array.  It builds defaulted parameters
+// of each and then returns this with the certificate request that consumes them appended.
+func SignedCertificateParameterToRegistryWithSANs(key *string, cn string, usage v1.CertificateUsage, sans []string, caKey, caCert *string, destination string) []v1.ServiceBrokerConfigTemplateParameter {
+	sanRegistryNames := make([]v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter, len(sans))
+	parameters := []v1.ServiceBrokerConfigTemplateParameter{}
+
+	for index, san := range sans {
+		name := fmt.Sprintf("san-%d", index)
+		sanRegistryNames[index] = v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter{
+			Registry: &name,
+		}
+
+		parameters = append(parameters, DefaultParameterToRegistry(name, san)...)
+	}
+
+	certParameters := SignedCertificateParameterToRegistry(key, cn, usage, caKey, caCert, destination)
+	certParameters[0].Source.GenerateCertificate.AlternativeNames = &v1.ServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames{
+		DNS: sanRegistryNames,
+	}
+
+	return append(parameters, certParameters...)
 }
 
 // PasswordParameterToRegistry create a parameter that creates a password of the desired
