@@ -236,6 +236,7 @@ $(GENERATED_DIR): $(APISRC)
 	go run k8s.io/code-generator/cmd/client-gen --clientset-name $(GENCLIENTNAME) --input-base "" --input $(GENAPIS) --output-package $(GENCLIENTS) $(GENARGS)
 	go run k8s.io/code-generator/cmd/lister-gen --input-dirs $(GENAPIS) --output-package $(GENLISTERS) $(GENARGS)
 	go run k8s.io/code-generator/cmd/informer-gen --input-dirs $(GENAPIS) --versioned-clientset-package $(GENCLIENTS)/$(GENCLIENTNAME) --listers-package $(GENLISTERS) --output-package $(GENINFORMERS) $(GENARGS)
+	@touch $(GENERATED_DIR)
 
 # The main broker binary depends on generated code and all source.
 # This should be the contents of pkg/ and the main file for correctness.

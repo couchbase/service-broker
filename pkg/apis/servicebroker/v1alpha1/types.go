@@ -366,23 +366,24 @@ type ServiceBrokerConfigTemplateParameterSourceGenerateKey struct {
 	Bits *int `json:"bits,omitempty"`
 }
 
-// ServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage defines the certificate use.
-type ServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage string
+// CertificateUsage defines the certificate use.
+type CertificateUsage string
 
 const (
 	// CA is used for signing certificates and providing a trust anchor.
-	CA ServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage = "ca"
+	CA CertificateUsage = "ca"
 
 	// Server is used for server certificates.
-	Server ServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage = "server"
+	Server CertificateUsage = "server"
 
 	// Client is used for client certificates.
-	Client ServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage = "client"
+	Client CertificateUsage = "client"
 )
 
 // ServiceBrokerConfigTemplateParameterSourceGenerateCertificate defines a certificate.
 type ServiceBrokerConfigTemplateParameterSourceGenerateCertificate struct {
 	// Key is the private key to generate the certificate from.
+	// The key may be any valid encoding of an RSA or EC key.
 	Key ServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"key"`
 
 	// Name is the certificate name.
@@ -395,7 +396,7 @@ type ServiceBrokerConfigTemplateParameterSourceGenerateCertificate struct {
 	// then the CA parameter must be populated.  If CA is not specified for a "ca"
 	// certificate then it will be self signed.
 	// +kubebuilder:validation:Enum=ca;server;client
-	Usage ServiceBrokerConfigTemplateParameterSourceGenerateCertificateUsage `json:"usage"`
+	Usage CertificateUsage `json:"usage"`
 
 	// AlternativeNames are only valid for "server" and "client" certificates.
 	AlternativeNames *ServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames `json:"alternativeNames,omitempty"`

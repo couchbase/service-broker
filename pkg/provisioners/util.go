@@ -503,6 +503,11 @@ func resolveGenerateCertificate(config *v1.ServiceBrokerConfigTemplateParameterS
 		return nil, err
 	}
 
+	// Catch user misconfigurations.
+	if _, ok := key.(ed25519.PrivateKey); ok {
+		return nil, errors.NewConfigurationError("cannot use ed25519 keys for x.509 certificates")
+	}
+
 	req := &x509.CertificateRequest{
 		Subject: pkix.Name{
 			CommonName: config.Name.CommonName,

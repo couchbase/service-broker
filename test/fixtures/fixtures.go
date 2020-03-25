@@ -2,6 +2,7 @@ package fixtures
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/couchbase/service-broker/pkg/api"
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
@@ -448,6 +449,29 @@ func KeyParameterToRegistry(t v1.KeyType, e v1.KeyEncodingType, bits *int, desti
 					Type:     t,
 					Encoding: e,
 					Bits:     bits,
+				},
+			},
+			Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+				{Registry: &destination},
+			},
+		},
+	}
+}
+
+// CertificateParameterToRegistry creates a parameter that creates a self-signed ceritificate.
+func CertificateParameterToRegistry(key *string, cn string, usage v1.CertificateUsage, destination string) []v1.ServiceBrokerConfigTemplateParameter {
+	return []v1.ServiceBrokerConfigTemplateParameter{
+		{
+			Name: "test-certificate",
+			Source: &v1.ServiceBrokerConfigTemplateParameterSource{
+				GenerateCertificate: &v1.ServiceBrokerConfigTemplateParameterSourceGenerateCertificate{
+					Key: v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter{
+						Registry: key,
+					},
+					Lifetime: metav1.Duration{
+						Duration: time.Hour,
+					},
+					Usage: usage,
 				},
 			},
 			Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
