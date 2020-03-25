@@ -437,7 +437,9 @@ func ParametersToRegistryWithDefault(path, destination, defaultValue string, req
 	}
 }
 
-func KeyToRegistry(t v1.KeyType, e v1.KeyEncodingType, bits *int, destination string) []v1.ServiceBrokerConfigTemplateParameter {
+// KeyParameterToRegistry creates a parameter that creates a key of the desired type
+// and stores it in the registry.
+func KeyParameterToRegistry(t v1.KeyType, e v1.KeyEncodingType, bits *int, destination string) []v1.ServiceBrokerConfigTemplateParameter {
 	return []v1.ServiceBrokerConfigTemplateParameter{
 		{
 			Name: "test-private-key",
@@ -446,6 +448,25 @@ func KeyToRegistry(t v1.KeyType, e v1.KeyEncodingType, bits *int, destination st
 					Type:     t,
 					Encoding: e,
 					Bits:     bits,
+				},
+			},
+			Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+				{Registry: &destination},
+			},
+		},
+	}
+}
+
+// PasswordParameterToRegistry create a parameter that creates a password of the desired
+// length and stores it in the registry.
+func PasswordParameterToRegistry(length int, dictionary *string, destination string) []v1.ServiceBrokerConfigTemplateParameter {
+	return []v1.ServiceBrokerConfigTemplateParameter{
+		{
+			Name: "test-password",
+			Source: &v1.ServiceBrokerConfigTemplateParameterSource{
+				GeneratePassword: &v1.ServiceBrokerConfigTemplateParameterSourceGeneratePassword{
+					Length:     length,
+					Dictionary: dictionary,
 				},
 			},
 			Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{

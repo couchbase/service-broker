@@ -23,11 +23,11 @@ func TestRegistry(t *testing.T) {
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
 	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
-	util.MustHaveRegistryEntry(t, entry, registry.Namespace, util.Namespace)
-	util.MustHaveRegistryEntry(t, entry, registry.InstanceID, fixtures.ServiceInstanceName)
-	util.MustHaveRegistryEntry(t, entry, registry.ServiceID, fixtures.BasicConfigurationOfferingID)
-	util.MustHaveRegistryEntry(t, entry, registry.PlanID, fixtures.BasicConfigurationPlanID)
-	util.MustHaveRegistryEntry(t, entry, registry.DashboardURL, fixtures.DashboardURL)
+	util.MustHaveRegistryEntryWithValue(t, entry, registry.Namespace, util.Namespace)
+	util.MustHaveRegistryEntryWithValue(t, entry, registry.InstanceID, fixtures.ServiceInstanceName)
+	util.MustHaveRegistryEntryWithValue(t, entry, registry.ServiceID, fixtures.BasicConfigurationOfferingID)
+	util.MustHaveRegistryEntryWithValue(t, entry, registry.PlanID, fixtures.BasicConfigurationPlanID)
+	util.MustHaveRegistryEntryWithValue(t, entry, registry.DashboardURL, fixtures.DashboardURL)
 }
 
 // TestRegistryIllegalWrite tests system registry items are not writable.
@@ -105,7 +105,7 @@ func TestRegistryExplicitNamespace(t *testing.T) {
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
 	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
-	util.MustHaveRegistryEntry(t, entry, registry.Namespace, namespace)
+	util.MustHaveRegistryEntryWithValue(t, entry, registry.Namespace, namespace)
 }
 
 // TestRegistryExplicitIllegaNamespace tests that a faulty context raises a parameter
@@ -137,11 +137,11 @@ func TestRegistryDefault(t *testing.T) {
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
 	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
-	util.MustHaveRegistryEntry(t, entry, registry.Key(key), defaultValue)
+	util.MustHaveRegistryEntryWithValue(t, entry, registry.Key(key), defaultValue)
 }
 
-// TestRegistryiNoDestination test that a configuration error is raised when the destinationisn't specified.
-func TestRegistryiNoDestination(t *testing.T) {
+// TestRegistryNoDestination test that a configuration error is raised when the destinationisn't specified.
+func TestRegistryNoDestination(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()

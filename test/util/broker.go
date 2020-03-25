@@ -1,6 +1,7 @@
 package util
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
@@ -85,8 +86,8 @@ func MustGetRegistryEntry(t *testing.T, clients client.Clients, rt registry.Type
 	return entry
 }
 
-// MustHaveRegistryEntry checks a registry entry exists.
-func MustHaveRegistryEntry(t *testing.T, entry *corev1.Secret, key registry.Key, value string) {
+// MustHaveRegistryEntryWithValue checks a registry entry exists.
+func MustHaveRegistryEntryWithValue(t *testing.T, entry *corev1.Secret, key registry.Key, value string) {
 	data, ok := entry.Data[string(key)]
 	if !ok {
 		t.Fatalf("registry missing key %s", key)
@@ -94,6 +95,41 @@ func MustHaveRegistryEntry(t *testing.T, entry *corev1.Secret, key registry.Key,
 
 	if string(data) != `"`+value+`"` {
 		t.Fatalf("registry entry %s, expected %s", data, value)
+	}
+}
+
+// byteInDictionary checks a character exists in the specified dictionary.
+func byteInDictionary(c byte, dictionary string) bool {
+	for index := 0; index < len(dictionary); index++ {
+		if dictionary[index] == c {
+			return true
+		}
+	}
+
+	return false
+}
+
+// MustHaveRegistryEntryPassword checks a registry entry exists and is valid for a password.
+func MustHaveRegistryEntryPassword(t *testing.T, entry *corev1.Secret, key registry.Key, length int, dictionary string) {
+	data, ok := entry.Data[string(key)]
+	if !ok {
+		t.Fatalf("registry missing key %s", key)
+	}
+
+	var value string
+	if err := json.Unmarshal(data, &value); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(value) != length {
+		t.Fatalf("registry entry length %d, expected %d", len(value), length)
+	}
+
+	for index := 0; index < length; index++ {
+		c := value[index]
+		if !byteInDictionary(c, dictionary) {
+			t.Fatalf("character %v at index %d not in dictionary %s", rune(c), index, dictionary)
+		}
 	}
 }
 
