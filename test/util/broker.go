@@ -2,7 +2,9 @@ package util
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -134,30 +136,80 @@ func MustHaveRegistryEntryPassword(t *testing.T, entry *corev1.Secret, key regis
 	}
 }
 
-// MustHaveRegistryEntriesTLS checks that the requested entries corresponding to a certificate
-// and key pair exist and they are valid.
-func MustHaveRegistryEntriesTLS(t *testing.T, entry *corev1.Secret, key, cert registry.Key) {
+// haveRegistryEntriesTLS check the key/cert pair exist and are valid, returning the certificate.
+func haveRegistryEntriesTLS(entry *corev1.Secret, key, cert registry.Key) (*x509.Certificate, error) {
 	keyData, ok := entry.Data[string(key)]
 	if !ok {
-		t.Fatalf("registry missing private key key %s", key)
+		return nil, fmt.Errorf("registry missing private key key %s", key)
 	}
 
 	certData, ok := entry.Data[string(cert)]
 	if !ok {
-		t.Fatalf("registry missing certificate key %s", cert)
+		return nil, fmt.Errorf("registry missing certificate key %s", cert)
 	}
 
 	var keyPEM string
 	if err := json.Unmarshal(keyData, &keyPEM); err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 
 	var certPEM string
 	if err := json.Unmarshal(certData, &certPEM); err != nil {
+		return nil, err
+	}
+
+	certificate, err := tls.X509KeyPair([]byte(certPEM), []byte(keyPEM))
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := x509.ParseCertificate(certificate.Certificate[0])
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
+}
+
+// MustHaveRegistryEntriesTLS checks that the requested entries corresponding to a certificate
+// and key pair exist and they are valid.
+func MustHaveRegistryEntriesTLS(t *testing.T, entry *corev1.Secret, key, cert registry.Key) {
+	if _, err := haveRegistryEntriesTLS(entry, key, cert); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// MustHaveRegistryEntriesTLSAndVerify checks that the requested entries corresponding to a certificate
+// and key pair exist and they are valid against a CA.
+func MustHaveRegistryEntriesTLSAndVerify(t *testing.T, entry *corev1.Secret, caCert, key, cert registry.Key, usage x509.ExtKeyUsage) {
+	caCertData, ok := entry.Data[string(caCert)]
+	if !ok {
+		t.Fatalf("registry missing ca certificate key %s", key)
+	}
+
+	var caCertPEM string
+	if err := json.Unmarshal(caCertData, &caCertPEM); err != nil {
 		t.Fatal(err)
 	}
 
-	if _, err := tls.X509KeyPair([]byte(certPEM), []byte(keyPEM)); err != nil {
+	certificate, err := haveRegistryEntriesTLS(entry, key, cert)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pool := x509.NewCertPool()
+	if ok := pool.AppendCertsFromPEM([]byte(caCertPEM)); !ok {
+		t.Fatal("unable to add CA certificate to pool")
+	}
+
+	options := x509.VerifyOptions{
+		Roots: pool,
+		KeyUsages: []x509.ExtKeyUsage{
+			usage,
+		},
+	}
+
+	if _, err := certificate.Verify(options); err != nil {
 		t.Fatal(err)
 	}
 }

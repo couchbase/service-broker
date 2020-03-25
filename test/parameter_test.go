@@ -1,6 +1,7 @@
 package test
 
 import (
+	"crypto/x509"
 	"net/http"
 	"testing"
 
@@ -438,7 +439,7 @@ func TestParameterGenerateServerCertificateRSAPKCS1(t *testing.T) {
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
 	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
-	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(childKeyKey), registry.Key(childCertificateKey))
+	util.MustHaveRegistryEntriesTLSAndVerify(t, entry, registry.Key(caCertificateKey), registry.Key(childKeyKey), registry.Key(childCertificateKey), x509.ExtKeyUsageServerAuth)
 }
 
 // TestParameterGenerateServerCertificateRSAPKCS8 tests that we can create a server certificate with an
@@ -459,7 +460,7 @@ func TestParameterGenerateServerCertificateRSAPKCS8(t *testing.T) {
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
 	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
-	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(childKeyKey), registry.Key(childCertificateKey))
+	util.MustHaveRegistryEntriesTLSAndVerify(t, entry, registry.Key(caCertificateKey), registry.Key(childKeyKey), registry.Key(childCertificateKey), x509.ExtKeyUsageServerAuth)
 }
 
 // TestParameterGenerateServerCertificateEllipticP224EC tests that we can create a server certificate
@@ -480,7 +481,7 @@ func TestParameterGenerateServerCertificateEllipticP224EC(t *testing.T) {
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
 	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
-	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(childKeyKey), registry.Key(childCertificateKey))
+	util.MustHaveRegistryEntriesTLSAndVerify(t, entry, registry.Key(caCertificateKey), registry.Key(childKeyKey), registry.Key(childCertificateKey), x509.ExtKeyUsageServerAuth)
 }
 
 // TestParameterGenerateServerCertificateRSAPKCS8WithSANs tests that we can create a server certificate with an
@@ -506,7 +507,7 @@ func TestParameterGenerateServerCertificateRSAPKCS8WithSANs(t *testing.T) {
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
 	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
-	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(childKeyKey), registry.Key(childCertificateKey))
+	util.MustHaveRegistryEntriesTLSAndVerify(t, entry, registry.Key(caCertificateKey), registry.Key(childKeyKey), registry.Key(childCertificateKey), x509.ExtKeyUsageServerAuth)
 }
 
 // TestParameterGenerateClientCertificateRSAPKCS1 tests that we can create a client certificate with an
@@ -527,7 +528,7 @@ func TestParameterGenerateClientCertificateRSAPKCS1(t *testing.T) {
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
 	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
-	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(childKeyKey), registry.Key(childCertificateKey))
+	util.MustHaveRegistryEntriesTLSAndVerify(t, entry, registry.Key(caCertificateKey), registry.Key(childKeyKey), registry.Key(childCertificateKey), x509.ExtKeyUsageClientAuth)
 }
 
 // TestParameterGenerateClientCertificateRSAPKCS8 tests that we can create a client certificate with an
@@ -548,7 +549,7 @@ func TestParameterGenerateClientCertificateRSAPKCS8(t *testing.T) {
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
 	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
-	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(childKeyKey), registry.Key(childCertificateKey))
+	util.MustHaveRegistryEntriesTLSAndVerify(t, entry, registry.Key(caCertificateKey), registry.Key(childKeyKey), registry.Key(childCertificateKey), x509.ExtKeyUsageClientAuth)
 }
 
 // TestParameterGenerateClientCertificateEllipticP224EC tests that we can create a client certificate
@@ -569,7 +570,7 @@ func TestParameterGenerateClientCertificateEllipticP224EC(t *testing.T) {
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
 	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
-	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(childKeyKey), registry.Key(childCertificateKey))
+	util.MustHaveRegistryEntriesTLSAndVerify(t, entry, registry.Key(caCertificateKey), registry.Key(childKeyKey), registry.Key(childCertificateKey), x509.ExtKeyUsageClientAuth)
 }
 
 // TestParameterGenerateClientCertificateRSAPKCS8WithSANs tests that we can create a clientcertificate with an
@@ -594,7 +595,7 @@ func TestParameterGenerateClientCertificateRSAPKCS8WithSANs(t *testing.T) {
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 
 	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
-	util.MustHaveRegistryEntriesTLS(t, entry, registry.Key(childKeyKey), registry.Key(childCertificateKey))
+	util.MustHaveRegistryEntriesTLSAndVerify(t, entry, registry.Key(caCertificateKey), registry.Key(childKeyKey), registry.Key(childCertificateKey), x509.ExtKeyUsageClientAuth)
 }
 
 // TestParameterGeneratePassword tests that password generation works.
