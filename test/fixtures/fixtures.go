@@ -481,6 +481,21 @@ func CertificateParameterToRegistry(key *string, cn string, usage v1.Certificate
 	}
 }
 
+// SignedCertificateParameterToRegistry creates a parameter that creates a signed certificate.
+func SignedCertificateParameterToRegistry(key *string, cn string, usage v1.CertificateUsage, caKey, caCert *string, destination string) []v1.ServiceBrokerConfigTemplateParameter {
+	parameters := CertificateParameterToRegistry(key, cn, usage, destination)
+	parameters[0].Source.GenerateCertificate.CA = &v1.ServiceBrokerConfigTemplateParameterSourceGenerateCertificateCA{
+		Key: v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter{
+			Registry: caKey,
+		},
+		Certificate: v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter{
+			Registry: caCert,
+		},
+	}
+
+	return parameters
+}
+
 // PasswordParameterToRegistry create a parameter that creates a password of the desired
 // length and stores it in the registry.
 func PasswordParameterToRegistry(length int, dictionary *string, destination string) []v1.ServiceBrokerConfigTemplateParameter {
