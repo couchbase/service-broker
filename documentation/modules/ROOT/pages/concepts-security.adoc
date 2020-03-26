@@ -1,0 +1,20 @@
+= Security Models
+
+[abstract]
+This page details the various security models you may wish to deploy the Service Broker and your serivce instances under.
+
+ifdef::env-github[]
+:imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]
+
+== Service Broker
+
+=== Namespaced
+
+=== Global
+
+== Service Instances
+
+=== Namespaced
+
+=== Global

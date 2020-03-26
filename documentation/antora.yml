@@ -1,0 +1,6 @@
+name: service-broker
+title: Kubernetes Service Broker
+version: '0.0'
+start_page: ROOT:index.adoc
+nav:
+- modules/ROOT/nav.adoc

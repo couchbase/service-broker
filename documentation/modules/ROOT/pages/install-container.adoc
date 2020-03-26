@@ -1,0 +1,8 @@
+= Creating Container Images
+
+[abstract]
+This page describes how to create the Service Broker container image.
+
+ifdef::env-github[]
+:imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]

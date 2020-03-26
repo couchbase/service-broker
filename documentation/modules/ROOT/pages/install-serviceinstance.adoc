@@ -1,0 +1,8 @@
+= Creating and Binding to a Service Instance
+
+[abstract]
+This page describes how to create and consume a service.
+
+ifdef::env-github[]
+:imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]

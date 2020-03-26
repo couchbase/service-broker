@@ -1,0 +1,8 @@
+= Getting Started
+
+[abstract]
+This section describes how to get and install the service broker and create your first service instance.
+
+ifdef::env-github[]
+:imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]

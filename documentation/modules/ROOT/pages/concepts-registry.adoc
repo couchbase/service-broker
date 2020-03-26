@@ -1,0 +1,8 @@
+= Service Instance and Binding Registries
+
+[abstract]
+This page describes the functionality of registries in the Service Broker.
+
+ifdef::env-github[]
+:imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]

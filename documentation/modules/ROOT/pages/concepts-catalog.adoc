@@ -1,0 +1,8 @@
+= Service Catalog
+
+[abstract]
+This page describes the core functionality of the service catalog.
+
+ifdef::env-github[]
+:imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]

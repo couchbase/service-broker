@@ -1,0 +1,8 @@
+= Configuration Bindings
+
+[abstract]
+This page describes how catalog service plans are bound to templates in the service broker configuration.
+
+ifdef::env-github[]
+:imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]

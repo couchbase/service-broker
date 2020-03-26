@@ -1,0 +1,8 @@
+= Prerequisites
+
+[abstract]
+This page details the platform and software requirements for running the Service Broker.
+
+ifdef::env-github[]
+:imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]

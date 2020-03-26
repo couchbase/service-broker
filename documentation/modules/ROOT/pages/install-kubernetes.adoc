@@ -1,0 +1,8 @@
+= Creating the Service Broker Service
+
+[abstract]
+This page describes how to install the Service Broker into your Kubernetes cluster.
+
+ifdef::env-github[]
+:imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]

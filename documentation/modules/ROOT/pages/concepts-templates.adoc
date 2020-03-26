@@ -1,0 +1,8 @@
+= Configuration Templates
+
+[abstract]
+This page describes how configuration templates are used in the Service Broker.
+
+ifdef::env-github[]
+:imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]

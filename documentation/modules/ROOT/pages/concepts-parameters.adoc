@@ -1,0 +1,8 @@
+= Configuration Parameters
+
+[abstract]
+This page describes how configuration parameters are processed and stored in the Service Broker.
+
+ifdef::env-github[]
+:imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]

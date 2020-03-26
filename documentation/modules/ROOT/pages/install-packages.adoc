@@ -1,0 +1,8 @@
+= Package Downloads
+
+[abstract]
+This page details package options and how to get them.
+
+ifdef::env-github[]
+:imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]

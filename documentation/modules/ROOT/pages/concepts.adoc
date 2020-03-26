@@ -1,0 +1,26 @@
+= Concepts
+
+[abstract]
+This section describes core concepts to consider when configuring and deploying your services.
+
+ifdef::env-github[]
+:imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]
+
+The Service Broker has been designed in a way so that no application specific knowledge is hard coded within it.
+This allows service configurations to be completely under the control of the end user without requiring any code changes.
+
+While a cursory glance at one of the example configuration profiles may seem daunting, the core concepts are actually relatively simple.
+This section aims to guide the reader through the core concepts of the Service Broker so you can configure and deploy your own services quickly and easily.
+
+It is recommended all users read and fully understand this entire section.
+
+== Further Reading
+
+* xref:concepts-architecture.adoc[Architecture]
+* xref:concepts-catalog.adoc[Service Catalog]
+* xref:concepts-bindings.adoc[Configuration Bindings]
+* xref:concepts-templates.adoc[Configuration Templates]
+* xref:concepts-parameters.adoc[Configuration Parameters]
+* xref:concepts-registry.adoc[Service Instance and Binding Registries]
+* xref:concepts-security.adoc[Security Models]
