@@ -6,3 +6,15 @@ This section describes how to get and install the service broker and create your
 ifdef::env-github[]
 :imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
+
+The Service Broker is just a simple web-service that creates Kubernetes resources on demand as requested by the API.
+This set of tutorials will take you through setting up Kubernetes, downloading and creating container images.
+Finally we will start and register the service, and create our first service instance.
+
+== Next Steps
+
+* xref:install-prerequisites.adoc[Prerequisites]
+* xref:install-packages.adoc[Package Downloads]
+* xref:install-container.adoc[Creating Container Images]
+* xref:install-kubernetes.adoc[Creating the Service Broker Service]
+* xref:install-serviceinstance.adoc[Creating and Binding to a Service Instance]

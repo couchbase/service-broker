@@ -6,3 +6,34 @@ This page details the platform and software requirements for running the Service
 ifdef::env-github[]
 :imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
+
+== Platform Requirements
+
+These are the basic platform requirements that you will need for the various setup steps.
+
+=== Kubernetes
+
+The following platforms are supported:
+
+* Kubernetes 1.13+
+* Red Hat OpenShift 4.1+
+
+In general, any Kubernetes distribution based on a supported version should work.
+
+=== Service Catalog
+
+The Service Broker is recommended for use with the https://kubernetes.io/docs/concepts/extend-kubernetes/service-catalog/[Kubernetes Service Catalog^].
+
+Installation instructions can be found in the https://svc-cat.io/docs/install/[official documentation].
+
+As the Service Broker is standards based, any version of the Service Catalog supporting the Open Service Broker API version 1.13 is supported.
+
+== Build Requirements
+
+To get up and running you will need to install on your local machine:
+
+* docker
+
+== Next Steps
+
+* xref:install-packages.adoc[Package Downloads]

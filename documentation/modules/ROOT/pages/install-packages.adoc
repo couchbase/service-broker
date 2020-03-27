@@ -6,3 +6,30 @@ This page details package options and how to get them.
 ifdef::env-github[]
 :imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
+
+== Official Packages
+
+Official packages are automatically built by the Continuous Integration system.
+These are hosted on https://github.com/spjmurray/service-broker/releases[GitHub^].
+
+It is recommended that you use the most recent release to take advantage of newer functionality and bug fixes.
+
+DEB and RPM archives are provided for Debian and Red Hat derivatives and should be used where possible as they are version controlled by the package manager.
+
+ZIP and TAR archives are also provided for users of any other operating system.
+They contain files that will be installed under `usr/share/couchbase-service-broker`, therefore may be extracted to `/` on UNIX like systems.
+For example:
+
+[source,console]
+----
+sudo tar xf -C / couchbase-service-broker-0.0.0-99999.tar.gz
+----
+
+[IMPORTANT]
+====
+If installing into a non-standard directory this will affect the paths described in the following sections.
+====
+
+== Next Steps
+
+* xref:install-container.adoc[Creating Container Images]

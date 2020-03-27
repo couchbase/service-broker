@@ -1,14 +1,51 @@
 = Introduction
 
 [abstract]
-This page describes what the service broker is and how it can help you.
+This page describes what the Service Broker is and how it can help you.
 
 ifdef::env-github[]
 :imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
-== What is a Service Broker?
+== What are Service Brokers?
+
+Service brokers implement the https://www.openservicebrokerapi.org/[Open Service Broker API^], an open standard for interoperability between clients and service brokers.
+Service brokers are an abstraction layer around a service that allow users to create instances of a service and bind applications to them.
+
+In summary, service instances are things that that provide a service e.g. databases and web applications.
+Service bindings provide the way to connect to and authenticate against a service instance e.g. URIs, user names and passwords.
 
 == Why Should I use a Service Broker?
 
+Service instances are abstractions of a service that are controlled by a centralized authority.
+This leads to some key benefits:
+
+* Centralized administrative control
+** Administrators can guarantee security compliance of end users
+** Administrators can constrain resource utilization by end users
+** Administrators can constrain costs incurred by end users
+* Service abstraction
+** End users need no domain specific knowledge about how to deploy and manage a service
+** End users consume only connection and authorization information
+* Enhanced security
+** Elevated privileges required to provision resources are granted to the Service Broker, not end users
+** Resources can provisioned in a way where they are hidden from the end user
+
 == What does the Service Broker do?
+
+This implementation of an Open Service Broker works exclusively with Kubernetes resources.
+Creating service instances and bindings creates Kubernetes resources.
+This is done in a highly abstracted way so the Service Broker can work with any Kubernetes resource type.
+
+Resources are templated, so they may be dynamically configured based on a set of inputs.
+These inputs include metadata -- provided by the client to provision the instance -- and user specified parameters.
+
+== Next Steps
+
+To fully understand how the Service Broker works and its capabilities we suggest you read the following sections:
+
+* The xref:install.adoc[Getting Started] section describes how to install and configure the Service Broker.
+  The best way to understand how to use service brokers is by example.
+  Using the provided example configuration files it will demonstrate the ease of deployment of a service for an end user and how to consume services as an application.
+* The xref:concepts.adoc[Concepts] section describes the architecture of the Service Broker.
+  By gaining an understanding of what the Service Broker does, and how it does it, you will gain an appreciation for what can be achieved for your desired service.

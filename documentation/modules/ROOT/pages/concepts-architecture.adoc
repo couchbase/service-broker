@@ -117,3 +117,10 @@ They also allow more complex functionality such as generating cryptographic keys
 
 The Open Service Broker API also allows parameters to be specified when a service instance or binding is created.
 Template parameters can also refer to these parameters explicitly passed by the user.
+
+== Next Steps
+
+The first Service Broker API the end user will interact with will be the service catalog.
+The next page will outline what the service catalog provides and how it can be configured to suit your needs.
+
+* xref:concepts-catalog.adoc[Service Catalog]

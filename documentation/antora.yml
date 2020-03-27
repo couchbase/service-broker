@@ -1,5 +1,5 @@
 name: service-broker
-title: Kubernetes Service Broker
+title: Service Broker
 version: '0.0'
 start_page: ROOT:index.adoc
 nav:

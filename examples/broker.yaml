@@ -69,6 +69,7 @@ spec:
               apiVersion: v1
               fieldPath: metadata.namespace
         image: couchbase/service-broker:latest
+        imagePullPolicy: IfNotPresent
         name: couchbase-service-broker
         ports:
         - containerPort: 8443

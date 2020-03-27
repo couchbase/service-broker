@@ -1,6 +1,6 @@
 * xref:index.adoc[Introduction]
 * xref:install.adoc[Getting Started]
-** xref:install-prerequisites[Prerequisites]
+** xref:install-prerequisites.adoc[Prerequisites]
 ** xref:install-packages.adoc[Package Downloads]
 ** xref:install-container.adoc[Creating Container Images]
 ** xref:install-kubernetes.adoc[Creating the Service Broker Service]

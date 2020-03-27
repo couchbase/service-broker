@@ -6,3 +6,150 @@ This page describes how to create and consume a service.
 ifdef::env-github[]
 :imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
+
+With the Service Broker installed and registered with the Kubernetes Service Catalog, we can now start provisioning service instances and binding to them.
+
+== Creating a Service Instance
+
+Before continuing, I'd like to draw attention to the configuration:
+
+[source,yaml]
+----
+apiVersion: servicecatalog.k8s.io/v1beta1
+kind: ServiceInstance
+metadata:
+  name: test-instance # <1>
+spec:
+  clusterServiceClassExternalName: couchbase-developer # <2>
+  clusterServicePlanExternalName: couchbase-developer-private # <3>
+  parameters: # <4>
+    password: password
+    size: 3
+----
+
+That's it!
+All that is required now for an end user to provision a fully featured in-memory database cluster, is a handful of lines of configuration.
+Here's a taste of what's to come:
+
+<1> The instance has a unique, human-readable name.
+<2> The user specifies a class of service instance, in this case I want something suitable for development.
+<3> Within the class there are plans, I want something that is private -- not exposed to the outside world.
+    All the domain specific complexity about a service -- how it is configured and managed -- is completely abstracted away.
+    The user merely consumes a service.
+<4> Plans can be parameterized.
+    The administrator in control of the Service Broker configuration can explicitly control what about a plan is configurable by the end user.
+
+Create the service instance:
+
+[source,console]
+----
+$ kubectl create -f https://raw.githubusercontent.com/couchbase/service-broker/master/examples/configurations/couchbase-server/serviceinstance.yaml
+serviceinstance.servicecatalog.k8s.io/test-instance created
+----
+
+The Service Broker will handle creating the service instance and ensuring it is running properly.
+Like the Service Broker `Deployment`, the `ServiceInstance` type can be monitored for completion:
+
+[source,console]
+----
+$ kubectl get serviceinstances
+NAME            CLASS                                     PLAN                          STATUS   AGE
+test-instance   ClusterServiceClass/couchbase-developer   couchbase-developer-private   Ready    118s
+----
+
+Our service instance will report `Ready` when successfully provisioned.
+
+== Creating a Service Binding
+
+Creating a database instance is one thing, consuming it is another.
+For our service instance to be useful, we need user credentials and a bucket to store data.
+This is where service bindings come in:
+
+[source,yaml]
+----
+apiVersion: servicecatalog.k8s.io/v1beta1
+kind: ServiceBinding
+metadata:
+  name: test-binding
+spec:
+  instanceRef:
+    name: test-instance # <1>
+  secret-name: test-binding # <2>
+----
+
+Again, it's that simple.
+
+<1> The instance reference refers to the name of our service instance created in the previous step.
+<2> Credentials are returned to the user as a secret.
+    An application can consume these credentials by setting environment variables in a `Pod` sourced from the `Secret`, or simply mount it as a volume mount.
+
+To create the binding:
+
+[source,console]
+----
+$ kubectl create -f https://raw.githubusercontent.com/couchbase/service-broker/master/examples/configurations/couchbase-server/servicebinding.yaml
+servicebinding.servicecatalog.k8s.io/test-binding created
+----
+
+And like the service instance, you can check for completion with a `Ready` status:
+
+[source,console]
+----
+$ kubectl get servicebindings
+NAME           SERVICE-INSTANCE   SECRET-NAME    STATUS   AGE
+test-binding   test-instance      test-binding   Ready    10m
+----
+
+=== Consuming a Service Binding
+
+Let's reexamine the service binding `Secret` mentioned in the last step.
+When the service binding is successfully created, the Service Broker responds with credentials -- as defined by the Service Broker configuration -- which are placed into a secret:
+
+[source,console]
+----
+$ kubectl get secret/test-binding -o yaml
+apiVersion: v1
+data:
+  bucket: YmluZGluZy0xNzIzNmZmYy03MDJlLTExZWEtOTQ1Yi0wMjQyYWMxMTAwMDc=
+  ca.pem: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURDVENDQWZHZ0F3SUJBZ0lSQUx4RGF1ZzFiWE5iOWovTjhaQ1d4MVl3RFFZSktvWklodmNOQVFFTEJRQXcKSGpFY01Cb0dBMVVFQXhNVFEyOTFZMmhpWVhObElGTmxjblpsY2lCRFFUQWVGdzB5TURBek1qY3hNekV6TlRsYQpGdzB6TURBek1qVXhNekV6TlRsYU1CNHhIREFhQmdOVkJBTVRFME52ZFdOb1ltRnpaU0JUWlhKMlpYSWdRMEV3CmdnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUJEd0F3Z2dFS0FvSUJBUURVL0lEaEpmYVBTWTVEK1psVlkzMFEKN3pzUGdrcXBpcjBMbnQwVGpnS294Zi9aRnVmc2NEV3diMjlCcHZiNVU4NURmNlhveHBkbGQ4a2FSWDd6dGcvMApUY3dkT0p5K1J5NjRNZHQ5K3lFVFg2RlBLei9Za29rQ1VWS3JFNXR0YWY4MnJNTGNTaXRUKzFEbTUydklqWnNGCkk4MkhSa0hhZGJZNVkrSWQ4SnNDZmhuVVU5emxjMEpHbko3ZlRoVy90WFVFZ3FkQ3p4NkVTSDRjd05EZEp2R2gKbzU2TTYvQ2JYZDFLWkkwaVhuM0xSREkwcVZMd2VVRllsSjRXd3EwZmhxTjVEUFhkZUIrSi9HZHFBOGx4bGJaZApzVzJmM2l1Wkgva0xLemdyT2FIR2FDdkRueXh6bE1VUzZXdXFBMHBtWXlWMkVoU29pTTNFbHV3cW5pTjlpK05UCkFnTUJBQUdqUWpCQU1BNEdBMVVkRHdFQi93UUVBd0lCQmpBUEJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWQKRGdRV0JCUXpzRE5BMTNYakVHOE9ETndOdmZpRFByWSszREFOQmdrcWhraUc5dzBCQVFzRkFBT0NBUUVBcjVOSwpCeTlIVi9ndEFMMm1lSUJvVEQwblpuanU3c3M1cG5SNFJVZUtETUxQTEQzSFZ6VkdRSVpqdlE2TFF0aUsrUVhpCmhvL0xONmhHK2FXZEJVUkh4OE0wbll1SFdIM2dlNkhCQVpLcUlrTlVKU3pwbE4vT0pXSkhzRkRXOVFyVlVOWjEKY0FKSUZaWUphWVJtdWlqOTVqRGtqdWZteW02RDlOd25tSjhUdTh1TDJ6Z1ZMbUp0Y1ZiUEwzL1Rlb1ZFckt2cgp6Z080SEVyQWdJQys0WjQzbHBXNFAwMTZIRm5aS2dBTFk0djNEMjdISkEyYXlwNkU0MHhVMnFkeUM5SkIwZGcvCk55OWczdnQ0YkdiN0hWcDB5NHRLYnYxS2txaTdiQnBzdDgzTmVXSHM2R3IyRzkrRVRmUFpzWDAwWFdEZkRFVUQKY3cxR0NsVmtSV1lrVmI5RTdBPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  connection-string: Y291Y2hiYXNlczovL2luc3RhbmNlLXNzOGxxeGxvLXNydi5kZWZhdWx0
+  password: VHliaUFreEo4UG9yUjJaVld5aWFPRURqZ3hBQlJWOHA=
+  username: YmluZGluZy0xNzIzNmZmYy03MDJlLTExZWEtOTQ1Yi0wMjQyYWMxMTAwMDc=
+kind: Secret
+metadata:
+  creationTimestamp: "2020-03-27T13:23:05Z"
+  name: test-binding
+  namespace: default
+  ownerReferences:
+  - apiVersion: servicecatalog.k8s.io/v1beta1
+    blockOwnerDeletion: true
+    controller: true
+    kind: ServiceBinding
+    name: test-binding
+    uid: 17237038-702e-11ea-945b-0242ac110007
+  resourceVersion: "40035"
+  selfLink: /api/v1/namespaces/default/secrets/test-binding
+  uid: 17a10655-702e-11ea-99b0-080027c9a7ac
+type: Opaque
+----
+
+What has happened behind the scenes is that the creation of a service binding has created a bucket and a user, then granted that user full permissions to that bucket.
+This demonstrates how service instances can be shared in a multi-tenant environment.
+
+Looking at the `Secret`, you can see the Service Broker has responded with a CA certificate -- to allow TLS verification, a connection string -- to be consumed directly by client SDKs, a username and password -- for authentication and authorization, and finally a bucket -- to use for data storage and queries.
+
+When made available inside a container for example, it would see the following connection string:
+
+[source,console]
+----
+$ echo -n Y291Y2hiYXNlczovL2luc3RhbmNlLXNzOGxxeGxvLXNydi5kZWZhdWx0 | base64 -d
+couchbases://instance-ss8lqxlo-srv.default
+----
+
+== Next Steps
+
+You have seen just a taste of what the Service Broker can offer.
+Next you should read our learning resources that describe the key concepts of the Service Broker architecture and how it works.
+From there you can begin to configure your own service instances and bindings for any service you desire.
+
+* xref:concepts.adoc[Concepts]

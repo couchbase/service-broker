@@ -6,3 +6,97 @@ This page describes how to install the Service Broker into your Kubernetes clust
 ifdef::env-github[]
 :imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
+
+Installation is divided into a number of steps.
+The Service Broker comes with different configurations that define what service will be created by the Service Broker and what permissions it requires to do so.
+A configuration will be installed first, followed by the generic Service Broker deployment, then finally it will be registered with the Kubernetes Service Catalog.
+
+[IMPORTANT]
+====
+This tutorial assumes you are using the `default` namespace and will not work otherwise.
+====
+
+== Install CRDs
+
+The Service Broker is configured using a Kubernetes Custom Resource that allows type checking of your configurations and must be installed first:
+
+[source,console]
+----
+$ kubectl create -f https://raw.githubusercontent.com/couchbase/service-broker/master/crds/servicebroker.couchbase.com_servicebrokerconfigs.yam
+----
+
+== Install a Configuration
+
+Example configurations are available through https://github.com/couchbase/service-broker/tree/master/examples/configurations[GitHub^].
+For the purposes of this demonstration, we will use Couchbase Server:
+
+[source,console]
+----
+$ kubectl create -f https://raw.githubusercontent.com/couchbase/service-broker/master/examples/configurations/couchbase-server/broker.yaml
+role.rbac.authorization.k8s.io/couchbase-service-broker created
+servicebrokerconfig.servicebroker.couchbase.com/couchbase-service-broker created
+----
+
+== Install the Service Broker Service
+
+The Service Broker is installed with a single configuration file:
+
+[source,console]
+----
+$ kubectl create -f https://raw.githubusercontent.com/couchbase/service-broker/master/examples/broker.yaml
+serviceaccount/couchbase-service-broker created
+rolebinding.rbac.authorization.k8s.io/couchbase-service-broker created
+secret/couchbase-service-broker created
+deployment.apps/couchbase-service-broker created
+service/couchbase-service-broker created
+----
+
+The `ServiceAccount` the Service Broker runs as is bound to the `Role` we created in the previous step.
+A `Secret` contains the TLS configuration and bearer token for authentication as the Service Broker is secure by default.
+The `Deployment` creates the Service Broker and ensures it is highly available and a `Service` makes it discoverable by the Kubernetes Service Catalog in the next step.
+
+[NOTE]
+====
+Is you are using a non-standard container image name or container registry, you will need to download and edit the `Deployment` to reference your image before creating in Kubernetes.
+====
+
+As it is a regular deployment with a readiness probe, you can check that the Service Broker is up and running with the following command:
+
+[source,console]
+----
+$ kubectl get deployments
+NAME                           READY   UP-TO-DATE   AVAILABLE   AGE
+couchbase-service-broker       1/1     1            1           17s
+----
+
+Alternatively, you can wait for the `Deployment` to become available:
+
+[source,console]
+----
+$ kubectl wait --for=condition=Available deployment/couchbase-service-broker
+deployment.extensions/couchbase-service-broker condition met
+----
+
+== Register the Service Broker with the Service Catalog
+
+The final step is to tell the Kubernetes Service Catalog about our Service Broker.
+Again this is done with a single configuration file:
+
+[source,console]
+----
+$ kubectl create -f https://raw.githubusercontent.com/couchbase/service-broker/master/examples/clusterservicebroker.yaml
+clusterservicebroker.servicecatalog.k8s.io/couchbase-service-broker created
+----
+
+If this is successful, it will appear as `Ready`:
+
+[source,console]
+----
+$ kubectl get clusterservicebrokers
+NAME                       URL                                            STATUS   AGE
+couchbase-service-broker   https://couchbase-service-broker.default.svc   Ready    2s
+----
+
+= Next Steps
+
+* xref:install-serviceinstance.adoc[Creating and Binding to a Service Instance]

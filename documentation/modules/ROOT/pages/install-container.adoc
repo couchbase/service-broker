@@ -6,3 +6,54 @@ This page describes how to create the Service Broker container image.
 ifdef::env-github[]
 :imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
+
+The Service Broker does not have official Docker Hub images yet, however creating them is simple.
+This page describes simple scenarios for test and development work.
+
+== Building the Container Image
+
+On the previous page you downloaded and installed the official package.
+First change to the install directory:
+
+[source,console]
+----
+$ cd /usr/share/couchbase-service-broker
+----
+
+We recommend simple testing environments like https://kubernetes.io/docs/setup/learning-environment/minikube/[Minikube^] as you can use the provided examples, without modification, later on.
+If you are using Minikube, ensure it is installed and running, then run the following to install the container:
+
+[source,console]
+----
+$ eval `minikube docker-env`
+$ docker build . -t couchbase/service-broker:0.0.0
+$ docker tag couchbase/service-broker:0.0.0 couchbase/service-broker:latest
+----
+
+[NOTE]
+====
+You should match the version number to the package version that you downloaded.
+All examples use the `latest` tag, so we recommend that is also applied to the image.
+====
+
+You may, however, wish to deploy the Service Broker on a full Kubernetes cluster.
+To do this you will need a https://hub.docker.com[docker hub account^], or access to a docker registry.
+Ensure you are logged in to docker and have push permissions.
+Next build the container image with your organization (for example `acmecorp`) and a suitable name (we will keep using `service-broker`) and push to a repository:
+
+[source,console]
+----
+$ docker build . -t acmecorp/service-broker:0.0.0
+$ docker tag acmecorp/service-broker:0.0.0 acmecorp/service-broker:latest
+$ docker push acmecorp/service-broker:0.0.0
+$ docker push acmecorp/service-broker:latest
+----
+
+[IMPORTANT]
+====
+If you are using a non-standard name (i.e. not `couchbase/service-broker`) you will need to update YAML manifests in the following pages to reflect this.
+====
+
+== Next Steps
+
+* xref:install-kubernetes.adoc[Creating the Service Broker Service]
