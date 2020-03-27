@@ -38,10 +38,10 @@ jobs:
         sudo apt-get -y install devscripts debhelper
     # Build the DEB first as it will run the clean target and clear out the directory.
     - name: Build Debian
-      run: make deb -e PREFIX=/usr VERSION=${{ steps.constants.outputs.version }}
+      run: make deb -e VERSION=${{ steps.constants.outputs.version }}
     # Build the RPM.
     - name: Build Red Hat
-      run: make rpm -e PREFIX=/usr VERSION=${{ steps.constants.outputs.version }}
+      run: make rpm -e VERSION=${{ steps.constants.outputs.version }}
     # Build the standard archives.
     - name: Build Archive
       run: make archive -e DESTDIR=/tmp/archive VERSION=${{ steps.constants.outputs.version }}

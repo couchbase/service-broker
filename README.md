@@ -55,24 +55,31 @@ Depending on how you wish to configure the Service Broker, it may only require p
 ### Building an Official Container from Release Archives
 
 Official releases are avaliable to download from [GitHub](https://github.com/spjmurray/service-broker/releases).
-They contain the service broker binary, an example docker file and example YAML.
+They contain the service broker binary and Dockerfile.
 
-Download the package, decompress it, then from the root director of the archive you can build the container image:
+DEB and RPM packages are provided for platforms uing those package managers.
+These are the preferred method of installation as they are version controlled by the package manager.
+
+If using a zip or tar archive, download the package, decompress it into the root folder.
 
 ```bash
 $ sudo tar xf -C / couchbase-service-broker-0.0.0-99999.tar.gz
-$ cd /usr/local/share/couchbase-service-broker
-$ docker build . -t couchbase/service-broker:0.0.0
 ```
 
-This will create the container image `couchbase/service-broker:0.0.0`.
+You can now build the container image:
+
+```bash
+$ cd /usr/share/couchbase-service-broker
+$ docker build . -t couchbase/service-broker:0.0.0
+$ docker tag couchbase/service-broker:0.0.0 couchbase/service-broker:latest
+```
 
 ### Building A Container Image from Source
 
 To build a container from source you can use the following command:
 
 ```bash
-$ make container -e APPLICATION=acme-service-broker IMAGE=acme/service-broker VERSION=1.0.0 REVISION=beta1
+$ make container
 ```
 
 This allows you to change the application and image's name and the version.
@@ -83,68 +90,62 @@ This will require modification to the example files.
 To build a release from source:
 
 ```bash
-$ make archive -e APPLICATION=acme-service-broker VERSION=1.0.0 REVISION=beta1 PREFIX=/usr DESTDIR=/tmp/archive
+$ make archive -e VERSION=1.0.0 REVISION=beta1 DESTDIR=/tmp/archive
 ```
 
 Or for Red Hat RPMs:
 
 ```bash
-$ make rpm -e APPLICATION=acme-service-broker VERSION=1.0.0 REVISION=beta1 PREFIX=/usr
+$ make rpm -e VERSION=1.0.0 REVISION=beta1
 ```
 
 Or for debian DEBs:
 
 ```bash
-$ make deb -e APPLICATION=acme-service-broker VERSION=1.0.0 REVISION=beta1 PREFIX=/usr
+$ make deb -e VERSION=1.0.0 REVISION=beta1
 ```
 
 ## Installation
 
 Ensure the [Kubernetes Service Catalog is installed](https://svc-cat.io/docs/install/).
 
-Change to the install directory:
-
-```bash
-$ cd /usr/local/share/couchbase-service-broker
-```
-
 Install the custom resource definition:
 
 ```bash
-$ kubectl create -f crds
+$ kubectl create -f https://raw.githubusercontent.com/spjmurray/service-broker/master/crds/servicebroker.couchbase.com_servicebrokerconfigs.yaml
 ```
 
 Select a configuration template to use.
 These define the permissions that are required by the service broker to deploy the service instances as defined in the configuration:
 
 ```bash
-$ kubectl create -f example/configurations/couchbase-server/broker.yaml
+$ kubectl create -f https://raw.githubusercontent.com/spjmurray/service-broker/master/examples/configurations/couchbase-server/broker.yaml
 ```
 
 Install the service broker, ensuring the service broker deployment is running:
 
 ```bash
-$ kubectl create -f example/broker.yaml
+$ kubectl create -f https://raw.githubusercontent.com/spjmurray/service-broker/master/examples/broker.yaml
 $ kubectl wait --for=condition=Available deployment/couchbase-service-broker
 ```
 
 Register the service broker with the service catalog, ensuring it is ready:
 
 ```bash
-$ kubectl create -f example/clusterservicebroker.yaml
+$ kubectl create -f https://raw.githubusercontent.com/spjmurray/service-broker/master/examples/clusterservicebroker.yaml
 $ svcat get brokers
 ```
 
 Finally you can test the broker configuration by creating a service instance:
 
 ```bash
-$ kubectl create -f example/configurations/couchbase-server/serviceinstance.yaml
+$ kubectl create -f https://raw.githubusercontent.com/spjmurray/service-broker/master/examples/configurations/couchbase-server/serviceinstance.yaml
 ```
 
 And get access to a secret containing credentials:
 
 ```bash
-$ kubectl create -f example/configurations/couchbase-server/servicebinding.yaml
+$ kubectl create -f https://raw.githubusercontent.com/spjmurray/service-broker/master/examples/configurations/couchbase-server/servicebinding.yaml
 ```
 
 ## Architecture

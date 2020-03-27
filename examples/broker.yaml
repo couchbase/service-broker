@@ -68,7 +68,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: couchbase/service-broker:0.0.0
+        image: couchbase/service-broker:latest
         name: couchbase-service-broker
         ports:
         - containerPort: 8443
