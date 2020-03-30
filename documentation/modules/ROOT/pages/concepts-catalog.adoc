@@ -6,3 +6,126 @@ This page describes the core functionality of the service catalog.
 ifdef::env-github[]
 :imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
+
+The service catalog is a centralized directory used by clients to discover service offerings and plans.
+In the xref:concepts-architecture.adoc#service-catalog[previous section], we described that the service catalog conceptually describes a service by characteristics, and then by sizing.
+This layout is only for guidance -- you may configure the service catalog however you desire.
+
+In this section we will look a bit deeper into what the service catalog looks like, and then how this affects the operation of the Service Broker.
+
+[#service-offerings]
+== Service Offerings
+
+At the top-level, the service catalog is a list of service offerings.
+A service offering does not provide any tangible services -- something that can be provisioned -- it is merely a container for <<service-plans,service plans>>.
+As a result, a service offering can be thought of as a logical grouping of service plans.
+You can use this property to define classes of service e.g. production or development services.
+
+[#service-offering-metadata]
+=== Service Offering Metadata
+
+The service offering has metadata associated with it.
+This metadata is used to communicate the purpose of the service offering to the end user.
+
+Each service offering has a name and an ID.
+The name must be a valid https://kubernetes.io/docs/concepts/overview/working-with-objects/names/[Kubernetes resource name^] e.g. `my-production-service` and must be unique.
+Names are used to refer to service offerings and plans when creating resources with the Kubernetes Service Catalog.
+
+Service offering IDs are used to interact with the Service Broker API.
+Again these must be unique and are usually in the form of a UUID.
+These can be generated with `uuidgen` on the command line.
+
+The final required piece of metadata that the service offering supplies to the user is a description.
+Given that the service offering name is restricted by various standards, the description is free-form text that describes what the service offering provides to the end user.
+
+.End User Service Offering Discovery
+image::sc-offering.png[align="center"]
+
+Optionally, the metadata may contain a list of tags.
+This allows service offerings to be indexed to allow searching for services.
+For example the Apache Web Server may be tagged with `www`.
+Searching for anything with the `www` tag will return your Apache Web Server service offering along with any others offering similar functionality e.g. Nginx.
+
+=== Service Offering Control Parameters
+
+<<service-offering-metadata,Service offering metadata>> allows end users to select the services they wish to create and consume.
+Service offerings also contain what we will call "control parameters".
+Control parameters describe how a client must use the service offering.
+The control parameters are handled -- for the most part -- by the Kubernetes Service Catalog, however you should be aware of how it is used and must be configured.
+
+Many configuration parameters described here may also be overridden by a service plan with a service offering.
+As such these provide defaults.
+
+Clients can bind to a service instance in order to gain access to authorization credentials.
+A service may, however, be consumable without a binding.
+A service offering explicitly declares a service as bindable.
+If a service instance cannot be bound to, this will be set to `false` and binding requests rejected by the Service Broker API.
+
+A service offering can also control whether Service Broker clients are allowed to access other APIs.
+The service catalog defines whether a service instance or binding can be read.
+The Service Broker can be used regardless of these settings.
+
+The service catalog can also control whether request contexts can be modified or not.
+As we are running on Kubernetes, the only contextual information that the Service Broker uses is the `namespace` a service instance or binding is created in.
+Kubernetes does not support moving a resource between namespaces, so this parameter is effectively immutable.
+As a result, the "allow context updated" parameter is ignored by the Service Broker.
+
+Finally a service offering defines whether a plan can be updated.
+Updating a service instance means that its service plan is changed from one to another.
+At present plan updates are not supported and this must be set to `false`.
+
+[#service-plans]
+== Service Plans
+
+Where <<service-offerings,service offerings>> provide a high-level description of a service, a service plan provides something that can be provisioned.
+A service offering may, for example, describe a web server.
+A service plan allows you to create a small, medium or large web server.
+
+=== Service Plan Metadata
+
+Like service offerings, service plans also each have a name, ID and description associated with them.
+The name and ID must conform to the same rules, with the exception that where service offering names and IDs are globally unique, service plan names and IDs must be unique within their parent offering.
+
+Service plans do not have any tags for service offering indexing.
+They do have some new parameters, namely `metadata` and `free`.
+Metadata is a user-definable JSON object that can communicate arbitrary data to an end user.
+Free is an indicator that a service plan is free to use.
+
+.End User Service Plan Discovery
+image::sc-plans.png[align="center"]
+
+=== Service Plan Control Parameters
+
+Service plans allow the bindable and updatable properties to be set.
+This allows fine-grained control over individual plans where their behavior differs from the overall service offering.
+
+The most important new addition to the control parameters are schemas.
+When a service instance binding is created and updated, and a service binding created, a https://json-schema.org/[JSON schema^] may be specified for each operation type.
+Create and update operations may be parameterized -- they can accept parameter data from the end user.
+A schema allows the service catalog to communicate to the user the parameters that are understood by the service plan.
+
+JSON schema allows the specification of, not only structure, but validation.
+Take for example a parameter that defines the size of something.
+A service plan schema can also specify that the user provided size is within certain bounds, thus constraining the size in order to control costs or resource utilization.
+The Service Broker will perform JSON schema validation when specified and reject invalid requests.
+At present, parameter values supplied by the user but not present in the schema will be ignored.
+
+.End User JSON Schema Interaction
+image::sc-schemas.png[align="center"]
+
+JSON schemas may also be used by the service catalog client for dynamically creating users interfaces for a specific service plan.
+It is possible to create a user interface to search for service offerings, a user selects a plan, then is presented with drop downs and sliders as appropriate for a service plan.
+
+The final control parameter to consider is the maximum polling duration.
+The Service Broker uses asynchronous provisioning where possible.
+This allows for flexible configuration by the administrator.
+Consider a service that takes an amount of time to provision and become ready -- the Service Broker client will create a service instance then poll for completion.
+The maximum polling duration allows the server to control the timeout before a client declares the service instance as failed if it does not become ready in time.
+
+== Next Steps
+
+The service catalog allows end users to discover and search for services to use, then to parameterize and create them.
+It also allows the server to communicate acceptable behavior to the client.
+Next we will see how a request to create a service instance from a specific service plan begins to actually create resources to provision the service instance.
+
+* xref:concepts-bindings.adoc[Configuration Bindings]

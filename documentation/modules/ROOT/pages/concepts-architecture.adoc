@@ -50,6 +50,7 @@ This facilitates sharing of the underlying service instance.
 .Service Instance with Binding Shared by Multiple Users
 image::osb-arch-shared.png[align="center"]
 
+[#service-catalog]
 === Service Catalog
 
 Users of an Open Service Broker compliant API can create and delete service instances and bindings as they desire.
