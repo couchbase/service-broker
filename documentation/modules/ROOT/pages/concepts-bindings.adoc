@@ -6,3 +6,58 @@ This page describes how catalog service plans are bound to templates in the serv
 ifdef::env-github[]
 :imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
+
+In the previous section we looked, in detail, at how the service catalog is exposed to an end user.
+What was clear was that service plans abstract a lot of the details about a service and how it is implemented.
+A user need only concern themselves with a service offering and plan that suits their particular workload.
+
+This section describes how a selected service plan starts to be translated into actual Kubernetes resources that implement that plan.
+
+== Configuration Bindings
+
+Consider the following diagram:
+
+.Relationship Between Service Catalog and Binding
+image::sb-bindings.png[]
+
+Unsurprisingly, given a service plan name is unique within its parent service offering, you use a combination of service name and plan name to uniquely identify a service plan in the Service Broker.
+Configuration bindings use this unique identifier to map from a service plan to a configuration binding.
+This is a one-to-one mapping and every plan must have a binding.
+
+=== Templates
+
+Configuration bindings can be thought of as lists of Kubernetes resources.
+In our example this would be a `ServiceAccount`, `Role` and all the other resources required to create our service instance in Kubernetes.
+
+In reality, the resources the binding refers to are all templates -- a base Kubernetes resource that can be modified dynamically based on request parameters.
+Templates are covered in more detail in the next section.
+
+=== Parameters
+
+Configuration bindings may also contain lists of parameters.
+These are simple functions that accept inputs from a number of sources, optionally apply transformations to them, then store the output somewhere.
+These are covered in more detail in a later section, however we will mention that parameters in the configuration binding may be used to generate values that are stored, and can used as inputs to template rending later.
+Such values can be shared resource names, passwords and even TLS configuration.
+
+=== Processing Rules
+
+Service instances and service bindings have their own separate lists of templates and parameters for each service plan.
+
+When configuration bindings are processed, the Service Broker guarantees some ordering constraints:
+
+. Configuration binding parameters are processed, in-order, first.
+. Configuration binding templates are processed, in-order, last.
+
+Given processing is ordered, outputs from an earlier parameter can be used as inputs into a later one.
+
+Both templates and parameters are optional.
+Take, for example, a service plan that has calculated its credentials while creating a service instance.
+When creating a service binding, in order to communicate these credentials back to an end user, the use of templates is not required.
+Credentials can be communicated back with only parameters.
+
+== Next Steps
+
+We have seen how a service plan is mapped to lists of templates and parameters for both service instances and bindings.
+Next we will look in detail at how templates are rendered into Kubernetes resources.
+
+* xref:concepts-templates.adoc[Configuration Templates]
