@@ -10,6 +10,7 @@ endif::[]
 In the xref:concepts-bindings.adoc[previous section] we looked at how configuration bindings map service instances and service bindings for a service plan to a set of templates.
 This section examines how templates are defined and are processed to result in Kubernetes resources that can be created.
 
+[#configuration-templates]
 == Configuration Templates
 
 Templates are conceptually very simple.
@@ -90,6 +91,20 @@ Templates _referenced by configuration bindings_ must generate a valid Kubernete
 
 As we will see in the next section, parameters can reference shared template snippets, that are themselves rendered as per the template processing rules.
 As a result there is no restriction that all templates must be Kubernetes resources.
+
+=== Namespaces
+
+One thing that we have not mentioned when creating Kubernetes resources is namespaces.
+By default, if not specified in the template the Service Broker will derive the namespace from the request context.
+The Kubernetes service catalog watches for `ServiceInstance` resources being created and then calls the Service Broker API in order to create the service instance.
+The namespace in which the `ServiceInstance` resource was created is passed to the Service Broker API with a request context.
+By using implicit namespace determination, the resources associated with a service plan will be created in the same namespace as the `ServiceInstance` resource.
+
+The namespace to use for provisioning is determined by the Service Broker using the following methods, in order of precedence:
+
+. Explicitly defined in the resource template.
+. Implicitly defined in the request context.
+. If not specified in the request context, use the namespace the Service Broker is running in.
 
 === Singletons
 

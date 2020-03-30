@@ -104,7 +104,10 @@ When a service instance binding is created and updated, and a service binding cr
 Create and update operations may be parameterized--they can accept parameter data from the end user.
 A schema allows the service catalog to communicate to the user the parameters that are understood by the service plan.
 
-JSON schema allows the specification of, not only structure, but validation.
+[#json-schemas]
+.JSON Schemas
+****
+JSON schema allows the specification of structure and validation.
 Take for example a parameter that defines the size of something.
 A service plan schema can also specify that the user provided size is within certain bounds, thus constraining the size in order to control costs or resource utilization.
 The Service Broker will perform JSON schema validation when specified and reject invalid requests.
@@ -115,6 +118,7 @@ image::sc-schemas.png[align="center"]
 
 JSON schemas may also be used by the service catalog client for dynamically creating users interfaces for a specific service plan.
 It is possible to create a user interface to search for service offerings, a user selects a plan, then is presented with drop downs and sliders as appropriate for a service plan.
+****
 
 The final control parameter to consider is the maximum polling duration.
 The Service Broker uses asynchronous provisioning where possible.

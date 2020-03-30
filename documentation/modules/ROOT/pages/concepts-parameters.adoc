@@ -6,3 +6,317 @@ This page describes how configuration parameters are processed and stored in the
 ifdef::env-github[]
 :imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
+
+In the xref:concepts-templates.adoc[last section] we described configuration templates and how they are used to generate valid Kubernetes resources.
+In this section we will look in detail at parameters, how they work, what they can do and how they can make your service instances truly dynamic.
+
+== Configuration Parameters
+
+Configuration parameters are best thought of as functions: they accept input arguments and return a single result.
+Configuration parameters do not have any side effects.
+
+Configuration parameters have a source--the source type defines the function to perform--and destinations--where the result should be stored.
+Sources have a variable number of input arguments depending on the source type.
+A parameter must have one source and may have any number destinations.
+
+Take the following parameter as an example:
+
+[source,yaml]
+----
+name: resource-name
+source:
+  registry: resource-name # <1>
+destinations:
+- path: /metadata/name # <2>
+- path: /spec/selector/matchLabels/app
+- path: /spec/template/metadata/labels/app
+----
+
+We can see that:
+
+<1> The source function is the `registry`, it accepts a single argument that reads from a specified key.
+
+<2> There are multiple destinations within a template.
+    This example is from a hypothetical `Deployment` where we want to label each pod with the same application name as that of the `Deployment` itself.
+
+=== Parameter Handling
+
+Parameters are typed.
+The type system is based on JSON to allow simple serialization and persistence, and therefore supports strings, numbers, arrays and objects.
+For example, if a parameter source resolves to a JSON object, it will be handled as such when patched into a configuration template.
+
+==== Optional Parameters
+
+All parameters are optional by default.
+This supports such use cases where parameters supplied by the end user--as defined by the xref:concepts-catalog.adoc#json-schemas[service catalog schemas]--are optional.
+If a user defined parameter is not specified, but referred to by a parameter argument, the parameter argument lookup fails and the result will be internally set to `nil`.
+If a configuration parameter value is `nil`, then the destinations are ignored.
+
+By exploiting optional parameters and how they are handled by the Service Broker, you can create basic conditional elements to your templates.
+
+==== Mandatory Parameters
+
+As we have seen in our xref:concepts-templates#template-example[earlier template example], resource templates will not generate valid Kubernetes resources without certain attributes being populated.
+This will manifest itself as a Kubernetes creation error, which may be difficult to debug.
+You can catch these types of errors earlier, and with more context, by specifying that the parameter is required.
+
+Unlike optional parameters, required parameters will raise an error if the result resolves to `nil`.
+This will indicate the error as related to the specific named parameter in the named template.
+
+== Parameter Sources
+
+Parameter sources are divided into categories based on their behavior.  These are:
+
+* Accessors--these lookup existing data items.
+* Mutators--these transform existing data items.
+* Generators--these generate data items.
+
+[#accessors]
+=== Accessors
+
+Accessors do a simple lookup of a value from available data sources.
+
+==== Registry
+
+The registry is described in detail in the next section.
+It is a typed key/value store.
+A registry source for name `foo` will return any value associated with the registry key `foo` as in the following example:
+
+[source,yaml]
+----
+- name: my-parameter
+  source:
+    registry: foo
+----
+
+==== Parameter
+
+A parameter refers to a user specified parameter supplied with a create or update operation.
+Parameters are a supplied as a free-form JSON object to the API.
+The parameter source type allows access to a string, number, array or object in the supplied JSON object.
+Parameter sources are accessed with the https://tools.ietf.org/html/rfc6902[JSON pointer^] specification.
+For example, given the parameters passed to the API:
+
+[source,json]
+----
+{
+  "size": 16,
+  "resources": {
+    "requests": {
+      "cpu": "4",
+      "memory": "16Gi"
+    }
+  }
+}
+----
+
+A parameter source of:
+
+[source,yaml]
+----
+- name: my-parameter
+  source:
+    parameter: /size
+----
+
+would resolve to `"4"`.
+
+A parameter source of:
+
+[source,yaml]
+----
+- name: my-parameter
+  source:
+    parameter: /resources/requests
+----
+
+would resolve to `{"cpu":"4","memory":"16Gi"}`.
+
+=== Mutators
+
+Mutators build upon accessors and allow data to be modified.
+
+==== Format
+
+The format source allows string formatting.
+It accepts a https://golang.org/pkg/fmt/[golang formatting string^] and a set of <<accessors,accessors>> as arguments.
+The following example shows how to generate a valid DNS instance name from the unique instance ID (the instance ID is usually a UUID--therefore may start with a digit--which is illegal in some circumstances):
+
+[source,yaml]
+----
+- name: my-parameter
+  source:
+    format:
+      string: instance-%v
+      parameters:
+      - registry: instance-id
+----
+
+==== Template Snippet
+
+The template source enables generation of complex results, and recursive template generation.
+A specific example could involve Kubernetes label selectors.
+Resources are labeled with a set of values, label selectors then filter resources based on the same labels.
+In both cases the labels are the same, and can be generated by a common template snippet, rather than duplicated.
+Template snippets are the one case where a configuration template need not generate a Kubernetes resource.
+
+To demonstrate consider the following snippet configuration template definition:
+
+[source,yaml]
+----
+name: label-snippet
+template: {} # <1>
+parameters:
+- name: my-app
+  source:
+    registry: my-app-name # <2>
+  destination:
+    path: /app # <3>
+----
+
+<1> We begin with an empty object as required by the JSON patch specification.
+<2> The source is the registry value associated with the key `my-app-name`.
+<3> The result is patched into the snippet as the attribute `app`.
+
+Therefore if the registry key `my-app-name` contained the value `merlin`, then the snippet would generate the result `{"app":"merlin"}`.
+
+To use the snippet, the following configuration template shows how:
+
+[source,yaml]
+----
+name: my-secret
+template:
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: my-secret
+parameters:
+- name: my-parameter
+  source:
+    template: label-snippet
+  destinations:
+  - path: /metadata/labels
+----
+
+This would generate the following Kubernetes resource:
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-secret
+  labels:
+    app: merlin
+----
+
+=== Generators
+
+Generators create new data items.
+They may accept arguments--in the form of accessors--that allow the generation functions to be dynamically configured.
+Any cryptographic generators use cryptographically secure random number generators.
+
+==== Generate Password
+
+The password generator generates ephemeral passwords of a specific length and results in a string.
+The dictionary of characters used to generate passwords defaults to `[a-zA-Z0-9]`, however this can be explicitly defined.
+To generate a 32 character password:
+
+[source,yaml]
+----
+- name: my-parameter
+  source:
+    generatePassword:
+      length: 32
+----
+
+==== Generate Key
+
+The key generator creates a private key and results in a string containing a PEM encoded private key.
+Supported key types are RSA, ECDSA and ED25519.
+Supported encoding types are PKCS#1, PKCS#8 and EC.
+
+For example, to generate a PKCS#8 P256 private key:
+
+[source,yaml]
+----
+- name: my-parameter
+  source:
+    generateKey:
+      type: ecP256
+      encoding: pkcs8
+----
+
+==== Generate Certificate
+
+The certificate generator generates X.509 certificates and results in a string containing a PEM encoded certificate.
+This generator optionally accepts a CA certificate and key pair with which to sign the resulting certificate.
+If no CA is specified then the resulting certificate is self-signed.
+
+The certificate generator supports CA, server and client certificate types.
+Server and client certificates may be specified with DNS and e-mail subject alternative names respectively.
+
+For example, to generate a signed X.509 certificate:
+
+[source,yaml]
+----
+- name: my-parameter
+  source:
+    generateCertificate:
+      key:
+        registry: my-key
+      name:
+        commonName: "My Service Certificate"
+      lifetime: "8760h"
+      usage: server
+      alternativeNames:
+        dns:
+        - registry: my-service-san
+      ca:
+        key:
+          registry: my-ca-key
+        certificate:
+          registry: my-ca-certificate
+----
+
+[IMPORTANT]
+====
+The Service Broker is reactive--it responds to API calls--therefore will never support certificate rotation directly.
+You should deploy a certificate manager with your service instances if this functionality is required by your security policy.
+====
+
+== Parameter Destinations
+
+Once configuration parameter values have been resolved, and if valid, then they must be stored somewhere.
+A configuration parameter may have any number of destinations and they may be of any type, depending on where the parameter is defined.
+
+=== Registry
+
+Registry destinations persist the result in a typed key/value store.
+Registry values are persisted for the lifetime of a service instance or service binding and may be accessed at any time.
+Registry values may be defined when processing configuration binding parameters or configuration templates.
+
+For example, the result of the parameter lookup will be stored as `foo` in the registry:
+
+[source,yaml]
+----
+- name: my-parameter
+  destinations:
+  - registry: foo
+----
+
+Additional details about the registry are provided in the next section.
+
+=== Path
+
+Path destinations may only be used for configuration templates.
+Like the parameter source type, the path destination is a https://tools.ietf.org/html/rfc6902[JSON pointer^] that tells the Service Broker where to patch the result into a resource template.
+
+An example and additional details of using the path destination are given in the xref:concepts-templates.adoc##configuration-templates[configuration templates section].
+
+== Next Steps
+
+The final step to explain the Service Broker configuration is to look at the registry.
+This is the last fundamental component of the Service Broker that must be understood in order to use and configure it effectively.
+
+* xref:concepts-registry.adoc[Service Instance and Binding Registries]
