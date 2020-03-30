@@ -6,3 +6,112 @@ This page describes how configuration templates are used in the Service Broker.
 ifdef::env-github[]
 :imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
+
+In the xref:concepts-bindings.adoc[previous section] we looked at how configuration bindings map service instances and service bindings for a service plan to a set of templates.
+This section examines how templates are defined and are processed to result in Kubernetes resources that can be created.
+
+== Configuration Templates
+
+Templates are conceptually very simple.
+They contain a resource template -- that provides scaffolding to build your resource with, and parameters -- that allow the resource template to be customized.
+
+The Service Broker operates on abstract templates rather than concrete Kubernetes resources because of namespace conflicts.
+If, for example, your service instance created a Kubernetes `Secret` called `my-secret`, then only one service instance could ever be created in a single namespace.
+Any subsequent attempts to create another service instance would create a `Secret` with the same name and Kubernetes would reject it.
+
+By allowing templating, the Service Broker allows resource names to be dynamically generated, and you can guaranteed resources will never conflict.
+This is best explained by example:
+
+[#template-example]
+[source,yaml]
+----
+name: my-secret
+template: # <1>
+  apiVersion: v1
+  kind: Secret
+  metadata: {} # <2>
+  stringData:
+    mySecretName: TopSecret!
+parameters: # <3>
+- name: resource-name
+  source:
+    registry: instance-id # <4>
+  destination:
+    path: /metadata/name # <5>
+----
+
+Lets look in more detail at the configuration:
+
+<1> The `template` attribute is just that, a template, it cannot be created in Kubernetes without more attributes being populated.
+    In this case we want to create a `Secret`, but cannot as the `metadata.name` is not specified.
+
+<2> The `metadata` object is specified but it is empty, ready to accept the name we will generate.
+    This is important to note -- the JSON patch specification will not recursively create an attribute.
+    In order to add `metadata.name` its parent object must already exist.
+
+<3> The `parameters` attribute is a list of functions that accept inputs, process them and store the result in a destination.
+
+<4> The `registry` source is a simple key/value store.
+    This will be covered in more detail in the following sections.
+    In this instance we are accessing the unique instance ID associated with the service instance.
+    No processing is performed on the value, it is just read from the registry.
+
+<5> The `path` destination patches the result of the source processing and patches it into our template.
+
+If, for example, our instance ID was `camelot`, the resulting template would be:
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Secret
+metadata:
+  name: camelot
+stringData:
+  mySecretName: TopSecret!
+----
+
+This is now a valid Kubernetes resource and can be created by the Service Broker.
+The key observation to make is that service IDs are unique, therefore if another service instance rendered this template, it would result in a different name and can be created without conflict.
+
+=== Paths and Patching
+
+Paths -- identifying where to put parameter values in the resource template -- are defined by the https://tools.ietf.org/html/rfc6902[JSON pointer^] specification.
+
+When parameters are applied to the resource template, it is done as defined by the https://tools.ietf.org/html/rfc6902[JSON patch^] specification.
+Specifically the Service Broker uses the `add` operation.
+This specification should be read, and details why the <<template-example,earlier example>> required an empty object before the resource name could be added.
+The full JSON patch specification is implemented by the service broker, therefore values can overwritten and arrays can be appended to.
+
+=== Resource Templates
+
+Resource templates must be specified and must be objects.
+They cannot be scalar values or arrays.
+Templates _referenced by configuration bindings_ must generate a valid Kubernetes object.
+
+As we will see in the next section, parameters can reference shared template snippets, that are themselves rendered as per the template processing rules.
+As a result there is no restriction that all templates must be Kubernetes resources.
+
+=== Singletons
+
+In our <<template-example,earlier example>>, we made the resource name dynamic in order to prevent Kubernetes namespace conflicts.
+There are, however, times where you actually want to allow this behavior.
+Take cluster wide resources such as the `ClusterRole`, for example.
+If your service instance wanted to create a `ClusterRole`, and share it among all service instances, then we'd want to allow conflicts.
+
+You can specify the template is a singleton in the configuration to enable this behavior.
+When enabled the errors when creating a resource are looked at more closely.
+If a conflict is reported by Kubernetes and the resource is marked as a singleton, then the error is ignored and normal processing continues.
+Any other error will cause the operation to fail.
+
+== Processing Rules
+
+Template parameters are processed in-order.
+In the same way as with configuration binding parameters, template parameters can store results that are referenced by template parameters that are processed later.
+
+== Next Steps
+
+We have seen how service instance and bindings are mapped to a set of configuration templates.
+Configuration templates map a resource template to final object by applying parameters to the configuration template.
+Next we will look at parameters, where they can source data from, what processing can be performed on the source data, and where it can be stored.
+
+* xref:concepts-parameters.adoc[Configuration Parameters]
