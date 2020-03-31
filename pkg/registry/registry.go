@@ -131,6 +131,11 @@ var (
 			read:  true,
 			write: true,
 		},
+		{
+			name:  Credentials,
+			read:  true,
+			write: true,
+		},
 	}
 )
 

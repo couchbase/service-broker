@@ -6,3 +6,131 @@ This page describes the functionality of registries in the Service Broker.
 ifdef::env-github[]
 :imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
+
+== Service Broker Registries
+
+A registry is a typed key/value store that exists per service instance and per service binding.
+Values are serialized as JSON strings to preserve type when stored in the registry.
+
+A registry is implemented with a Kubernetes `Secret` resource.
+Registries are stored in the same namespace as the Service Broker, therefore, if they contain sensitive data, you must ensure users do not have read access of `Secret` resources in this namespace.
+
+A registry is the only persistent storage the Service Broker uses.
+This persistence layer allows the Service Broker to tolerate service restarts during service provisioning.
+
+A registry provides a "scratch" area where configuration parameters can be stored and then referenced later by other configuration paramters.
+This allows configuration parameters to chain their inputs and outputs together.
+
+=== Scoping Rules
+
+Each service instance and service binding gets its own registry.
+This allows the Service Broker to quickly, and easily, determine whether a registry for a service instance or service binding exists--more than that, it is used to determine whether a service instance or service binding exists.
+
+A service binding registry inherits all key/value pairs from a service instance.
+This allows for a service instance to create a password and initialize a service with it, and then to communicate it to a service binding to be communicated to the Service Broker client.
+
+Another example could involve a service instance generating a TLS CA certificate/key pair and a server certificate/key pair for the service instance.
+The service binding would in turn have access to the CA certificate and key in order to generate, and sign, a client certificate/key pair to be communicated to the Service Broker client.
+
+Values inherited by a service binding registry--upon creation--are not updated by a service instance update that modifies the underlying service instance registry.
+
+Scoping is one-way--service instances cannot lookup, or gain access to, associated service binding registries.
+
+== System Defined Registry Keys
+
+These registry keys are defined by the Service Broker and have special meanings as defined below.
+Read-only keys are always defined by the Service Broker and can be used in any circumstance.
+
+=== Read-Only
+
+Read-only keys are defined by the Service Broker and can not be set by configuration parameters.
+
+namespace::
+When using the Kubernetes Service Catalog this will be set to the namespace a service instance was created in.
+If `namespace` is not supplied as an attribute of a service instance creation context, this will default to the namespace the Service Broker is running in.
+
+instance-id::
+This is the unique ID of the service instance or the service instance a service binding belongs to.
+
+binding-id::
+**Service Binding Only** This is the unique ID of a service binding.
+
+service-id::
+This is the service ID--defined in the service catalog--that a service instance or service binding belongs to.
+
+plan-id::
+This is the plan ID--defined in the service catalog--that a service instance or service binding belongs to.
+
+=== Read-Write
+
+Read-write keys are defined by configuration parameters and are used by the Service Broker to provide core functionality.
+
+dashboard-url::
+When defined by the configuration, the dashboard URL will be returned by the Service Broker API when a service instance has been successfully provisioned.
+This must be a URL string e.g. `https://my-service.acme.com`.
+
+credentials::
+When defined by the configuration, the credentials will be returned by the Service Broker API when a service binding has been successfully provisioned.
+This must be an object and may contain any value required by a client application to consume a service, for example:
+
+[source,json]
+----
+{
+  "connection": "scheme://my-service.acme.com:1234/auth/v1",
+  "username": "road-runner",
+  "password": "meepMeep!"
+}
+----
+
+=== Reserved
+
+Reserved keys are reserved for exclusive use by the Service Broker and cannot be read or written by configuration parameters.
+
+context::
+Used to store a service instance or service binding request context.
+Use the `namespace` registry key to get access to this value.
+
+parameters::
+Used to store a service instance or service binding request parameters.
+Use the `parameter` configuration parameter source type to access this value.
+
+operation::
+Used to define the asynchronous operation type when provisioning.
+
+operation-id::
+Used to define the asynchronous operation ID when provisioning.
+
+operation-status::
+Used to define the asynchronous operation status when provisioning.
+
+== User Defined Registry Keys
+
+Service Broker adminstrators can define and use registry keys during service instance and service binding provisioning.
+Registry keys are set by configuration parameters with the `registry` destination type.
+Key names may be any valid string that a Kubenetes `Secret` resource allows with the `data` and `stringData` attributes.
+
+== Registry Based Garbage Collection
+
+Service instances and service bindings, as we have seen, are collections of templates that generate Kubernetes resources.
+Each service instance and service binding has its own registry, which is modeled on a Kubernetes `Secret` resource.
+
+When Kubernetes resources are created--in response to a service instance and service binding creation request--they are associated with the registry for that creation request.
+Specifically, if a service instance creation resulted in the generation of a Kubernetes `Deployment` resource, that `Deployment` would have its "owner" reference set to the service instance registry.
+
+This simplifies deprovisioning in that deletion of a service instance registry will cascade and delete any Kubernetes resources that were created by that service instance.
+
+Owner references to registries are appended to existing Kubernetes resources.
+Therefore, where singleton templates have been used to generate Kubernetes resources for multiple service instances or service bindings, the Kubernetes resources are only deleted when all associated service instance and service binding registries have also been deleted.
+
+.Registry Ownership of Resources and Resource Sharing with Singletons
+image::reg-gc.png[align="center"]
+
+== Next Steps
+
+We have now covered all basic configuration topics.
+You should now be confident in reading and understanding Service Broker configuration files.
+You should also be able to create your own configurations to provision services upon request for your own services.
+
+The next section begins to look at more advanced topics.
+
+* xref:concepts-security.adoc[Security Models]

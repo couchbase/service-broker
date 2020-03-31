@@ -39,11 +39,11 @@ We can see that:
 <2> There are multiple destinations within a template.
     This example is from a hypothetical `Deployment` where we want to label each pod with the same application name as that of the `Deployment` itself.
 
-=== Parameter Handling
+=== Parameter Typing
 
-Parameters are typed.
+Parameters are typed and handled internally as abstract "values".
 The type system is based on JSON to allow simple serialization and persistence, and therefore supports strings, numbers, arrays and objects.
-For example, if a parameter source resolves to a JSON object, it will be handled as such when patched into a configuration template.
+For example, if a parameter source resolves to an object, it will be handled as such when patched into a configuration template.
 
 ==== Optional Parameters
 
