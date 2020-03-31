@@ -19,13 +19,13 @@ Let's first begin by understanding the key terminology.
 
 A service instance is a single, unique, instance of some service.
 This service could be anything; a database, a VOIP server, a web application.
-The key point here is that end users see a service instance, they do not see nor care about the underlying implementation -- it is abstracted away.
+The key point here is that end users see a service instance, they do not see nor care about the underlying implementation--it is abstracted away.
 Thus a complex application that consists of a collection of inter-connected micro-services and databases, can just be considered as an application by the end user.
 
 The API for a service instance is, however, somewhat limited.
 Upon successful creation of a service instance, the API only defines a dashboard URL.
 If all that is required to consume a service is a URL, then a service instance is all you need.
-If however your clients need more -- such as credentials or non-standard connection strings -- then you need <<service-bindings, service bindings>>.
+If however your clients need more--such as credentials or non-standard connection strings--then you need <<service-bindings, service bindings>>.
 
 It may be the case that service instances are provisioned with pre-shared credentials, or they use a centralized authentication mechanism in which case service bindings are not necessary.
 
@@ -93,7 +93,7 @@ image::sb-binding.png[align="center"]
 
 === Resource Templating
 
-If the Service Broker just created static resources, then it would be impossible to create multiple service instances in the same namespace -- they would create the same resources and conflict.
+If the Service Broker just created static resources, then it would be impossible to create multiple service instances in the same namespace--they would create the same resources and conflict.
 This is why the Service Broker uses templates and not resources.
 
 Templates are modeled on JSON objects (all Kubernetes resources are JSON objects) and can be xref:concepts-parameters.adoc[parameterized].

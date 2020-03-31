@@ -29,7 +29,7 @@ This is a one-to-one mapping and every plan must have a binding.
 Configuration bindings can be thought of as lists of Kubernetes resources.
 In our example this would be a `ServiceAccount`, `Role` and all the other resources required to create our service instance in Kubernetes.
 
-In reality, the resources the binding refers to are all templates -- a base Kubernetes resource that can be modified dynamically based on request parameters.
+In reality, the resources the binding refers to are all templates--a base Kubernetes resource that can be modified dynamically based on request parameters.
 Templates are covered in more detail in the next section.
 
 === Parameters

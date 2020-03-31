@@ -38,7 +38,7 @@ Creating service instances and bindings creates Kubernetes resources.
 This is done in a highly abstracted way so the Service Broker can work with any Kubernetes resource type.
 
 Resources are templated, so they may be dynamically configured based on a set of inputs.
-These inputs include metadata -- provided by the client to provision the instance -- and user specified parameters.
+These inputs include metadata--provided by the client to provision the instance--and user specified parameters.
 
 == Next Steps
 

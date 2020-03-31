@@ -13,7 +13,7 @@ This section examines how templates are defined and are processed to result in K
 == Configuration Templates
 
 Templates are conceptually very simple.
-They contain a resource template -- that provides scaffolding to build your resource with, and parameters -- that allow the resource template to be customized.
+They contain a resource template--that provides scaffolding to build your resource with, and parameters--that allow the resource template to be customized.
 
 The Service Broker operates on abstract templates rather than concrete Kubernetes resources because of namespace conflicts.
 If, for example, your service instance created a Kubernetes `Secret` called `my-secret`, then only one service instance could ever be created in a single namespace.
@@ -46,7 +46,7 @@ Lets look in more detail at the configuration:
     In this case we want to create a `Secret`, but cannot as the `metadata.name` is not specified.
 
 <2> The `metadata` object is specified but it is empty, ready to accept the name we will generate.
-    This is important to note -- the JSON patch specification will not recursively create an attribute.
+    This is important to note--the JSON patch specification will not recursively create an attribute.
     In order to add `metadata.name` its parent object must already exist.
 
 <3> The `parameters` attribute is a list of functions that accept inputs, process them and store the result in a destination.
@@ -75,7 +75,7 @@ The key observation to make is that service IDs are unique, therefore if another
 
 === Paths and Patching
 
-Paths -- identifying where to put parameter values in the resource template -- are defined by the https://tools.ietf.org/html/rfc6902[JSON pointer^] specification.
+Paths--identifying where to put parameter values in the resource template--are defined by the https://tools.ietf.org/html/rfc6902[JSON pointer^] specification.
 
 When parameters are applied to the resource template, it is done as defined by the https://tools.ietf.org/html/rfc6902[JSON patch^] specification.
 Specifically the Service Broker uses the `add` operation.

@@ -33,8 +33,8 @@ Here's a taste of what's to come:
 
 <1> The instance has a unique, human-readable name.
 <2> The user specifies a class of service instance, in this case I want something suitable for development.
-<3> Within the class there are plans, I want something that is private -- not exposed to the outside world.
-    All the domain specific complexity about a service -- how it is configured and managed -- is completely abstracted away.
+<3> Within the class there are plans, I want something that is private--not exposed to the outside world.
+    All the domain specific complexity about a service--how it is configured and managed--is completely abstracted away.
     The user merely consumes a service.
 <4> Plans can be parameterized.
     The administrator in control of the Service Broker configuration can explicitly control what about a plan is configurable by the end user.
@@ -103,7 +103,7 @@ test-binding   test-instance      test-binding   Ready    10m
 === Consuming a Service Binding
 
 Let's reexamine the service binding `Secret` mentioned in the last step.
-When the service binding is successfully created, the Service Broker responds with credentials -- as defined by the Service Broker configuration -- which are placed into a secret:
+When the service binding is successfully created, the Service Broker responds with credentials--as defined by the Service Broker configuration--which are placed into a secret:
 
 [source,console]
 ----
@@ -136,7 +136,7 @@ type: Opaque
 What has happened behind the scenes is that the creation of a service binding has created a bucket and a user, then granted that user full permissions to that bucket.
 This demonstrates how service instances can be shared in a multi-tenant environment.
 
-Looking at the `Secret`, you can see the Service Broker has responded with a CA certificate -- to allow TLS verification, a connection string -- to be consumed directly by client SDKs, a username and password -- for authentication and authorization, and finally a bucket -- to use for data storage and queries.
+Looking at the `Secret`, you can see the Service Broker has responded with a CA certificate--to allow TLS verification, a connection string--to be consumed directly by client SDKs, a username and password--for authentication and authorization, and finally a bucket--to use for data storage and queries.
 
 When made available inside a container for example, it would see the following connection string:
 

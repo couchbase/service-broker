@@ -9,7 +9,7 @@ endif::[]
 
 The service catalog is a centralized directory used by clients to discover service offerings and plans.
 In the xref:concepts-architecture.adoc#service-catalog[previous section], we described that the service catalog conceptually describes a service by characteristics, and then by sizing.
-This layout is only for guidance -- you may configure the service catalog however you desire.
+This layout is only for guidance--you may configure the service catalog however you desire.
 
 In this section we will look a bit deeper into what the service catalog looks like, and then how this affects the operation of the Service Broker.
 
@@ -17,7 +17,7 @@ In this section we will look a bit deeper into what the service catalog looks li
 == Service Offerings
 
 At the top-level, the service catalog is a list of service offerings.
-A service offering does not provide any tangible services -- something that can be provisioned -- it is merely a container for <<service-plans,service plans>>.
+A service offering does not provide any tangible services--something that can be provisioned--it is merely a container for <<service-plans,service plans>>.
 As a result, a service offering can be thought of as a logical grouping of service plans.
 You can use this property to define classes of service e.g. production or development services.
 
@@ -51,7 +51,7 @@ Searching for anything with the `www` tag will return your Apache Web Server ser
 <<service-offering-metadata,Service offering metadata>> allows end users to select the services they wish to create and consume.
 Service offerings also contain what we will call "control parameters".
 Control parameters describe how a client must use the service offering.
-The control parameters are handled -- for the most part -- by the Kubernetes Service Catalog, however you should be aware of how it is used and must be configured.
+The control parameters are handled--for the most part--by the Kubernetes Service Catalog, however you should be aware of how it is used and must be configured.
 
 Many configuration parameters described here may also be overridden by a service plan with a service offering.
 As such these provide defaults.
@@ -101,7 +101,7 @@ This allows fine-grained control over individual plans where their behavior diff
 
 The most important new addition to the control parameters are schemas.
 When a service instance binding is created and updated, and a service binding created, a https://json-schema.org/[JSON schema^] may be specified for each operation type.
-Create and update operations may be parameterized -- they can accept parameter data from the end user.
+Create and update operations may be parameterized--they can accept parameter data from the end user.
 A schema allows the service catalog to communicate to the user the parameters that are understood by the service plan.
 
 JSON schema allows the specification of, not only structure, but validation.
@@ -119,7 +119,7 @@ It is possible to create a user interface to search for service offerings, a use
 The final control parameter to consider is the maximum polling duration.
 The Service Broker uses asynchronous provisioning where possible.
 This allows for flexible configuration by the administrator.
-Consider a service that takes an amount of time to provision and become ready -- the Service Broker client will create a service instance then poll for completion.
+Consider a service that takes an amount of time to provision and become ready--the Service Broker client will create a service instance then poll for completion.
 The maximum polling duration allows the server to control the timeout before a client declares the service instance as failed if it does not become ready in time.
 
 == Next Steps
