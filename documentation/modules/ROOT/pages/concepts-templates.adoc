@@ -4,7 +4,7 @@
 This page describes how configuration templates are used in the Service Broker.
 
 ifdef::env-github[]
-:imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
+:imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
 In the xref:concepts-bindings.adoc[previous section] we looked at how configuration bindings map service instances and service bindings for a service plan to a set of templates.

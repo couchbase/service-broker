@@ -4,7 +4,7 @@
 This page describes how to create the Service Broker container image.
 
 ifdef::env-github[]
-:imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
+:imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
 The Service Broker does not have official Docker Hub images yet, however creating them is simple.

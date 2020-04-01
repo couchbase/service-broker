@@ -4,7 +4,7 @@
 This page describes how to create and consume a service.
 
 ifdef::env-github[]
-:imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
+:imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
 With the Service Broker installed and registered with the Kubernetes Service Catalog, we can now start provisioning service instances and binding to them.

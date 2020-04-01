@@ -4,7 +4,7 @@
 This page describes the core Service Broker architecture.
 
 ifdef::env-github[]
-:imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
+:imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
 The Service Broker implements the https://www.openservicebrokerapi.org/[Open Service Broker API^].
