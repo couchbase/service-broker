@@ -115,6 +115,7 @@ var (
 					Name:        "test-offering",
 					ID:          BasicConfigurationOfferingID,
 					Description: "a test offering",
+					Bindable:    true,
 					Plans: []v1.ServicePlan{
 						{
 							Name:        "test-plan",

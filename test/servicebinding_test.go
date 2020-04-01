@@ -74,6 +74,38 @@ func TestServiceBindingCreateInvalidPlan(t *testing.T) {
 	util.MustPutAndError(t, util.ServiceBindingURI(fixtures.ServiceInstanceName, fixtures.ServiceBindingName, nil), http.StatusBadRequest, binding, api.ErrorParameterError)
 }
 
+// TestServiceBindingCreateUnbindableService tests graceful handling of unbindable service offerings.
+func TestServiceBindingCreateUnbindableService(t *testing.T) {
+	defer mustReset(t)
+
+	configuration := fixtures.BasicConfiguration()
+	configuration.Catalog.Services[0].Bindable = false
+	util.MustReplaceBrokerConfig(t, clients, configuration)
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	binding := fixtures.BasicServiceBindingCreateRequest()
+	util.MustPutAndError(t, util.ServiceBindingURI(fixtures.ServiceInstanceName, fixtures.ServiceBindingName, nil), http.StatusBadRequest, binding, api.ErrorConfigurationError)
+}
+
+// TestServiceBindingCreateUnbindablePlan tests graceful handling of unbindable service plans.
+func TestServiceBindingCreateUnbindablePlan(t *testing.T) {
+	defer mustReset(t)
+
+	planBindable := false
+
+	configuration := fixtures.BasicConfiguration()
+	configuration.Catalog.Services[0].Plans[0].Bindable = &planBindable
+	util.MustReplaceBrokerConfig(t, clients, configuration)
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	binding := fixtures.BasicServiceBindingCreateRequest()
+	util.MustPutAndError(t, util.ServiceBindingURI(fixtures.ServiceInstanceName, fixtures.ServiceBindingName, nil), http.StatusBadRequest, binding, api.ErrorConfigurationError)
+}
+
 // TestServiceBindingCreateWithSchema tests that schema validation works.
 func TestServiceBindingCreateWithSchema(t *testing.T) {
 	defer mustReset(t)

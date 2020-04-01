@@ -756,6 +756,11 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 		return
 	}
 
+	if err := util.VerifyBindable(config.Config(), request.ServiceID, request.PlanID); err != nil {
+		util.JSONError(w, err)
+		return
+	}
+
 	if err := util.ValidateParameters(config.Config(), request.ServiceID, request.PlanID, util.SchemaTypeServiceBinding, util.SchemaOperationCreate, request.Parameters); err != nil {
 		util.JSONError(w, err)
 		return

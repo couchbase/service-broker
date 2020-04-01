@@ -307,3 +307,27 @@ func PlanUpdatable(config *v1.ServiceBrokerConfig, serviceID, planID, newPlanID 
 
 	return nil
 }
+
+// VerifyBindable returns an error if the plan cannot be bound to.
+func VerifyBindable(config *v1.ServiceBrokerConfig, serviceID, planID string) error {
+	service, err := getServiceOffering(config, serviceID)
+	if err != nil {
+		return err
+	}
+
+	plan, err := getServicePlan(config, serviceID, planID)
+	if err != nil {
+		return err
+	}
+
+	bindable := service.Bindable
+	if plan.Bindable != nil {
+		bindable = *plan.Bindable
+	}
+
+	if !bindable {
+		return errors.NewConfigurationError("service plan %s for service %s is not bindable", planID, serviceID)
+	}
+
+	return nil
+}
