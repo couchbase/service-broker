@@ -687,6 +687,20 @@ func TestServiceInstanceUpdateIllegalPlanID(t *testing.T) {
 	util.MustPatchAndError(t, util.ServiceInstanceURI(fixtures.ServiceInstanceName, util.CreateServiceInstanceQuery()), http.StatusBadRequest, req, api.ErrorParameterError)
 }
 
+// TestServiceInstanceUpdatePlanUpdateIllegal tests that updating a service plan when not
+// allowed by the catalog responds with a parameter error.
+func TestServiceInstanceUpdatePlanUpdateIllegal(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	req.PlanID = fixtures.BasicConfigurationPlanID2
+	util.MustPatchAndError(t, util.ServiceInstanceURI(fixtures.ServiceInstanceName, util.CreateServiceInstanceQuery()), http.StatusBadRequest, req, api.ErrorParameterError)
+}
+
 // TestServiceInstanceUpdateIllegalInstance tests that an illegal instance raises a not
 // found and resource not found error.
 func TestServiceInstanceUpdateIllegalInstance(t *testing.T) {

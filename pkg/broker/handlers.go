@@ -442,6 +442,7 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	// Get the plan from the registry, it is not guaranteed to be in the request.
+	// Override with the request if specified.
 	planID, ok, err := entry.GetString(registry.PlanID)
 	if err != nil {
 		util.JSONError(w, err)
@@ -453,12 +454,18 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
+	newPlanID := planID
 	if request.PlanID != "" {
-		planID = request.PlanID
+		newPlanID = request.PlanID
 	}
 
 	// Check parameters.
-	if err := util.ValidateServicePlan(config.Config(), request.ServiceID, planID); err != nil {
+	if err := util.ValidateServicePlan(config.Config(), request.ServiceID, newPlanID); err != nil {
+		util.JSONError(w, err)
+		return
+	}
+
+	if err := util.PlanUpdatable(config.Config(), request.ServiceID, planID, newPlanID); err != nil {
 		util.JSONError(w, err)
 		return
 	}

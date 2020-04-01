@@ -73,18 +73,6 @@ type ServiceOffering struct {
 	// this field (see Service Plan Object).
 	Bindable bool `json:"bindable"`
 
-	// InstancesRetrievable specifies whether the Fetching a Service Instance endpoint is supported for
-	// all Service Plans.
-	InstancesRetrievable bool `json:"instances_retrievable,omitempty"`
-
-	// BindingsRetrievable specifies whether the Fetching a Service Binding endpoint is supported for all
-	// Service Plans.
-	BindingsRetrievable bool `json:"bindings_retrievable,omitempty"`
-
-	// AllowContextUpdates specifies whether a Service Instance supports Update requests when contextual
-	// data for the Service Instance in the Platform changes.
-	AllowContextUpdates bool `json:"allow_context_updates,omitempty"`
-
 	// Metadata is an opaque object of metadata for a Service Offering. It is expected that Platforms will
 	// treat this as a blob. Note that there are conventions in existing Service Brokers and Platforms for
 	// fields that aid in the display of catalog data.
@@ -154,25 +142,9 @@ type ServicePlan struct {
 	// the Service Offering. If not specified, the default is derived from the Service Offering.
 	Bindable *bool `json:"bindable,omitempty"`
 
-	// PlanUpdatable specifies whether the Plan supports upgrade/downgrade/sidegrade to another
-	// version. This field is OPTIONAL. If specificed, this takes precedence over the Service
-	// Offering's plan_updateable field. If not specified, the default is derived from the Service
-	// Offering. Please note that the attribute is intentionally misspelled as plan_updateable
-	// for legacy reasons.
-	PlanUpdatable *bool `json:"plan_updatable,omitempty"`
-
 	// Schemas are schema definitions for Service Instances and Service Bindings for the Service
 	// Plan.
 	Schemas *Schemas `json:"schemas,omitempty"`
-
-	// MaximumPollingDuration is a duration, in seconds, that the Platform SHOULD use as the
-	// Service's maximum polling duration.
-	MaximumPollingDuration int `json:"maximum_polling_duration,omitempty"`
-
-	// MaintenanceInfo is maintenance information for a Service Instance which is provisioned using
-	// the Service Plan. If provided, a version string MUST be provided and platforms MAY use this
-	// when Provisioning or Updating a Service Instance.
-	MaintenanceInfo *MaintenanceInfo `json:"maintentance_info,omitempty"`
 }
 
 // Schemas is defined by:

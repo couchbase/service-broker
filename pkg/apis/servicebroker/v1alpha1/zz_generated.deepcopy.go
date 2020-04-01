@@ -665,20 +665,10 @@ func (in *ServicePlan) DeepCopyInto(out *ServicePlan) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.PlanUpdatable != nil {
-		in, out := &in.PlanUpdatable, &out.PlanUpdatable
-		*out = new(bool)
-		**out = **in
-	}
 	if in.Schemas != nil {
 		in, out := &in.Schemas, &out.Schemas
 		*out = new(Schemas)
 		(*in).DeepCopyInto(*out)
-	}
-	if in.MaintenanceInfo != nil {
-		in, out := &in.MaintenanceInfo, &out.MaintenanceInfo
-		*out = new(MaintenanceInfo)
-		**out = **in
 	}
 	return
 }

@@ -20,7 +20,7 @@ import (
 type Updater struct {
 	resourceType ResourceType
 
-	// request is the incomiong client requesst.
+	// request is the incoming client requesst.
 	request *api.UpdateServiceInstanceRequest
 
 	// resources is a list of resources that need to be updated as a result

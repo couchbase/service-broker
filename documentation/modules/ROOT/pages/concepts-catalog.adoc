@@ -53,7 +53,7 @@ Service offerings also contain what we will call "control parameters".
 Control parameters describe how a client must use the service offering.
 The control parameters are handled--for the most part--by the Kubernetes Service Catalog, however you should be aware of how it is used and must be configured.
 
-Many configuration parameters described here may also be overridden by a service plan with a service offering.
+Configuration parameters described here may also be overridden by a service plan with a service offering.
 As such these provide defaults.
 
 Clients can bind to a service instance in order to gain access to authorization credentials.
@@ -61,16 +61,7 @@ A service may, however, be consumable without a binding.
 A service offering explicitly declares a service as bindable.
 If a service instance cannot be bound to, this will be set to `false` and binding requests rejected by the Service Broker API.
 
-A service offering can also control whether Service Broker clients are allowed to access other APIs.
-The service catalog defines whether a service instance or binding can be read.
-The Service Broker can be used regardless of these settings.
-
-The service catalog can also control whether request contexts can be modified or not.
-As we are running on Kubernetes, the only contextual information that the Service Broker uses is the `namespace` a service instance or binding is created in.
-Kubernetes does not support moving a resource between namespaces, so this parameter is effectively immutable.
-As a result, the "allow context updated" parameter is ignored by the Service Broker.
-
-Finally a service offering defines whether a plan can be updated.
+A service offering defines whether a plan can be updated.
 Updating a service instance means that its service plan is changed from one to another.
 At present plan updates are not supported and this must be set to `false`.
 
@@ -96,7 +87,7 @@ image::sc-plans.png[align="center"]
 
 === Service Plan Control Parameters
 
-Service plans allow the bindable and updatable properties to be set.
+Service plans allow the bindable property to be set.
 This allows fine-grained control over individual plans where their behavior differs from the overall service offering.
 
 The most important new addition to the control parameters are schemas.

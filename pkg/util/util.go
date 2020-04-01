@@ -162,29 +162,35 @@ func AsyncRequired(r *http.Request) error {
 	return nil
 }
 
-// getServicePlan returns the service plan for the given plan and service offering IDs.
-func getServicePlan(config *v1.ServiceBrokerConfig, serviceID, planID string) (*v1.ServicePlan, error) {
+// getServiceOffering returns the service offering for a given service offering ID.
+func getServiceOffering(config *v1.ServiceBrokerConfig, serviceID string) (*v1.ServiceOffering, error) {
 	if config.Spec.Catalog == nil {
 		return nil, errors.NewConfigurationError("service catalog not defined")
 	}
 
-	for serviceIndex, service := range config.Spec.Catalog.Services {
-		if service.ID != serviceID {
-			continue
+	for index, service := range config.Spec.Catalog.Services {
+		if service.ID == serviceID {
+			return &config.Spec.Catalog.Services[index], nil
 		}
-
-		for planIndex, plan := range service.Plans {
-			if plan.ID != planID {
-				continue
-			}
-
-			return &config.Spec.Catalog.Services[serviceIndex].Plans[planIndex], nil
-		}
-
-		return nil, errors.NewParameterError("service plan %s not defined for service offering %s", planID, serviceID)
 	}
 
 	return nil, errors.NewParameterError("service offering '%s' not defined", serviceID)
+}
+
+// getServicePlan returns the service plan for the given plan and service offering IDs.
+func getServicePlan(config *v1.ServiceBrokerConfig, serviceID, planID string) (*v1.ServicePlan, error) {
+	service, err := getServiceOffering(config, serviceID)
+	if err != nil {
+		return nil, err
+	}
+
+	for index, plan := range service.Plans {
+		if plan.ID == planID {
+			return &service.Plans[index], nil
+		}
+	}
+
+	return nil, errors.NewParameterError("service plan %s not defined for service offering %s", planID, serviceID)
 }
 
 // ValidateServicePlan checks the parameters are valid for the configuration.
@@ -282,6 +288,21 @@ func ValidateParameters(config *v1.ServiceBrokerConfig, serviceID, planID string
 		if err := validate.AgainstSchema(schema, parameters, strfmt.NewFormats()); err != nil {
 			return errors.NewValidationError("schema validation failed: %v", err)
 		}
+	}
+
+	return nil
+}
+
+// PlanUpdatable accepts the service ID the original plan ID, and the new one, returning
+// an error if the service catalog doesn't allow it.
+func PlanUpdatable(config *v1.ServiceBrokerConfig, serviceID, planID, newPlanID string) error {
+	service, err := getServiceOffering(config, serviceID)
+	if err != nil {
+		return err
+	}
+
+	if !service.PlanUpdatable && (planID != newPlanID) {
+		return errors.NewParameterError("service plan %s for service %s cannot be updated", planID, serviceID)
 	}
 
 	return nil
