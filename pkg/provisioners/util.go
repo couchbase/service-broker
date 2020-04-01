@@ -98,7 +98,7 @@ func getServiceAndPlanNames(serviceID, planID string) (string, string, error) {
 
 // getTemplateBindings returns the template bindings associated with a creation request's
 // service and plan IDs.
-func getTemplateBindings(serviceID, planID string) (*v1.ServiceBrokerConfigBinding, error) {
+func getTemplateBindings(serviceID, planID string) (*v1.ConfigurationBinding, error) {
 	service, plan, err := getServiceAndPlanNames(serviceID, planID)
 	if err != nil {
 		return nil, err
@@ -139,7 +139,7 @@ func getTemplateBinding(t ResourceType, serviceID, planID string) (*v1.ServiceBr
 }
 
 // getTemplate returns the template corresponding to a template name.
-func getTemplate(name string) (*v1.ServiceBrokerConfigTemplate, error) {
+func getTemplate(name string) (*v1.ConfigurationTemplate, error) {
 	for index, template := range config.Config().Spec.Templates {
 		if template.Name == name {
 			return &config.Config().Spec.Templates[index], nil
@@ -162,8 +162,6 @@ func resolveParameter(path string, entry *registry.Entry) (interface{}, bool, er
 		return nil, false, fmt.Errorf("unable to lookup parameters")
 	}
 
-	glog.Infof("interrogating path %s", path)
-
 	pointer, err := jsonpointer.New(path)
 	if err != nil {
 		glog.Infof("failed to parse JSON pointer: %v", err)
@@ -178,13 +176,13 @@ func resolveParameter(path string, entry *registry.Entry) (interface{}, bool, er
 	return value, true, nil
 }
 
-// resolveFormatParameter looks up a registry or parameter.
-func resolveFormatParameter(parameter *v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter, entry *registry.Entry) (interface{}, error) {
+// resolveAccessor looks up a registry or parameter.
+func resolveAccessor(accessor *v1.Accessor, entry *registry.Entry) (interface{}, error) {
 	var value interface{}
 
 	switch {
-	case parameter.Registry != nil:
-		v, ok, err := entry.GetUser(*parameter.Registry)
+	case accessor.Registry != nil:
+		v, ok, err := entry.GetUser(*accessor.Registry)
 		if err != nil {
 			return nil, err
 		}
@@ -195,8 +193,8 @@ func resolveFormatParameter(parameter *v1.ServiceBrokerConfigTemplateParameterSo
 
 		value = v
 
-	case parameter.Parameter != nil:
-		v, ok, err := resolveParameter(*parameter.Parameter, entry)
+	case accessor.Parameter != nil:
+		v, ok, err := resolveParameter(*accessor.Parameter, entry)
 		if err != nil {
 			return nil, err
 		}
@@ -207,7 +205,7 @@ func resolveFormatParameter(parameter *v1.ServiceBrokerConfigTemplateParameterSo
 
 		value = v
 	default:
-		return nil, fmt.Errorf("format parameter type not specified")
+		return nil, fmt.Errorf("accessor must have one method defined")
 	}
 
 	glog.Infof("resolved parameter value %v", value)
@@ -215,13 +213,13 @@ func resolveFormatParameter(parameter *v1.ServiceBrokerConfigTemplateParameterSo
 	return value, nil
 }
 
-// resolveFormatParameterStringList looks up a list of parameters trhrowing an error if
+// resolveAccessorStringList looks up a list of parameters trhrowing an error if
 // any member is not a string.
-func resolveFormatParameterStringList(parameters []v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter, entry *registry.Entry) ([]string, error) {
+func resolveAccessorStringList(accessors []v1.Accessor, entry *registry.Entry) ([]string, error) {
 	list := []string{}
 
-	for index := range parameters {
-		value, err := resolveFormatParameter(&parameters[index], entry)
+	for index := range accessors {
+		value, err := resolveAccessor(&accessors[index], entry)
 		if err != nil {
 			return nil, err
 		}
@@ -232,7 +230,7 @@ func resolveFormatParameterStringList(parameters []v1.ServiceBrokerConfigTemplat
 
 		strValue, ok := value.(string)
 		if !ok {
-			return nil, errors.NewConfigurationError("string list parameter not a string %v", value)
+			return nil, errors.NewConfigurationError("accessor string list element not a string %v", value)
 		}
 
 		list = append(list, strValue)
@@ -242,11 +240,11 @@ func resolveFormatParameterStringList(parameters []v1.ServiceBrokerConfigTemplat
 }
 
 // resolveFormat attepts to render a format parameter.
-func resolveFormat(format *v1.ServiceBrokerConfigTemplateParameterSourceFormat, entry *registry.Entry) (interface{}, error) {
+func resolveFormat(format *v1.ConfigurationParameterSourceFormat, entry *registry.Entry) (interface{}, error) {
 	parameters := make([]interface{}, len(format.Parameters))
 
 	for index := range format.Parameters {
-		value, err := resolveFormatParameter(&format.Parameters[index], entry)
+		value, err := resolveAccessor(&format.Parameters[index], entry)
 		if err != nil {
 			return nil, err
 		}
@@ -258,7 +256,7 @@ func resolveFormat(format *v1.ServiceBrokerConfigTemplateParameterSourceFormat, 
 }
 
 // resolveGeneratePassword generates a random string.
-func resolveGeneratePassword(config *v1.ServiceBrokerConfigTemplateParameterSourceGeneratePassword) (interface{}, error) {
+func resolveGeneratePassword(config *v1.ConfigurationParameterSourceGeneratePassword) (interface{}, error) {
 	dictionary := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	if config.Dictionary != nil {
 		dictionary = *config.Dictionary
@@ -292,7 +290,7 @@ func resolveGeneratePassword(config *v1.ServiceBrokerConfigTemplateParameterSour
 }
 
 // resolveGenerateKey will create a PEM encoded private key.
-func resolveGenerateKey(config *v1.ServiceBrokerConfigTemplateParameterSourceGenerateKey) (interface{}, error) {
+func resolveGenerateKey(config *v1.ConfigurationParameterSourceGenerateKey) (interface{}, error) {
 	var key crypto.PrivateKey
 
 	var err error
@@ -343,7 +341,7 @@ func resolveGenerateKey(config *v1.ServiceBrokerConfigTemplateParameterSourceGen
 		if err != nil {
 			return nil, err
 		}
-	case v1.KeyEncodingEC:
+	case v1.KeyEncodingSEC1:
 		t = pemTypeECPrivateKey
 
 		ecKey, ok := key.(*ecdsa.PrivateKey)
@@ -410,8 +408,8 @@ func generateSubjectKeyIdentifier(pub interface{}) ([]byte, error) {
 }
 
 // decodePrivateKey reads a PEM formatted private key and parses it.
-func decodePrivateKey(parameter *v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter, entry *registry.Entry) (crypto.PrivateKey, error) {
-	keyPEM, err := resolveFormatParameter(parameter, entry)
+func decodePrivateKey(parameter *v1.Accessor, entry *registry.Entry) (crypto.PrivateKey, error) {
+	keyPEM, err := resolveAccessor(parameter, entry)
 	if err != nil {
 		return nil, err
 	}
@@ -463,8 +461,8 @@ func decodePrivateKey(parameter *v1.ServiceBrokerConfigTemplateParameterSourceFo
 }
 
 // decodeCertificate resolves and parses a PEM formatted certificate.
-func decodeCertificate(parameter *v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter, entry *registry.Entry) (*x509.Certificate, error) {
-	certPEM, err := resolveFormatParameter(parameter, entry)
+func decodeCertificate(parameter *v1.Accessor, entry *registry.Entry) (*x509.Certificate, error) {
+	certPEM, err := resolveAccessor(parameter, entry)
 	if err != nil {
 		return nil, err
 	}
@@ -497,7 +495,7 @@ func decodeCertificate(parameter *v1.ServiceBrokerConfigTemplateParameterSourceF
 }
 
 // resolveGenerateCertificate will create a PEM encoded X.509 certificate.
-func resolveGenerateCertificate(config *v1.ServiceBrokerConfigTemplateParameterSourceGenerateCertificate, entry *registry.Entry) (interface{}, error) {
+func resolveGenerateCertificate(config *v1.ConfigurationParameterSourceGenerateCertificate, entry *registry.Entry) (interface{}, error) {
 	key, err := decodePrivateKey(&config.Key, entry)
 	if err != nil {
 		return nil, err
@@ -565,14 +563,14 @@ func resolveGenerateCertificate(config *v1.ServiceBrokerConfigTemplateParameterS
 	}
 
 	if config.AlternativeNames != nil {
-		list, err := resolveFormatParameterStringList(config.AlternativeNames.DNS, entry)
+		list, err := resolveAccessorStringList(config.AlternativeNames.DNS, entry)
 		if err != nil {
 			return nil, err
 		}
 
 		certificate.DNSNames = list
 
-		list, err = resolveFormatParameterStringList(config.AlternativeNames.Email, entry)
+		list, err = resolveAccessorStringList(config.AlternativeNames.Email, entry)
 		if err != nil {
 			return nil, err
 		}
@@ -612,7 +610,7 @@ func resolveGenerateCertificate(config *v1.ServiceBrokerConfigTemplateParameterS
 }
 
 // resolveSource gets a parameter source from either metadata or a JSON path into user specified parameters.
-func resolveSource(source *v1.ServiceBrokerConfigTemplateParameterSource, entry *registry.Entry) (interface{}, error) {
+func resolveSource(source *v1.ConfigurationParameterSource, entry *registry.Entry) (interface{}, error) {
 	if source == nil {
 		return nil, nil
 	}
@@ -622,16 +620,18 @@ func resolveSource(source *v1.ServiceBrokerConfigTemplateParameterSource, entry 
 
 	switch {
 	// Registry parameters are reference registry values.
-	case source.Registry != nil:
-		glog.Infof("getting registry key %s", *source.Registry)
+	case source.Accessor.Registry != nil:
+		key := *source.Accessor.Registry
 
-		v, ok, err := entry.GetUser(*source.Registry)
+		glog.Infof("getting registry key %s", key)
+
+		v, ok, err := entry.GetUser(key)
 		if err != nil {
 			return nil, err
 		}
 
 		if !ok {
-			glog.Infof("registry key %s not set, skipping", *source.Registry)
+			glog.Infof("registry key %s not set, skipping", key)
 			break
 		}
 
@@ -639,14 +639,18 @@ func resolveSource(source *v1.ServiceBrokerConfigTemplateParameterSource, entry 
 
 	// Parameters reference parameters specified by the client in response to
 	// the schema advertised to the client.
-	case source.Parameter != nil:
-		v, ok, err := resolveParameter(*source.Parameter, entry)
+	case source.Accessor.Parameter != nil:
+		path := *source.Accessor.Parameter
+
+		glog.Infof("getting parameter for path %s", path)
+
+		v, ok, err := resolveParameter(path, entry)
 		if err != nil {
 			return nil, err
 		}
 
 		if !ok {
-			glog.Infof("client parameter %s not set, skipping", *source.Parameter)
+			glog.Infof("client parameter %s not set, skipping", path)
 			break
 		}
 
@@ -717,7 +721,7 @@ func resolveSource(source *v1.ServiceBrokerConfigTemplateParameterSource, entry 
 }
 
 // resolveTemplateParameter applies parameter lookup rules and tries to return a value.
-func resolveTemplateParameter(parameter *v1.ServiceBrokerConfigTemplateParameter, entry *registry.Entry, useDefaults bool) (interface{}, error) {
+func resolveTemplateParameter(parameter *v1.ConfigurationParameter, entry *registry.Entry, useDefaults bool) (interface{}, error) {
 	value, err := resolveSource(parameter.Source, entry)
 	if err != nil {
 		return nil, err
@@ -757,7 +761,7 @@ func resolveTemplateParameter(parameter *v1.ServiceBrokerConfigTemplateParameter
 }
 
 // patchObject takes a raw JSON object and applies parameters to it.
-func patchObject(object []byte, parameters []v1.ServiceBrokerConfigTemplateParameter, entry *registry.Entry, useDefaults bool) ([]byte, error) {
+func patchObject(object []byte, parameters []v1.ConfigurationParameter, entry *registry.Entry, useDefaults bool) ([]byte, error) {
 	// Now for the fun bit.  Work through each defined parameter and apply it to
 	// the object.  This basically works like JSON patch++, automatically filling
 	// in parent objects and arrays as necessary.
@@ -820,7 +824,7 @@ func patchObject(object []byte, parameters []v1.ServiceBrokerConfigTemplateParam
 
 // renderTemplate accepts a template defined in the configuration and applies any
 // request or metadata parameters to it.
-func renderTemplate(template *v1.ServiceBrokerConfigTemplate, entry *registry.Entry) (*v1.ServiceBrokerConfigTemplate, error) {
+func renderTemplate(template *v1.ConfigurationTemplate, entry *registry.Entry) (*v1.ConfigurationTemplate, error) {
 	glog.Infof("rendering template %s", template.Name)
 
 	if template.Template == nil || template.Template.Raw == nil {

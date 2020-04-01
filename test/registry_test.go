@@ -51,7 +51,7 @@ func TestRegistryIllegalRead(t *testing.T) {
 	illegalKey := string(registry.Parameters)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters[0].Source.Registry = &illegalKey
+	configuration.Bindings[0].ServiceInstance.Parameters[0].Source.Accessor.Registry = &illegalKey
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -65,7 +65,7 @@ func TestRegistryMissingKey(t *testing.T) {
 	missingKey := "missing"
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters[0].Source.Registry = &missingKey
+	configuration.Bindings[0].ServiceInstance.Parameters[0].Source.Accessor.Registry = &missingKey
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -82,7 +82,7 @@ func TestRegistryMissingRequiredKey(t *testing.T) {
 	missingKey := "missing"
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters[0].Source.Registry = &missingKey
+	configuration.Bindings[0].ServiceInstance.Parameters[0].Source.Accessor.Registry = &missingKey
 	configuration.Bindings[0].ServiceInstance.Parameters[0].Required = true
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 

@@ -149,7 +149,7 @@ func TestParameterGenerateKeyRSAECInvalid(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingEC, &defaultKeyLength, key)
+	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingSEC1, &defaultKeyLength, key)
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -197,7 +197,7 @@ func TestParameterGenerateKeyEllipticP224EC(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingEC, nil, key)
+	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingSEC1, nil, key)
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -233,7 +233,7 @@ func TestParameterGenerateKeyEllipticP256EC(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP256, v1.KeyEncodingEC, nil, key)
+	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP256, v1.KeyEncodingSEC1, nil, key)
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -269,7 +269,7 @@ func TestParameterGenerateKeyEllipticP384EC(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP384, v1.KeyEncodingEC, nil, key)
+	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP384, v1.KeyEncodingSEC1, nil, key)
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -305,7 +305,7 @@ func TestParameterGenerateKeyEllipticP521EC(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP521, v1.KeyEncodingEC, nil, key)
+	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP521, v1.KeyEncodingSEC1, nil, key)
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -341,7 +341,7 @@ func TestParameterGenerateKeyED25519ECInvalid(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeED25519, v1.KeyEncodingEC, nil, key)
+	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeED25519, v1.KeyEncodingSEC1, nil, key)
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -391,7 +391,7 @@ func TestParameterGenerateCACertificateRSAPKCS8(t *testing.T) {
 func TestParameterGenerateCACertificateEllipticP224EC(t *testing.T) {
 	defer mustReset(t)
 
-	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingEC, nil, caKeyKey)
+	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingSEC1, nil, caKeyKey)
 	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
 
 	configuration := fixtures.BasicConfiguration()
@@ -468,9 +468,9 @@ func TestParameterGenerateServerCertificateRSAPKCS8(t *testing.T) {
 func TestParameterGenerateServerCertificateEllipticP224EC(t *testing.T) {
 	defer mustReset(t)
 
-	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingEC, &defaultKeyLength, caKeyKey)
+	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingSEC1, &defaultKeyLength, caKeyKey)
 	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
-	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingEC, &defaultKeyLength, childKeyKey)...)
+	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingSEC1, &defaultKeyLength, childKeyKey)...)
 	parameters = append(parameters, fixtures.SignedCertificateParameterToRegistry(&childKeyKey, defaultCN, v1.Server, &caKeyKey, &caCertificateKey, childCertificateKey)...)
 
 	configuration := fixtures.BasicConfiguration()
@@ -557,9 +557,9 @@ func TestParameterGenerateClientCertificateRSAPKCS8(t *testing.T) {
 func TestParameterGenerateClientCertificateEllipticP224EC(t *testing.T) {
 	defer mustReset(t)
 
-	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingEC, &defaultKeyLength, caKeyKey)
+	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingSEC1, &defaultKeyLength, caKeyKey)
 	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
-	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingEC, &defaultKeyLength, childKeyKey)...)
+	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingSEC1, &defaultKeyLength, childKeyKey)...)
 	parameters = append(parameters, fixtures.SignedCertificateParameterToRegistry(&childKeyKey, defaultCN, v1.Client, &caKeyKey, &caCertificateKey, childCertificateKey)...)
 
 	configuration := fixtures.BasicConfiguration()

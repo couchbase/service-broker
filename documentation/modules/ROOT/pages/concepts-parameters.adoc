@@ -42,7 +42,7 @@ We can see that:
 === Parameter Typing
 
 Parameters are typed and handled internally as abstract "values".
-The type system is based on JSON to allow simple serialization and persistence, and therefore supports strings, numbers, arrays and objects.
+The type system is based on JSON to allow simple serialization and persistence, and therefore supports strings, numbers, booleans, arrays and objects.
 For example, if a parameter source resolves to an object, it will be handled as such when patched into a configuration template.
 
 ==== Optional Parameters
@@ -243,7 +243,7 @@ For example, to generate a PKCS#8 P256 private key:
 - name: my-parameter
   source:
     generateKey:
-      type: ecP256
+      type: ellipticP256
       encoding: pkcs8
 ----
 

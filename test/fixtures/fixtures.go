@@ -130,19 +130,19 @@ var (
 				},
 			},
 		},
-		Templates: []v1.ServiceBrokerConfigTemplate{
+		Templates: []v1.ConfigurationTemplate{
 			{
 				Name: dnsSnippetName,
 				Template: &runtime.RawExtension{
 					Raw: []byte(`{"nameservers":[]}`),
 				},
-				Parameters: []v1.ServiceBrokerConfigTemplateParameter{
+				Parameters: []v1.ConfigurationParameter{
 					{
 						Name: "nameserver",
-						Default: &v1.ServiceBrokerConfigTemplateParameterDefault{
+						Default: &v1.Literal{
 							String: &dnsDefault,
 						},
-						Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+						Destinations: []v1.ConfigurationParameterDestination{
 							{Path: &dnsSnippetNamespacePath},
 						},
 					},
@@ -152,86 +152,88 @@ var (
 				Name: "test-template",
 				// Populated by the configuration function.
 				Template: &runtime.RawExtension{},
-				Parameters: []v1.ServiceBrokerConfigTemplateParameter{
+				Parameters: []v1.ConfigurationParameter{
 					{
 						Name: "instance-name",
-						Source: &v1.ServiceBrokerConfigTemplateParameterSource{
-							Registry: &instanceNameRegistryEntry,
+						Source: &v1.ConfigurationParameterSource{
+							Accessor: v1.Accessor{
+								Registry: &instanceNameRegistryEntry,
+							},
 						},
-						Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+						Destinations: []v1.ConfigurationParameterDestination{
 							{Path: &basicResourceNamePath},
 						},
 					},
 					{
 						Name: "automount-service-token",
-						Default: &v1.ServiceBrokerConfigTemplateParameterDefault{
+						Default: &v1.Literal{
 							Bool: &falseBool,
 						},
-						Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+						Destinations: []v1.ConfigurationParameterDestination{
 							{Path: &basicResourceAutomountPath},
 						},
 					},
 					{
 						Name: "priority",
-						Default: &v1.ServiceBrokerConfigTemplateParameterDefault{
+						Default: &v1.Literal{
 							Int: &zeroInt,
 						},
-						Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+						Destinations: []v1.ConfigurationParameterDestination{
 							{Path: &basicResourcePriorityPath},
 						},
 					},
 					{
 						Name: "sidecar",
-						Default: &v1.ServiceBrokerConfigTemplateParameterDefault{
+						Default: &v1.Literal{
 							Object: &runtime.RawExtension{
 								Raw: []byte(`{"name":"sidecar","image":"org/sidecar:tag"}`),
 							},
 						},
-						Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+						Destinations: []v1.ConfigurationParameterDestination{
 							{Path: &basicResourceContainersPath},
 						},
 					},
 					{
 						Name: "dns",
-						Source: &v1.ServiceBrokerConfigTemplateParameterSource{
+						Source: &v1.ConfigurationParameterSource{
 							Template: &dnsSnippetName,
 						},
-						Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+						Destinations: []v1.ConfigurationParameterDestination{
 							{Path: &basicResourceDNSPath},
 						},
 					},
 				},
 			},
 		},
-		Bindings: []v1.ServiceBrokerConfigBinding{
+		Bindings: []v1.ConfigurationBinding{
 			{
 				Name:    "test-binding",
 				Service: "test-offering",
 				Plan:    "test-plan",
 				ServiceInstance: &v1.ServiceBrokerTemplateList{
-					Parameters: []v1.ServiceBrokerConfigTemplateParameter{
+					Parameters: []v1.ConfigurationParameter{
 						{
 							Name: "instance-name",
-							Source: &v1.ServiceBrokerConfigTemplateParameterSource{
-								Format: &v1.ServiceBrokerConfigTemplateParameterSourceFormat{
+							Source: &v1.ConfigurationParameterSource{
+								Format: &v1.ConfigurationParameterSourceFormat{
 									String: "instance-%s",
-									Parameters: []v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter{
+									Parameters: []v1.Accessor{
 										{
 											Registry: &instanceIDRegistryEntry,
 										},
 									},
 								},
 							},
-							Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+							Destinations: []v1.ConfigurationParameterDestination{
 								{Registry: &instanceNameRegistryEntry},
 							},
 						},
 						{
 							Name: "dashboard-url",
-							Source: &v1.ServiceBrokerConfigTemplateParameterSource{
-								Format: &v1.ServiceBrokerConfigTemplateParameterSourceFormat{
+							Source: &v1.ConfigurationParameterSource{
+								Format: &v1.ConfigurationParameterSourceFormat{
 									String: dashboardURLMutationFormat,
-									Parameters: []v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter{
+									Parameters: []v1.Accessor{
 										{
 											Registry: &instanceNameRegistryEntry,
 										},
@@ -241,7 +243,7 @@ var (
 									},
 								},
 							},
-							Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+							Destinations: []v1.ConfigurationParameterDestination{
 								{Registry: &dashboardURLRegistryKey},
 							},
 						},
@@ -386,18 +388,20 @@ func BasicServiceBindingCreateRequest() *api.CreateServiceBindingRequest {
 }
 
 // RegistryParametersToRegistryWithDefault returns a parameter list as specified.
-func RegistryParametersToRegistryWithDefault(key, destination, defaultValue string, required bool) []v1.ServiceBrokerConfigTemplateParameter {
-	return []v1.ServiceBrokerConfigTemplateParameter{
+func RegistryParametersToRegistryWithDefault(key, destination, defaultValue string, required bool) []v1.ConfigurationParameter {
+	return []v1.ConfigurationParameter{
 		{
 			Name:     "test-parameter",
 			Required: required,
-			Source: &v1.ServiceBrokerConfigTemplateParameterSource{
-				Registry: &key,
+			Source: &v1.ConfigurationParameterSource{
+				Accessor: v1.Accessor{
+					Registry: &key,
+				},
 			},
-			Default: &v1.ServiceBrokerConfigTemplateParameterDefault{
+			Default: &v1.Literal{
 				String: &defaultValue,
 			},
-			Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+			Destinations: []v1.ConfigurationParameterDestination{
 				{Registry: &destination},
 			},
 		},
@@ -405,15 +409,17 @@ func RegistryParametersToRegistryWithDefault(key, destination, defaultValue stri
 }
 
 // ParametersToRegistry returns a parameter list as specified.
-func ParametersToRegistry(path, destination string, required bool) []v1.ServiceBrokerConfigTemplateParameter {
-	return []v1.ServiceBrokerConfigTemplateParameter{
+func ParametersToRegistry(path, destination string, required bool) []v1.ConfigurationParameter {
+	return []v1.ConfigurationParameter{
 		{
 			Name:     "test-parameter",
 			Required: required,
-			Source: &v1.ServiceBrokerConfigTemplateParameterSource{
-				Parameter: &path,
+			Source: &v1.ConfigurationParameterSource{
+				Accessor: v1.Accessor{
+					Parameter: &path,
+				},
 			},
-			Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+			Destinations: []v1.ConfigurationParameterDestination{
 				{Registry: &destination},
 			},
 		},
@@ -421,14 +427,14 @@ func ParametersToRegistry(path, destination string, required bool) []v1.ServiceB
 }
 
 // DefaultParameterToRegistry return a parameter with a string default only.
-func DefaultParameterToRegistry(destination, defaultValue string) []v1.ServiceBrokerConfigTemplateParameter {
-	return []v1.ServiceBrokerConfigTemplateParameter{
+func DefaultParameterToRegistry(destination, defaultValue string) []v1.ConfigurationParameter {
+	return []v1.ConfigurationParameter{
 		{
 			Name: "test-parameter",
-			Default: &v1.ServiceBrokerConfigTemplateParameterDefault{
+			Default: &v1.Literal{
 				String: &defaultValue,
 			},
-			Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+			Destinations: []v1.ConfigurationParameterDestination{
 				{Registry: &destination},
 			},
 		},
@@ -436,18 +442,20 @@ func DefaultParameterToRegistry(destination, defaultValue string) []v1.ServiceBr
 }
 
 // ParametersToRegistryWithDefault returns a parameter list as specified.
-func ParametersToRegistryWithDefault(path, destination, defaultValue string, required bool) []v1.ServiceBrokerConfigTemplateParameter {
-	return []v1.ServiceBrokerConfigTemplateParameter{
+func ParametersToRegistryWithDefault(path, destination, defaultValue string, required bool) []v1.ConfigurationParameter {
+	return []v1.ConfigurationParameter{
 		{
 			Name:     "test-parameter",
 			Required: required,
-			Source: &v1.ServiceBrokerConfigTemplateParameterSource{
-				Parameter: &path,
+			Source: &v1.ConfigurationParameterSource{
+				Accessor: v1.Accessor{
+					Parameter: &path,
+				},
 			},
-			Default: &v1.ServiceBrokerConfigTemplateParameterDefault{
+			Default: &v1.Literal{
 				String: &defaultValue,
 			},
-			Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+			Destinations: []v1.ConfigurationParameterDestination{
 				{Registry: &destination},
 			},
 		},
@@ -456,18 +464,18 @@ func ParametersToRegistryWithDefault(path, destination, defaultValue string, req
 
 // KeyParameterToRegistry creates a parameter that creates a key of the desired type
 // and stores it in the registry.
-func KeyParameterToRegistry(t v1.KeyType, e v1.KeyEncodingType, bits *int, destination string) []v1.ServiceBrokerConfigTemplateParameter {
-	return []v1.ServiceBrokerConfigTemplateParameter{
+func KeyParameterToRegistry(t v1.KeyType, e v1.KeyEncodingType, bits *int, destination string) []v1.ConfigurationParameter {
+	return []v1.ConfigurationParameter{
 		{
 			Name: "test-private-key",
-			Source: &v1.ServiceBrokerConfigTemplateParameterSource{
-				GenerateKey: &v1.ServiceBrokerConfigTemplateParameterSourceGenerateKey{
+			Source: &v1.ConfigurationParameterSource{
+				GenerateKey: &v1.ConfigurationParameterSourceGenerateKey{
 					Type:     t,
 					Encoding: e,
 					Bits:     bits,
 				},
 			},
-			Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+			Destinations: []v1.ConfigurationParameterDestination{
 				{Registry: &destination},
 			},
 		},
@@ -475,13 +483,13 @@ func KeyParameterToRegistry(t v1.KeyType, e v1.KeyEncodingType, bits *int, desti
 }
 
 // CertificateParameterToRegistry creates a parameter that creates a self-signed ceritificate.
-func CertificateParameterToRegistry(key *string, cn string, usage v1.CertificateUsage, destination string) []v1.ServiceBrokerConfigTemplateParameter {
-	return []v1.ServiceBrokerConfigTemplateParameter{
+func CertificateParameterToRegistry(key *string, cn string, usage v1.CertificateUsage, destination string) []v1.ConfigurationParameter {
+	return []v1.ConfigurationParameter{
 		{
 			Name: "test-certificate",
-			Source: &v1.ServiceBrokerConfigTemplateParameterSource{
-				GenerateCertificate: &v1.ServiceBrokerConfigTemplateParameterSourceGenerateCertificate{
-					Key: v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter{
+			Source: &v1.ConfigurationParameterSource{
+				GenerateCertificate: &v1.ConfigurationParameterSourceGenerateCertificate{
+					Key: v1.Accessor{
 						Registry: key,
 					},
 					Lifetime: metav1.Duration{
@@ -490,7 +498,7 @@ func CertificateParameterToRegistry(key *string, cn string, usage v1.Certificate
 					Usage: usage,
 				},
 			},
-			Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+			Destinations: []v1.ConfigurationParameterDestination{
 				{Registry: &destination},
 			},
 		},
@@ -498,13 +506,13 @@ func CertificateParameterToRegistry(key *string, cn string, usage v1.Certificate
 }
 
 // SignedCertificateParameterToRegistry creates a parameter that creates a signed certificate.
-func SignedCertificateParameterToRegistry(key *string, cn string, usage v1.CertificateUsage, caKey, caCert *string, destination string) []v1.ServiceBrokerConfigTemplateParameter {
+func SignedCertificateParameterToRegistry(key *string, cn string, usage v1.CertificateUsage, caKey, caCert *string, destination string) []v1.ConfigurationParameter {
 	parameters := CertificateParameterToRegistry(key, cn, usage, destination)
-	parameters[0].Source.GenerateCertificate.CA = &v1.ServiceBrokerConfigTemplateParameterSourceGenerateCertificateCA{
-		Key: v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter{
+	parameters[0].Source.GenerateCertificate.CA = &v1.SigningCA{
+		Key: v1.Accessor{
 			Registry: caKey,
 		},
-		Certificate: v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter{
+		Certificate: v1.Accessor{
 			Registry: caCert,
 		},
 	}
@@ -515,13 +523,13 @@ func SignedCertificateParameterToRegistry(key *string, cn string, usage v1.Certi
 // SignedCertificateParameterToRegistryWithDNSSANs creates a parameter that creates a signed certificate.
 // This accepts a list of subject alternative names as a string array.  It builds defaulted parameters
 // of each and then returns this with the certificate request that consumes them appended.
-func SignedCertificateParameterToRegistryWithDNSSANs(key *string, cn string, usage v1.CertificateUsage, sans []string, caKey, caCert *string, destination string) []v1.ServiceBrokerConfigTemplateParameter {
-	sanRegistryNames := make([]v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter, len(sans))
-	parameters := []v1.ServiceBrokerConfigTemplateParameter{}
+func SignedCertificateParameterToRegistryWithDNSSANs(key *string, cn string, usage v1.CertificateUsage, sans []string, caKey, caCert *string, destination string) []v1.ConfigurationParameter {
+	sanRegistryNames := make([]v1.Accessor, len(sans))
+	parameters := []v1.ConfigurationParameter{}
 
 	for index, san := range sans {
 		name := fmt.Sprintf("san-%d", index)
-		sanRegistryNames[index] = v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter{
+		sanRegistryNames[index] = v1.Accessor{
 			Registry: &name,
 		}
 
@@ -529,7 +537,7 @@ func SignedCertificateParameterToRegistryWithDNSSANs(key *string, cn string, usa
 	}
 
 	certParameters := SignedCertificateParameterToRegistry(key, cn, usage, caKey, caCert, destination)
-	certParameters[0].Source.GenerateCertificate.AlternativeNames = &v1.ServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames{
+	certParameters[0].Source.GenerateCertificate.AlternativeNames = &v1.SubjectAlternativeNames{
 		DNS: sanRegistryNames,
 	}
 
@@ -539,13 +547,13 @@ func SignedCertificateParameterToRegistryWithDNSSANs(key *string, cn string, usa
 // SignedCertificateParameterToRegistryWitEmailSANs creates a parameter that creates a signed certificate.
 // This accepts a list of subject alternative names as a string array.  It builds defaulted parameters
 // of each and then returns this with the certificate request that consumes them appended.
-func SignedCertificateParameterToRegistryWithEmailSANs(key *string, cn string, usage v1.CertificateUsage, sans []string, caKey, caCert *string, destination string) []v1.ServiceBrokerConfigTemplateParameter {
-	sanRegistryNames := make([]v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter, len(sans))
-	parameters := []v1.ServiceBrokerConfigTemplateParameter{}
+func SignedCertificateParameterToRegistryWithEmailSANs(key *string, cn string, usage v1.CertificateUsage, sans []string, caKey, caCert *string, destination string) []v1.ConfigurationParameter {
+	sanRegistryNames := make([]v1.Accessor, len(sans))
+	parameters := []v1.ConfigurationParameter{}
 
 	for index, san := range sans {
 		name := fmt.Sprintf("san-%d", index)
-		sanRegistryNames[index] = v1.ServiceBrokerConfigTemplateParameterSourceFormatParameter{
+		sanRegistryNames[index] = v1.Accessor{
 			Registry: &name,
 		}
 
@@ -553,7 +561,7 @@ func SignedCertificateParameterToRegistryWithEmailSANs(key *string, cn string, u
 	}
 
 	certParameters := SignedCertificateParameterToRegistry(key, cn, usage, caKey, caCert, destination)
-	certParameters[0].Source.GenerateCertificate.AlternativeNames = &v1.ServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames{
+	certParameters[0].Source.GenerateCertificate.AlternativeNames = &v1.SubjectAlternativeNames{
 		Email: sanRegistryNames,
 	}
 
@@ -562,17 +570,17 @@ func SignedCertificateParameterToRegistryWithEmailSANs(key *string, cn string, u
 
 // PasswordParameterToRegistry create a parameter that creates a password of the desired
 // length and stores it in the registry.
-func PasswordParameterToRegistry(length int, dictionary *string, destination string) []v1.ServiceBrokerConfigTemplateParameter {
-	return []v1.ServiceBrokerConfigTemplateParameter{
+func PasswordParameterToRegistry(length int, dictionary *string, destination string) []v1.ConfigurationParameter {
+	return []v1.ConfigurationParameter{
 		{
 			Name: "test-password",
-			Source: &v1.ServiceBrokerConfigTemplateParameterSource{
-				GeneratePassword: &v1.ServiceBrokerConfigTemplateParameterSourceGeneratePassword{
+			Source: &v1.ConfigurationParameterSource{
+				GeneratePassword: &v1.ConfigurationParameterSourceGeneratePassword{
 					Length:     length,
 					Dictionary: dictionary,
 				},
 			},
-			Destinations: []v1.ServiceBrokerConfigTemplateParameterDestination{
+			Destinations: []v1.ConfigurationParameterDestination{
 				{Registry: &destination},
 			},
 		},

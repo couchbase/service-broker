@@ -24,7 +24,7 @@ type Creator struct {
 
 	// templates contains the list of rendered templates.  Used as a cache
 	// between the synchronous and asynchronous phases of provisioning.
-	templates []*v1.ServiceBrokerConfigTemplate
+	templates []*v1.ConfigurationTemplate
 }
 
 // NewCreator initializes all the data required for
@@ -38,7 +38,7 @@ func NewCreator(resourceType ResourceType) (*Creator, error) {
 }
 
 // renderTemplate applies any requested parameters to the template.
-func (p *Creator) renderTemplate(template *v1.ServiceBrokerConfigTemplate, entry *registry.Entry) error {
+func (p *Creator) renderTemplate(template *v1.ConfigurationTemplate, entry *registry.Entry) error {
 	t, err := renderTemplate(template, entry)
 	if err != nil {
 		return err
@@ -50,7 +50,7 @@ func (p *Creator) renderTemplate(template *v1.ServiceBrokerConfigTemplate, entry
 }
 
 // createResource instantiates rendered template resources.
-func (p *Creator) createResource(template *v1.ServiceBrokerConfigTemplate, entry *registry.Entry) error {
+func (p *Creator) createResource(template *v1.ConfigurationTemplate, entry *registry.Entry) error {
 	if template.Template == nil || template.Template.Raw == nil {
 		glog.Infof("template has no associated object, skipping")
 		return nil

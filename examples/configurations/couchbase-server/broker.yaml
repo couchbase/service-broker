@@ -593,6 +593,7 @@ spec:
       # names are "too long", thus it is not standards compliant.  To this end we
       # use a short random ID.
       - name: short-id
+        required: true
         source:
           generatePassword:
             length: 8
@@ -622,6 +623,7 @@ spec:
         - registry: dashboard-url
       # Bootstrap a CA.
       - name: ca-key
+        required: true
         source:
           generateKey:
             type: rsa
@@ -630,6 +632,7 @@ spec:
         destinations:
         - registry: ca-key
       - name: ca-cert
+        required: true
         source:
           generateCertificate:
             key:
@@ -643,6 +646,7 @@ spec:
       # Create the server certificate.
       # Note this must be a pkcs#1 formatted RSA key.
       - name: server-key
+        required: true
         source:
           generateKey:
             type: rsa
@@ -651,6 +655,7 @@ spec:
         destinations:
         - registry: server-key
       - name: dns-short-srv
+        required: true
         source:
           format:
             string: "%v-srv"
@@ -659,6 +664,7 @@ spec:
         destinations:
         - registry: dns-short-srv
       - name: dns-namespaced-srv
+        required: true
         source:
           format:
             string: "%v-srv.%v"
@@ -668,6 +674,7 @@ spec:
         destinations:
         - registry: dns-namespaced-srv
       - name: dns-full-srv
+        required: true
         source:
           format:
             string: "%v-srv.%v.svc"
@@ -677,6 +684,7 @@ spec:
         destinations:
         - registry: dns-full-srv
       - name: dns-short-wildcard
+        required: true
         source:
           format:
             string: "*.%v"
@@ -685,6 +693,7 @@ spec:
         destinations:
         - registry: dns-short-wildcard
       - name: dns-namespaced-wildcard
+        required: true
         source:
           format:
             string: "*.%v.%v"
@@ -694,6 +703,7 @@ spec:
         destinations:
         - registry: dns-namespaced-wildcard
       - name: dns-full-wildcard
+        required: true
         source:
           format:
             string: "*.%v.%v.svc"
@@ -703,11 +713,13 @@ spec:
         destinations:
         - registry: dns-full-wildcard
       - name: dns-localhost
+        required: true
         default:
           string: localhost
         destinations:
         - registry: dns-localhost
       - name: server-cert
+        required: true
         source:
           generateCertificate:
             key:
@@ -753,12 +765,14 @@ spec:
         destinations:
         - registry: binding-name
       - name: password
+        required: true
         source:
           generatePassword:
             length: 32
         destinations:
         - registry: password
       - name: credentials
+        required: true
         source:
           template: credentials
         destinations:

@@ -38,8 +38,8 @@ spec:
               description: Bindings is a set of bindings that link service plans to
                 resource templates and is required.
               items:
-                description: ServiceBrokerConfigBinding binds a service plan to a
-                  set of templates required to realize that plan.
+                description: ConfigurationBinding binds a service plan to a set of
+                  templates required to realize that plan.
                 properties:
                   name:
                     description: Name is a unique identifier for the binding.
@@ -64,8 +64,8 @@ spec:
                           and cached when a service instance is created.  These are
                           only executed on instance creation.
                         items:
-                          description: ServiceBrokerConfigTemplateParameter defines
-                            a parameter substitution on a resource template.
+                          description: ConfigurationParameter defines a parameter
+                            substitution on a resource template.
                           properties:
                             default:
                               description: Default specifies the default value is
@@ -92,17 +92,18 @@ spec:
                               description: Destinations is the destination of the
                                 parameter.
                               items:
-                                description: ServiceBrokerConfigTemplateParameterDestination
-                                  defines where to patch parameters into the resource
-                                  template.
+                                description: ConfigurationParameterDestination defines
+                                  where to patch parameters into the resource template.
                                 properties:
                                   path:
                                     description: Path is a JSON pointer in the resource
-                                      template to patch the parameter.
+                                      template to patch the parameter.  Paths may
+                                      only be set for configuration template parameters.
                                     type: string
                                   registry:
                                     description: Registry is a key to store the value
                                       to in the registry.
+                                    pattern: ^[a-zA-Z0-9-]+$
                                     type: string
                                 type: object
                               minItems: 1
@@ -129,8 +130,9 @@ spec:
                                         must exist or the formatting operation will
                                         return nil.
                                       items:
-                                        description: ServiceBrokerConfigTemplateParameterSourceFormatParameter
-                                          is a parameter for a formatting operation.
+                                        description: Accessor is an argument that
+                                          references data from either parameters or
+                                          the registry.
                                         properties:
                                           parameter:
                                             description: Parameter, if set, uses the
@@ -141,7 +143,7 @@ spec:
                                             description: Registry , if set, uses the
                                               corresponding registry value for the
                                               parameter source.
-                                            pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                            pattern: ^[a-zA-Z0-9-]+$
                                             type: string
                                         type: object
                                       minItems: 1
@@ -166,8 +168,9 @@ spec:
                                           description: DNS is only relevant for "server"
                                             certificate types.
                                           items:
-                                            description: ServiceBrokerConfigTemplateParameterSourceFormatParameter
-                                              is a parameter for a formatting operation.
+                                            description: Accessor is an argument that
+                                              references data from either parameters
+                                              or the registry.
                                             properties:
                                               parameter:
                                                 description: Parameter, if set, uses
@@ -178,7 +181,7 @@ spec:
                                                 description: Registry , if set, uses
                                                   the corresponding registry value
                                                   for the parameter source.
-                                                pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                                pattern: ^[a-zA-Z0-9-]+$
                                                 type: string
                                             type: object
                                           type: array
@@ -186,8 +189,9 @@ spec:
                                           description: Email is only relevant for
                                             "client" certificate types.
                                           items:
-                                            description: ServiceBrokerConfigTemplateParameterSourceFormatParameter
-                                              is a parameter for a formatting operation.
+                                            description: Accessor is an argument that
+                                              references data from either parameters
+                                              or the registry.
                                             properties:
                                               parameter:
                                                 description: Parameter, if set, uses
@@ -198,7 +202,7 @@ spec:
                                                 description: Registry , if set, uses
                                                   the corresponding registry value
                                                   for the parameter source.
-                                                pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                                pattern: ^[a-zA-Z0-9-]+$
                                                 type: string
                                             type: object
                                           type: array
@@ -219,7 +223,7 @@ spec:
                                               description: Registry , if set, uses
                                                 the corresponding registry value for
                                                 the parameter source.
-                                              pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                              pattern: ^[a-zA-Z0-9-]+$
                                               type: string
                                           type: object
                                         key:
@@ -234,7 +238,7 @@ spec:
                                               description: Registry , if set, uses
                                                 the corresponding registry value for
                                                 the parameter source.
-                                              pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                              pattern: ^[a-zA-Z0-9-]+$
                                               type: string
                                           type: object
                                       required:
@@ -243,7 +247,8 @@ spec:
                                       type: object
                                     key:
                                       description: Key is the private key to generate
-                                        the certificate from.
+                                        the certificate from. The key may be any valid
+                                        encoding of an RSA or EC key.
                                       properties:
                                         parameter:
                                           description: Parameter, if set, uses the
@@ -254,7 +259,7 @@ spec:
                                           description: Registry , if set, uses the
                                             corresponding registry value for the parameter
                                             source.
-                                          pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                          pattern: ^[a-zA-Z0-9-]+$
                                           type: string
                                       type: object
                                     lifetime:
@@ -299,10 +304,21 @@ spec:
                                     encoding:
                                       description: Encoding is how to package the
                                         key.
+                                      enum:
+                                      - pkcs1
+                                      - pkcs8
+                                      - sec1
                                       type: string
                                     type:
                                       description: Type is the type of key as defined
                                         above.
+                                      enum:
+                                      - rsa
+                                      - ellipticP244
+                                      - ellipticP256
+                                      - ellipticP384
+                                      - ellipticP521
+                                      - ed25519
                                       type: string
                                   required:
                                   - encoding
@@ -329,9 +345,9 @@ spec:
                                     request parameter for the parameter source.
                                   type: string
                                 registry:
-                                  description: Registry, if set, uses the corresponding
+                                  description: Registry , if set, uses the corresponding
                                     registry value for the parameter source.
-                                  pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                  pattern: ^[a-zA-Z0-9-]+$
                                   type: string
                                 template:
                                   description: Template allows the recursive rendering
@@ -359,8 +375,8 @@ spec:
                           and cached when a service instance is created.  These are
                           only executed on instance creation.
                         items:
-                          description: ServiceBrokerConfigTemplateParameter defines
-                            a parameter substitution on a resource template.
+                          description: ConfigurationParameter defines a parameter
+                            substitution on a resource template.
                           properties:
                             default:
                               description: Default specifies the default value is
@@ -387,17 +403,18 @@ spec:
                               description: Destinations is the destination of the
                                 parameter.
                               items:
-                                description: ServiceBrokerConfigTemplateParameterDestination
-                                  defines where to patch parameters into the resource
-                                  template.
+                                description: ConfigurationParameterDestination defines
+                                  where to patch parameters into the resource template.
                                 properties:
                                   path:
                                     description: Path is a JSON pointer in the resource
-                                      template to patch the parameter.
+                                      template to patch the parameter.  Paths may
+                                      only be set for configuration template parameters.
                                     type: string
                                   registry:
                                     description: Registry is a key to store the value
                                       to in the registry.
+                                    pattern: ^[a-zA-Z0-9-]+$
                                     type: string
                                 type: object
                               minItems: 1
@@ -424,8 +441,9 @@ spec:
                                         must exist or the formatting operation will
                                         return nil.
                                       items:
-                                        description: ServiceBrokerConfigTemplateParameterSourceFormatParameter
-                                          is a parameter for a formatting operation.
+                                        description: Accessor is an argument that
+                                          references data from either parameters or
+                                          the registry.
                                         properties:
                                           parameter:
                                             description: Parameter, if set, uses the
@@ -436,7 +454,7 @@ spec:
                                             description: Registry , if set, uses the
                                               corresponding registry value for the
                                               parameter source.
-                                            pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                            pattern: ^[a-zA-Z0-9-]+$
                                             type: string
                                         type: object
                                       minItems: 1
@@ -461,8 +479,9 @@ spec:
                                           description: DNS is only relevant for "server"
                                             certificate types.
                                           items:
-                                            description: ServiceBrokerConfigTemplateParameterSourceFormatParameter
-                                              is a parameter for a formatting operation.
+                                            description: Accessor is an argument that
+                                              references data from either parameters
+                                              or the registry.
                                             properties:
                                               parameter:
                                                 description: Parameter, if set, uses
@@ -473,7 +492,7 @@ spec:
                                                 description: Registry , if set, uses
                                                   the corresponding registry value
                                                   for the parameter source.
-                                                pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                                pattern: ^[a-zA-Z0-9-]+$
                                                 type: string
                                             type: object
                                           type: array
@@ -481,8 +500,9 @@ spec:
                                           description: Email is only relevant for
                                             "client" certificate types.
                                           items:
-                                            description: ServiceBrokerConfigTemplateParameterSourceFormatParameter
-                                              is a parameter for a formatting operation.
+                                            description: Accessor is an argument that
+                                              references data from either parameters
+                                              or the registry.
                                             properties:
                                               parameter:
                                                 description: Parameter, if set, uses
@@ -493,7 +513,7 @@ spec:
                                                 description: Registry , if set, uses
                                                   the corresponding registry value
                                                   for the parameter source.
-                                                pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                                pattern: ^[a-zA-Z0-9-]+$
                                                 type: string
                                             type: object
                                           type: array
@@ -514,7 +534,7 @@ spec:
                                               description: Registry , if set, uses
                                                 the corresponding registry value for
                                                 the parameter source.
-                                              pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                              pattern: ^[a-zA-Z0-9-]+$
                                               type: string
                                           type: object
                                         key:
@@ -529,7 +549,7 @@ spec:
                                               description: Registry , if set, uses
                                                 the corresponding registry value for
                                                 the parameter source.
-                                              pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                              pattern: ^[a-zA-Z0-9-]+$
                                               type: string
                                           type: object
                                       required:
@@ -538,7 +558,8 @@ spec:
                                       type: object
                                     key:
                                       description: Key is the private key to generate
-                                        the certificate from.
+                                        the certificate from. The key may be any valid
+                                        encoding of an RSA or EC key.
                                       properties:
                                         parameter:
                                           description: Parameter, if set, uses the
@@ -549,7 +570,7 @@ spec:
                                           description: Registry , if set, uses the
                                             corresponding registry value for the parameter
                                             source.
-                                          pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                          pattern: ^[a-zA-Z0-9-]+$
                                           type: string
                                       type: object
                                     lifetime:
@@ -594,10 +615,21 @@ spec:
                                     encoding:
                                       description: Encoding is how to package the
                                         key.
+                                      enum:
+                                      - pkcs1
+                                      - pkcs8
+                                      - sec1
                                       type: string
                                     type:
                                       description: Type is the type of key as defined
                                         above.
+                                      enum:
+                                      - rsa
+                                      - ellipticP244
+                                      - ellipticP256
+                                      - ellipticP384
+                                      - ellipticP521
+                                      - ed25519
                                       type: string
                                   required:
                                   - encoding
@@ -624,9 +656,9 @@ spec:
                                     request parameter for the parameter source.
                                   type: string
                                 registry:
-                                  description: Registry, if set, uses the corresponding
+                                  description: Registry , if set, uses the corresponding
                                     registry value for the parameter source.
-                                  pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                  pattern: ^[a-zA-Z0-9-]+$
                                   type: string
                                 template:
                                   description: Template allows the recursive rendering
@@ -909,8 +941,8 @@ spec:
               description: Templates is a set of resource templates that can be rendered
                 by the service broker and is required.
               items:
-                description: ServiceBrokerConfigTemplate defines a resource template
-                  for use when either creating a service instance or service binding.
+                description: ConfigurationTemplate defines a resource template for
+                  use when either creating a service instance or service binding.
                 properties:
                   name:
                     description: Name is the name of the template
@@ -924,8 +956,8 @@ spec:
                       is no existing configuration and no parameter is specified in
                       the request then an optional default value is used.
                     items:
-                      description: ServiceBrokerConfigTemplateParameter defines a
-                        parameter substitution on a resource template.
+                      description: ConfigurationParameter defines a parameter substitution
+                        on a resource template.
                       properties:
                         default:
                           description: Default specifies the default value is if the
@@ -951,17 +983,18 @@ spec:
                         destinations:
                           description: Destinations is the destination of the parameter.
                           items:
-                            description: ServiceBrokerConfigTemplateParameterDestination
-                              defines where to patch parameters into the resource
-                              template.
+                            description: ConfigurationParameterDestination defines
+                              where to patch parameters into the resource template.
                             properties:
                               path:
                                 description: Path is a JSON pointer in the resource
-                                  template to patch the parameter.
+                                  template to patch the parameter.  Paths may only
+                                  be set for configuration template parameters.
                                 type: string
                               registry:
                                 description: Registry is a key to store the value
                                   to in the registry.
+                                pattern: ^[a-zA-Z0-9-]+$
                                 type: string
                             type: object
                           minItems: 1
@@ -988,8 +1021,8 @@ spec:
                                     must exist or the formatting operation will return
                                     nil.
                                   items:
-                                    description: ServiceBrokerConfigTemplateParameterSourceFormatParameter
-                                      is a parameter for a formatting operation.
+                                    description: Accessor is an argument that references
+                                      data from either parameters or the registry.
                                     properties:
                                       parameter:
                                         description: Parameter, if set, uses the corresponding
@@ -998,7 +1031,7 @@ spec:
                                       registry:
                                         description: Registry , if set, uses the corresponding
                                           registry value for the parameter source.
-                                        pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                        pattern: ^[a-zA-Z0-9-]+$
                                         type: string
                                     type: object
                                   minItems: 1
@@ -1022,8 +1055,9 @@ spec:
                                       description: DNS is only relevant for "server"
                                         certificate types.
                                       items:
-                                        description: ServiceBrokerConfigTemplateParameterSourceFormatParameter
-                                          is a parameter for a formatting operation.
+                                        description: Accessor is an argument that
+                                          references data from either parameters or
+                                          the registry.
                                         properties:
                                           parameter:
                                             description: Parameter, if set, uses the
@@ -1034,7 +1068,7 @@ spec:
                                             description: Registry , if set, uses the
                                               corresponding registry value for the
                                               parameter source.
-                                            pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                            pattern: ^[a-zA-Z0-9-]+$
                                             type: string
                                         type: object
                                       type: array
@@ -1042,8 +1076,9 @@ spec:
                                       description: Email is only relevant for "client"
                                         certificate types.
                                       items:
-                                        description: ServiceBrokerConfigTemplateParameterSourceFormatParameter
-                                          is a parameter for a formatting operation.
+                                        description: Accessor is an argument that
+                                          references data from either parameters or
+                                          the registry.
                                         properties:
                                           parameter:
                                             description: Parameter, if set, uses the
@@ -1054,7 +1089,7 @@ spec:
                                             description: Registry , if set, uses the
                                               corresponding registry value for the
                                               parameter source.
-                                            pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                            pattern: ^[a-zA-Z0-9-]+$
                                             type: string
                                         type: object
                                       type: array
@@ -1075,7 +1110,7 @@ spec:
                                           description: Registry , if set, uses the
                                             corresponding registry value for the parameter
                                             source.
-                                          pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                          pattern: ^[a-zA-Z0-9-]+$
                                           type: string
                                       type: object
                                     key:
@@ -1090,7 +1125,7 @@ spec:
                                           description: Registry , if set, uses the
                                             corresponding registry value for the parameter
                                             source.
-                                          pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                          pattern: ^[a-zA-Z0-9-]+$
                                           type: string
                                       type: object
                                   required:
@@ -1099,7 +1134,8 @@ spec:
                                   type: object
                                 key:
                                   description: Key is the private key to generate
-                                    the certificate from.
+                                    the certificate from. The key may be any valid
+                                    encoding of an RSA or EC key.
                                   properties:
                                     parameter:
                                       description: Parameter, if set, uses the corresponding
@@ -1108,7 +1144,7 @@ spec:
                                     registry:
                                       description: Registry , if set, uses the corresponding
                                         registry value for the parameter source.
-                                      pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                                      pattern: ^[a-zA-Z0-9-]+$
                                       type: string
                                   type: object
                                 lifetime:
@@ -1152,10 +1188,21 @@ spec:
                                   type: integer
                                 encoding:
                                   description: Encoding is how to package the key.
+                                  enum:
+                                  - pkcs1
+                                  - pkcs8
+                                  - sec1
                                   type: string
                                 type:
                                   description: Type is the type of key as defined
                                     above.
+                                  enum:
+                                  - rsa
+                                  - ellipticP244
+                                  - ellipticP256
+                                  - ellipticP384
+                                  - ellipticP521
+                                  - ed25519
                                   type: string
                               required:
                               - encoding
@@ -1182,9 +1229,9 @@ spec:
                                 request parameter for the parameter source.
                               type: string
                             registry:
-                              description: Registry, if set, uses the corresponding
+                              description: Registry , if set, uses the corresponding
                                 registry value for the parameter source.
-                              pattern: ^(instance:)?[a-zA-Z0-9-]+$
+                              pattern: ^[a-zA-Z0-9-]+$
                               type: string
                             template:
                               description: Template allows the recursive rendering

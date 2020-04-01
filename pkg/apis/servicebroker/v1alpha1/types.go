@@ -23,11 +23,11 @@ type ServiceBrokerConfigSpec struct {
 
 	// Templates is a set of resource templates that can be rendered by the service broker and is required.
 	// +kubebuilder:validation:MinItems=1
-	Templates []ServiceBrokerConfigTemplate `json:"templates"`
+	Templates []ConfigurationTemplate `json:"templates"`
 
 	// Bindings is a set of bindings that link service plans to resource templates and is required.
 	// +kubebuilder:validation:MinItems=1
-	Bindings []ServiceBrokerConfigBinding `json:"bindings"`
+	Bindings []ConfigurationBinding `json:"bindings"`
 }
 
 // ServiceCatalog is defined by:
@@ -217,9 +217,9 @@ type MaintenanceInfo struct {
 	Version string `json:"version,omitempty"`
 }
 
-// ServiceBrokerConfigTemplate defines a resource template for use when either
+// ConfigurationTemplate defines a resource template for use when either
 // creating a service instance or service binding.
-type ServiceBrokerConfigTemplate struct {
+type ConfigurationTemplate struct {
 	// Name is the name of the template
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`
@@ -234,7 +234,7 @@ type ServiceBrokerConfigTemplate struct {
 	// will be left in place.  When there is no existing configuration and no
 	// parameter is specified in the request then an optional default value is
 	// used.
-	Parameters []ServiceBrokerConfigTemplateParameter `json:"parameters,omitempty"`
+	Parameters []ConfigurationParameter `json:"parameters,omitempty"`
 
 	// Singleton alters the behaviour of resource creation.  Typically we will
 	// create a resource and use parameters to alter it's name, ensuring it
@@ -243,9 +243,9 @@ type ServiceBrokerConfigTemplate struct {
 	Singleton bool `json:"singleton,omitempty"`
 }
 
-// ServiceBrokerConfigTemplateParameter defines a parameter substitution
+// ConfigurationParameter defines a parameter substitution
 // on a resource template.
-type ServiceBrokerConfigTemplateParameter struct {
+type ConfigurationParameter struct {
 	// Name is a textual name used to uniquely identify the parameter for
 	// the template.
 	// +kubebuilder:validation:MinLength=1
@@ -255,60 +255,55 @@ type ServiceBrokerConfigTemplateParameter struct {
 	Required bool `json:"required,omitempty"`
 
 	// Default specifies the default value is if the parameter is not defined.
-	Default *ServiceBrokerConfigTemplateParameterDefault `json:"default,omitempty"`
+	Default *Literal `json:"default,omitempty"`
 
 	// Source is source of the parameter.
-	Source *ServiceBrokerConfigTemplateParameterSource `json:"source,omitempty"`
+	Source *ConfigurationParameterSource `json:"source,omitempty"`
 
 	// Destinations is the destination of the parameter.
 	// +kubebuilder:validation:MinItems=1
-	Destinations []ServiceBrokerConfigTemplateParameterDestination `json:"destinations"`
+	Destinations []ConfigurationParameterDestination `json:"destinations"`
 }
 
-// ServiceBrokerConfigTemplateParameterSource defines where parameters
+// ConfigurationParameterSource defines where parameters
 // are sourced from.
-type ServiceBrokerConfigTemplateParameterSource struct {
-	// Registry, if set, uses the corresponding registry value for the
-	// parameter source.
-	// +kubebuilder:validation:Pattern="^(instance:)?[a-zA-Z0-9-]+$"
-	Registry *string `json:"registry,omitempty"`
-
-	// Parameter, if set, uses the corresponding request parameter for the
-	// parameter source.
-	Parameter *string `json:"parameter,omitempty"`
+type ConfigurationParameterSource struct {
+	// Accessor allows parameter sources to be extracted directly from the registry
+	// or a parameter.
+	Accessor `json:",inline"`
 
 	// Format allows the collection of an arbitrary number of parameters into
 	// a string format.
-	Format *ServiceBrokerConfigTemplateParameterSourceFormat `json:"format,omitempty"`
+	Format *ConfigurationParameterSourceFormat `json:"format,omitempty"`
 
 	// GeneratePassword allows the generation of a random string, useful for password
 	// generation.
-	GeneratePassword *ServiceBrokerConfigTemplateParameterSourceGeneratePassword `json:"generatePassword,omitempty"`
+	GeneratePassword *ConfigurationParameterSourceGeneratePassword `json:"generatePassword,omitempty"`
 
 	// GenerateKey allow the generation of a private key.
-	GenerateKey *ServiceBrokerConfigTemplateParameterSourceGenerateKey `json:"generateKey,omitempty"`
+	GenerateKey *ConfigurationParameterSourceGenerateKey `json:"generateKey,omitempty"`
 
 	// GenerateCertificate allows the generation of a public certificate.
-	GenerateCertificate *ServiceBrokerConfigTemplateParameterSourceGenerateCertificate `json:"generateCertificate,omitempty"`
+	GenerateCertificate *ConfigurationParameterSourceGenerateCertificate `json:"generateCertificate,omitempty"`
 
 	// Template allows the recursive rendering and inclusion of a named template.
 	Template *string `json:"template,omitempty"`
 }
 
-// ServiceBrokerConfigTemplateParameterSourceFormat defines a formatting
+// ConfigurationParameterSourceFormat defines a formatting
 // string and parameters.
-type ServiceBrokerConfigTemplateParameterSourceFormat struct {
+type ConfigurationParameterSourceFormat struct {
 	// String is the format string to use.
 	String string `json:"string"`
 
 	// Parameters is the set of parameters corresponding to the format string.
 	// All parameters must exist or the formatting operation will return nil.
 	// +kubebuilder:validation:MinItems=1
-	Parameters []ServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"parameters"`
+	Parameters []Accessor `json:"parameters"`
 }
 
-// ServiceBrokerConfigTemplateParameterSourceGeneratePassword defines a random string.
-type ServiceBrokerConfigTemplateParameterSourceGeneratePassword struct {
+// ConfigurationParameterSourceGeneratePassword defines a random string.
+type ConfigurationParameterSourceGeneratePassword struct {
 	// Length is the length of the string to generate.
 	// +kubebuilder:validation:Minimum=1
 	Length int `json:"length"`
@@ -325,16 +320,16 @@ const (
 	KeyTypeRSA KeyType = "rsa"
 
 	// KeyTypeEllipticP224 generates small keys relative to encryption strength.
-	KeyTypeEllipticP224 KeyType = "ecP244"
+	KeyTypeEllipticP224 KeyType = "ellipticP244"
 
 	// KeyTypeEllipticP256 generates small keys relative to encryption strength.
-	KeyTypeEllipticP256 KeyType = "ecP256"
+	KeyTypeEllipticP256 KeyType = "ellipticP256"
 
 	// KeyTypeEllipticP384 generates small keys relative to encryption strength.
-	KeyTypeEllipticP384 KeyType = "ecP384"
+	KeyTypeEllipticP384 KeyType = "ellipticP384"
 
 	// KeyTypeEllipticP521 generates small keys relative to encryption strength.
-	KeyTypeEllipticP521 KeyType = "ecP521"
+	KeyTypeEllipticP521 KeyType = "ellipticP521"
 
 	// KeyTypeED25519 generates small keys relative to encrption strength.
 	KeyTypeED25519 KeyType = "ed25519"
@@ -350,16 +345,18 @@ const (
 	// KeyEncodingPKCS8 may be used for any key type.
 	KeyEncodingPKCS8 KeyEncodingType = "pkcs8"
 
-	// KeyEncodingEC may only be used with EC key types.
-	KeyEncodingEC KeyEncodingType = "ec"
+	// KeyEncodingSEC1 may only be used with EC key types.
+	KeyEncodingSEC1 KeyEncodingType = "sec1"
 )
 
-// ServiceBrokerConfigTemplateParameterSourceGenerateKey defines a private key.
-type ServiceBrokerConfigTemplateParameterSourceGenerateKey struct {
+// ConfigurationParameterSourceGenerateKey defines a private key.
+type ConfigurationParameterSourceGenerateKey struct {
 	// Type is the type of key as defined above.
+	// +kubebuilder:validation:Enum=rsa;ellipticP244;ellipticP256;ellipticP384;ellipticP521;ed25519
 	Type KeyType `json:"type"`
 
 	// Encoding is how to package the key.
+	// +kubebuilder:validation:Enum=pkcs1;pkcs8;sec1
 	Encoding KeyEncodingType `json:"encoding"`
 
 	// Bits is the number of bits of key to generate, only relevant for RSA.
@@ -380,14 +377,14 @@ const (
 	Client CertificateUsage = "client"
 )
 
-// ServiceBrokerConfigTemplateParameterSourceGenerateCertificate defines a certificate.
-type ServiceBrokerConfigTemplateParameterSourceGenerateCertificate struct {
+// ConfigurationParameterSourceGenerateCertificate defines a certificate.
+type ConfigurationParameterSourceGenerateCertificate struct {
 	// Key is the private key to generate the certificate from.
 	// The key may be any valid encoding of an RSA or EC key.
-	Key ServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"key"`
+	Key Accessor `json:"key"`
 
 	// Name is the certificate name.
-	Name ServiceBrokerConfigTemplateParameterSourceGenerateCertificateName `json:"name"`
+	Name CertificateSubject `json:"name"`
 
 	// Lifetime is how long the certificate will last.
 	Lifetime metav1.Duration `json:"lifetime"`
@@ -399,42 +396,42 @@ type ServiceBrokerConfigTemplateParameterSourceGenerateCertificate struct {
 	Usage CertificateUsage `json:"usage"`
 
 	// AlternativeNames are only valid for "server" and "client" certificates.
-	AlternativeNames *ServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames `json:"alternativeNames,omitempty"`
+	AlternativeNames *SubjectAlternativeNames `json:"alternativeNames,omitempty"`
 
 	// CA is the CA to sign with, it will self sign otherwise.
-	CA *ServiceBrokerConfigTemplateParameterSourceGenerateCertificateCA `json:"ca,omitempty"`
+	CA *SigningCA `json:"ca,omitempty"`
 }
 
-// ServiceBrokerConfigTemplateParameterSourceGenerateCertificateName defines a certificate name.
-type ServiceBrokerConfigTemplateParameterSourceGenerateCertificateName struct {
+// CertificateSubject defines a certificate name.
+type CertificateSubject struct {
 	// CommonName is what the certificate name is usually referred to.
 	CommonName string `json:"commonName"`
 }
 
-// ServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames defines alternative names for a certificate.
-type ServiceBrokerConfigTemplateParameterSourceGenerateCertificateAltNames struct {
+// SubjectAlternativeNames defines alternative names for a certificate.
+type SubjectAlternativeNames struct {
 	// DNS is only relevant for "server" certificate types.
-	DNS []ServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"dns,omitempty"`
+	DNS []Accessor `json:"dns,omitempty"`
 
 	// Email is only relevant for "client" certificate types.
-	Email []ServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"email,omitempty"`
+	Email []Accessor `json:"email,omitempty"`
 }
 
-// ServiceBrokerConfigTemplateParameterSourceGenerateCertificateCA defines a CA.
-type ServiceBrokerConfigTemplateParameterSourceGenerateCertificateCA struct {
+// SigningCA defines a CAe
+type SigningCA struct {
 	// Key is the CA's private key.
-	Key ServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"key"`
+	Key Accessor `json:"key"`
 
 	// Certificate is the CA's certificate.
-	Certificate ServiceBrokerConfigTemplateParameterSourceFormatParameter `json:"certificate"`
+	Certificate Accessor `json:"certificate"`
 }
 
-// ServiceBrokerConfigTemplateParameterSourceFormatParameter is a parameter
-// for a formatting operation.
-type ServiceBrokerConfigTemplateParameterSourceFormatParameter struct {
+// Accessor is an argument that references data from either parameters or
+// the registry.
+type Accessor struct {
 	// Registry , if set, uses the corresponding registry value for the
 	// parameter source.
-	// +kubebuilder:validation:Pattern="^(instance:)?[a-zA-Z0-9-]+$"
+	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9-]+$"
 	Registry *string `json:"registry,omitempty"`
 
 	// Parameter, if set, uses the corresponding request parameter for the
@@ -442,9 +439,9 @@ type ServiceBrokerConfigTemplateParameterSourceFormatParameter struct {
 	Parameter *string `json:"parameter,omitempty"`
 }
 
-// ServiceBrokerConfigTemplateParameterDefault defines a
-// default value for a parameter source if it is not specified.
-type ServiceBrokerConfigTemplateParameterDefault struct {
+// Literal defines a literal value based on the internal type system (i.e. JSON).
+// Typically used for default values for a parameter source if it is not specified.
+type Literal struct {
 	// String specifies the default string value if the parameter is not defined.
 	String *string `json:"string,omitempty"`
 
@@ -458,20 +455,22 @@ type ServiceBrokerConfigTemplateParameterDefault struct {
 	Object *runtime.RawExtension `json:"object,omitempty"`
 }
 
-// ServiceBrokerConfigTemplateParameterDestination defines where to
+// ConfigurationParameterDestination defines where to
 // patch parameters into the resource template.
-type ServiceBrokerConfigTemplateParameterDestination struct {
+type ConfigurationParameterDestination struct {
 	// Path is a JSON pointer in the resource template to patch
-	// the parameter.
+	// the parameter.  Paths may only be set for configuration template
+	// parameters.
 	Path *string `json:"path,omitempty"`
 
 	// Registry is a key to store the value to in the registry.
+	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9-]+$"
 	Registry *string `json:"registry,omitempty"`
 }
 
-// ServiceBrokerConfigBinding binds a service plan to a set of templates
+// ConfigurationBinding binds a service plan to a set of templates
 // required to realize that plan.
-type ServiceBrokerConfigBinding struct {
+type ConfigurationBinding struct {
 	// Name is a unique identifier for the binding.
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`
@@ -499,7 +498,7 @@ type ServiceBrokerConfigBinding struct {
 type ServiceBrokerTemplateList struct {
 	// Parameters allows registry parameters to be mutated and cached when a
 	// service instance is created.  These are only executed on instance creation.
-	Parameters []ServiceBrokerConfigTemplateParameter `json:"parameters,omitempty"`
+	Parameters []ConfigurationParameter `json:"parameters,omitempty"`
 
 	// Templates defines all the templates that will be created, in order,
 	// by the service broker for this operation.
