@@ -80,6 +80,15 @@ func (u *Updater) Prepare(entry *registry.Entry) error {
 			return err
 		}
 
+		// Updates from multiple service instances or bindings will
+		// inevitably lead to split-brain, with values changing at
+		// random.
+		if template.Singleton {
+			glog.Info("template is a singleton, ignoring update")
+			continue
+		}
+
+		// No parameters, nothing can change.
 		if len(template.Parameters) == 0 {
 			glog.Info("template not paramterized, ignoring update")
 			continue
