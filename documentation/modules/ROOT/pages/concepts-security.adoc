@@ -1,20 +1,130 @@
 = Security Models
 
 [abstract]
-This page details the various security models you may wish to deploy the Service Broker and your serivce instances under.
+This page details the various security models you may wish to deploy the Service Broker and your service instances under.
 
 ifdef::env-github[]
 :imagesdir: https://github.com/spjmurray/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
-== Service Broker
+== Service Broker API
 
-=== Namespaced
+The Service Broker has been designed with a security-first approach.
+As such, the use of TLS and authentication is mandatory
 
-=== Global
+TLS provides network level security between the client and the Service Broker to prevent snooping of sensitive information that may be passed to the Service Broker as request parameters e.g. passwords.
+
+Authentication is provided with bearer tokens.
+Without mandatory authentication, any user who had knowledge of the Service Broker service endpoint could create and destroy service instances at will.
+
+Bearer token authorization is coarse-grained--it allows full access to the Service Broker API.
+Fine-grained authorization through the use of multiple tokens and RBAC rules is not supported.
+Fine-grained authorization is achieved through Kubernetes RBAC and the resources provided by the Kubernetes Service Catalog.
+
+== Service Broker Deployment
+
+The Service Broker can be deployed in a number of different ways.
+Each has its own benefits and downsides.
+It is up to you to decide which best fits your needs and security requirements.
+
+Service broker deployment security models are governed by the Kubernetes Service Catalog, therefore any queries should be directed at that project's maintainers.
+
+=== Namespace Scoped Deployment
+
+Namespace scoped service brokers, are--as the name suggests--scoped to a specific namespace.
+Namespace scoped service brokers use the Kubernetes Service Catalog `ServiceBroker` resource type to register with the Kubernetes Service Catalog.
+
+.Namespace Scoped Service Broker Deployment
+image::sec-namespaced.png[align="center"]
+
+Any service offerings and service plans advertised by the Service Broker are only visible within the namespace in which it is registered--with `ServiceClass` and `ServicePlan` resources respectively.
+You may choose to deploy one instance of the Service Broker per `ServiceBroker` resource, or reference a single instance with multiple `ServiceBroker` resources.
+
+This leads to following benefits:
+
+* Service Brokers can be managed independently when using multiple deployments
+** Upgrades can be done in a piecemeal fashion e.g. canary deployments
+** Lower risk associated with canary deployments
+* Improved security
+** Only users with access to `ServiceClass` and `ServicePlan` resources within a particular namespace can create service instances.
+** Users that do not have access to a namespace with a `ServiceBroker` resource cannot use the Service Broker
+
+and the following drawbacks:
+
+* Higher overheads
+** Upgrades take longer to perform when using multiple deployments
+** Higher resource utilization
+** Higher cost
+
+=== Cluster Scoped Deployment
+
+Cluster scoped service brokers are the opposite of namespaced service brokers and are cluster scoped.
+Cluster scoped service brokers use the Kubernetes Service Catalog `ClusterServiceBroker` resource type to register with the Kubernetes Service Catalog.
+
+.Cluster Scoped Service Broker Deployment
+image::sec-global.png[align="center"]
+
+Any service offerings and plans are advertised across all namespaces--with `ClusterServiceClass` and `ClusterServicePlan` resources respectively.
+You only have a single deployment of the Service Broker to cater to the needs of all users within that Kubernetes cluster.
+
+This leads to the following benefits:
+
+* Lower overheads
+** Upgrades are to a single Service Broker instance
+** Lower resource utilization
+** Lower cost
+* Ease of use
+** Users can create service instances and service bindings in any namespace
+
+and the following drawbacks:
+
+* Service brokers are global
+** An upgrade affects all service instances on the platform
+** Higher risk that a fault will affect not just staging and development, but production services
+* Reduced security
+** All users in all namespaces may be able to access `ClusterServiceClass` and `ClusterServicePlan` resources.
+** Access to `ClusterServiceClass` and `ClusterServicePlan` can be controlled with Kubernetes roles, however there is still a higher risk associated with global scoping.
+
+=== Recommendations
+
+As you can appreciate, the differences between namespace scoped and cluster scoped service brokers is black-and-white.
+The former provides stricter guarantees of security and stability--and is recommended for production deployments--while the later provides ease of use--and is recommended for test and development deployments.
 
 == Service Instances
 
-=== Namespaced
+The configuration templates, that you specify when defining service instances and service bindings, also govern the security of the services you provide.
+Again, how you choose to use the Service Broker is completely up to you.
 
-=== Global
+=== Dynamic Namespace Selection
+
+By default--when configuration templates are used to generate Kubernetes resources, and the namespace is not specified--the Service Broker will use the namespace of the `ServiceInstance` resource to determine where Kubernetes resources are created.
+
+Take a simple web server as an example.
+This would typically consist of a `Deployment` to actually run the web server instances, and a `Secret` to contain the TLS configuration.
+These Kubernetes resources would be created in the same namespace as the service instance and service binding were created.
+
+.Dynamic Namespace Selection of Service Instance Resources
+image::sec-dynamic.png[align="center"]
+
+If your end user required access to `Secret` resources--in order to extract credentials from the service binding for example--then they would also be granted access to all the `Secret` resources used to create the service instance.
+This may lead to leaking credentials, and a breach of security policy.
+
+This is a contrived example to make you aware of security considerations.
+A user that has only permission to create `Pod` resources can still consume secrets as environment variables or volume mounts.
+As they cannot list `Secret` resources, they cannot determine what to mount in their pods in order to read the contents.
+Security is further enhanced if they cannot run untrusted containers, and they do not have shell access to the pod.
+
+=== Static Namespace Selection
+
+Where dynamically namespaced service instances provisioned Kubernetes resources in the same namespace as the `ServiceInstance` resource, statically namespaced resources allow you to control exactly which namespace Kubernetes resources are provisioned in.
+When designing configuration templates, the Service Broker will accept a hard-coded namespace in the Kubernetes resource as the value to use.
+
+This means that the administrator can allow end users to create service instances in namespace `foo`, however all Kubernetes resources are provisioned in namespace `bar`.
+This enables a very strong security model, where the end user has absolutely no access to any Kubernetes resources associated with a service instance and service binding.
+
+.Static Namespace Selection of Service Instance Resources
+image::sec-static.png[align="center"]
+
+== Hybrid Namespace Selection
+
+Due to the flexibility of the Service Broker, you may choose to combine dynamically and statically namespaced configuration templates as you choose.

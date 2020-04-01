@@ -22,7 +22,7 @@ The Service Broker is configured using a Kubernetes Custom Resource that allows 
 
 [source,console]
 ----
-$ kubectl create -f https://raw.githubusercontent.com/couchbase/service-broker/master/crds/servicebroker.couchbase.com_servicebrokerconfigs.yam
+$ kubectl create -f https://raw.githubusercontent.com/couchbase/service-broker/master/crds/servicebroker.couchbase.com_servicebrokerconfigs.yaml
 ----
 
 == Install a Configuration
