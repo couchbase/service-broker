@@ -49,3 +49,5 @@ To fully understand how the Service Broker works and its capabilities we suggest
   Using the provided example configuration files it will demonstrate the ease of deployment of a service for an end user and how to consume services as an application.
 * The xref:concepts.adoc[Concepts] section describes the architecture of the Service Broker.
   By gaining an understanding of what the Service Broker does, and how it does it, you will gain an appreciation for what can be achieved for your desired service.
+* The xref:reference.adoc[Reference] section describes low-level configuration of the Service Broker.
+  Once you understand the core concepts, the reference section will teach you all the configuration that can be altered and any constraints to be aware of.
