@@ -63,6 +63,7 @@ You can catch these types of errors earlier, and with more context, by specifyin
 Unlike optional parameters, required parameters will raise an error if the result resolves to `nil`.
 This will indicate the error as related to the specific named parameter in the named template.
 
+[#parameter-sources]
 == Parameter Sources
 
 Parameter sources are divided into categories based on their behavior.  These are:
@@ -234,17 +235,17 @@ To generate a 32 character password:
 
 The key generator creates a private key and results in a string containing a PEM encoded private key.
 Supported key types are RSA, ECDSA and ED25519.
-Supported encoding types are PKCS#1, PKCS#8 and EC.
+Supported encoding types are PKCS#1, PKCS#8 and SEC 1.
 
-For example, to generate a PKCS#8 P256 private key:
+For example, to generate a PKCS#8 encoded P256 elliptic curve private key:
 
 [source,yaml]
 ----
 - name: my-parameter
   source:
     generateKey:
-      type: ellipticP256
-      encoding: pkcs8
+      type: EllipticP256
+      encoding: PKCS8
 ----
 
 ==== Generate Certificate
@@ -268,7 +269,7 @@ For example, to generate a signed X.509 certificate:
       name:
         commonName: "My Service Certificate"
       lifetime: "8760h"
-      usage: server
+      usage: Server
       alternativeNames:
         dns:
         - registry: my-service-san
@@ -285,6 +286,7 @@ The Service Broker is reactive--it responds to API calls--therefore will never s
 You should deploy a certificate manager with your service instances if this functionality is required by your security policy.
 ====
 
+[#parameter-destinations]
 == Parameter Destinations
 
 Once configuration parameter values have been resolved, and if valid, then they must be stored somewhere.

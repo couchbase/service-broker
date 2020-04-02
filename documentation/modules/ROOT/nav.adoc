@@ -13,3 +13,5 @@
 ** xref:concepts-parameters.adoc[Configuration Parameters]
 ** xref:concepts-registry.adoc[Service Instance and Binding Registries]
 ** xref:concepts-security.adoc[Security Models]
+* xref:reference.adoc[Reference]
+** xref:reference-servicebrokerconfigs.adoc[ServiceBrokerConfig Resource Reference]

@@ -95,15 +95,13 @@ spec:
       - database
       - nosql
       bindable: true
-      instances_retrievable: true
-      bindings_retrievable: true
-      plan_updatable: true
+      planUpdatable: false
       plans:
       - id: ec0f2c9b-0277-46d7-985f-ba1fbf3b068d
         name: couchbase-developer-private
         description: Cluster accessible within the Kubernetes cluster
         schemas:
-          service_instance:
+          serviceInstance:
             create:
               parameters:
                 $schema: "http://json-schema.org/draft-04/schema#"
@@ -626,8 +624,8 @@ spec:
         required: true
         source:
           generateKey:
-            type: rsa
-            encoding: pkcs8
+            type: RSA
+            encoding: PKCS8
             bits: 2048
         destinations:
         - registry: ca-key
@@ -637,10 +635,10 @@ spec:
           generateCertificate:
             key:
               registry: ca-key
-            name:
+            subject:
               commonName: Couchbase Server CA
             lifetime: 87600h
-            usage: ca
+            usage: CA
         destinations:
         - registry: ca-cert
       # Create the server certificate.
@@ -649,8 +647,8 @@ spec:
         required: true
         source:
           generateKey:
-            type: rsa
-            encoding: pkcs1
+            type: RSA
+            encoding: PKCS1
             bits: 2048
         destinations:
         - registry: server-key
@@ -724,10 +722,10 @@ spec:
           generateCertificate:
             key:
               registry: server-key
-            name:
+            subject:
               commonName: Couchbase Server
             lifetime: 8760h
-            usage: server
+            usage: Server
             alternativeNames:
               dns:
               - registry: dns-short-srv

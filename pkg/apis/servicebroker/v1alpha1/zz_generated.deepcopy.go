@@ -206,7 +206,7 @@ func (in *ConfigurationParameterSourceFormat) DeepCopy() *ConfigurationParameter
 func (in *ConfigurationParameterSourceGenerateCertificate) DeepCopyInto(out *ConfigurationParameterSourceGenerateCertificate) {
 	*out = *in
 	in.Key.DeepCopyInto(&out.Key)
-	out.Name = in.Name
+	out.Subject = in.Subject
 	out.Lifetime = in.Lifetime
 	if in.AlternativeNames != nil {
 		in, out := &in.AlternativeNames, &out.AlternativeNames

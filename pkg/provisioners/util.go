@@ -249,6 +249,10 @@ func resolveFormat(format *v1.ConfigurationParameterSourceFormat, entry *registr
 			return nil, err
 		}
 
+		if value == nil {
+			return nil, nil
+		}
+
 		parameters[index] = value
 	}
 
@@ -508,7 +512,7 @@ func resolveGenerateCertificate(config *v1.ConfigurationParameterSourceGenerateC
 
 	req := &x509.CertificateRequest{
 		Subject: pkix.Name{
-			CommonName: config.Name.CommonName,
+			CommonName: config.Subject.CommonName,
 		},
 	}
 

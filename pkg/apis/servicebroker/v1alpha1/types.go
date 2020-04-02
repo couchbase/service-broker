@@ -80,13 +80,13 @@ type ServiceOffering struct {
 
 	// Dashboard is a Cloud Foundry extension described in Catalog Extensions. Contains the data necessary
 	// to activate the Dashboard SSO feature for this service.
-	DashboardClient *DashboardClient `json:"dashboard_client,omitempty"`
+	DashboardClient *DashboardClient `json:"dashboardClient,omitempty"`
 
 	// PlanUpdatable is whether the Service Offering supports upgrade/downgrade for Service Plans by default.
 	// Service Plans can override this field (see Service Plan). Please note that the misspelling of the
 	// attribute plan_updatable as plan_updateable was done by mistake. We have opted to keep that misspelling
 	// instead of fixing it and thus breaking backward compatibility. Defaults to false.
-	PlanUpdatable bool `json:"plan_updatable,omitempty"`
+	PlanUpdatable bool `json:"planUpdatable,omitempty"`
 
 	// ServicePlan is a list of Service Plans for this Service Offering, schema is defined below. MUST
 	// contain at least one Service Plan.
@@ -107,7 +107,7 @@ type DashboardClient struct {
 
 	// RedirectedURI is a URI for the service dashboard. Validated by the OAuth token server when the dashboard
 	// requests a token.
-	RedirectedURI string `json:"redirected_uri,omitempty"`
+	RedirectedURI string `json:"redirectedURI,omitempty"`
 }
 
 // ServicePlan is defined by:
@@ -151,11 +151,11 @@ type ServicePlan struct {
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#body
 type Schemas struct {
 	// ServiceInstance is the schema definitions for creating and updating a Service Instance.
-	ServiceInstance *ServiceInstanceSchema `json:"service_instance,omitempty"`
+	ServiceInstance *ServiceInstanceSchema `json:"serviceInstance,omitempty"`
 
 	// ServiceBinding is the schema definition for creating a Service Binding. Used only if the
 	// Service Plan is bindable.
-	ServiceBinding *ServiceBindingSchema `json:"service_binding,omitempty"`
+	ServiceBinding *ServiceBindingSchema `json:"serviceBinding,omitempty"`
 }
 
 // ServiceInstanceSchema is defined by:
@@ -289,22 +289,22 @@ type KeyType string
 
 const (
 	// RSA is widely supported, but the key sizes are large.
-	KeyTypeRSA KeyType = "rsa"
+	KeyTypeRSA KeyType = "RSA"
 
 	// KeyTypeEllipticP224 generates small keys relative to encryption strength.
-	KeyTypeEllipticP224 KeyType = "ellipticP244"
+	KeyTypeEllipticP224 KeyType = "EllipticP244"
 
 	// KeyTypeEllipticP256 generates small keys relative to encryption strength.
-	KeyTypeEllipticP256 KeyType = "ellipticP256"
+	KeyTypeEllipticP256 KeyType = "EllipticP256"
 
 	// KeyTypeEllipticP384 generates small keys relative to encryption strength.
-	KeyTypeEllipticP384 KeyType = "ellipticP384"
+	KeyTypeEllipticP384 KeyType = "EllipticP384"
 
 	// KeyTypeEllipticP521 generates small keys relative to encryption strength.
-	KeyTypeEllipticP521 KeyType = "ellipticP521"
+	KeyTypeEllipticP521 KeyType = "EllipticP521"
 
 	// KeyTypeED25519 generates small keys relative to encrption strength.
-	KeyTypeED25519 KeyType = "ed25519"
+	KeyTypeED25519 KeyType = "ED25519"
 )
 
 // KeyEncodingType is a private key encoding type.
@@ -312,26 +312,27 @@ type KeyEncodingType string
 
 const (
 	// KeyEncodingPKCS1 may only be used with the RSA key type.
-	KeyEncodingPKCS1 KeyEncodingType = "pkcs1"
+	KeyEncodingPKCS1 KeyEncodingType = "PKCS1"
 
 	// KeyEncodingPKCS8 may be used for any key type.
-	KeyEncodingPKCS8 KeyEncodingType = "pkcs8"
+	KeyEncodingPKCS8 KeyEncodingType = "PKCS8"
 
 	// KeyEncodingSEC1 may only be used with EC key types.
-	KeyEncodingSEC1 KeyEncodingType = "sec1"
+	KeyEncodingSEC1 KeyEncodingType = "SEC1"
 )
 
 // ConfigurationParameterSourceGenerateKey defines a private key.
 type ConfigurationParameterSourceGenerateKey struct {
 	// Type is the type of key as defined above.
-	// +kubebuilder:validation:Enum=rsa;ellipticP244;ellipticP256;ellipticP384;ellipticP521;ed25519
+	// +kubebuilder:validation:Enum=RSA;EllipticP244;EllipticP256;EllipticP384;EllipticP521;ED25519
 	Type KeyType `json:"type"`
 
 	// Encoding is how to package the key.
-	// +kubebuilder:validation:Enum=pkcs1;pkcs8;sec1
+	// +kubebuilder:validation:Enum=PKCS1;PKCS8;SEC1
 	Encoding KeyEncodingType `json:"encoding"`
 
 	// Bits is the number of bits of key to generate, only relevant for RSA.
+	// +kubebuilder:validation:Minimum=1
 	Bits *int `json:"bits,omitempty"`
 }
 
@@ -340,13 +341,13 @@ type CertificateUsage string
 
 const (
 	// CA is used for signing certificates and providing a trust anchor.
-	CA CertificateUsage = "ca"
+	CA CertificateUsage = "CA"
 
 	// Server is used for server certificates.
-	Server CertificateUsage = "server"
+	Server CertificateUsage = "Server"
 
 	// Client is used for client certificates.
-	Client CertificateUsage = "client"
+	Client CertificateUsage = "Client"
 )
 
 // ConfigurationParameterSourceGenerateCertificate defines a certificate.
@@ -355,8 +356,8 @@ type ConfigurationParameterSourceGenerateCertificate struct {
 	// The key may be any valid encoding of an RSA or EC key.
 	Key Accessor `json:"key"`
 
-	// Name is the certificate name.
-	Name CertificateSubject `json:"name"`
+	// Subject is the certificate subject.
+	Subject CertificateSubject `json:"subject"`
 
 	// Lifetime is how long the certificate will last.
 	Lifetime metav1.Duration `json:"lifetime"`
@@ -364,7 +365,7 @@ type ConfigurationParameterSourceGenerateCertificate struct {
 	// Usage is what the certificate is used for.  If server or client is specified
 	// then the CA parameter must be populated.  If CA is not specified for a "ca"
 	// certificate then it will be self signed.
-	// +kubebuilder:validation:Enum=ca;server;client
+	// +kubebuilder:validation:Enum=CA;Server;Client
 	Usage CertificateUsage `json:"usage"`
 
 	// AlternativeNames are only valid for "server" and "client" certificates.

@@ -266,8 +266,8 @@ spec:
                                       description: Lifetime is how long the certificate
                                         will last.
                                       type: string
-                                    name:
-                                      description: Name is the certificate name.
+                                    subject:
+                                      description: Subject is the certificate subject.
                                       properties:
                                         commonName:
                                           description: CommonName is what the certificate
@@ -283,14 +283,14 @@ spec:
                                         CA is not specified for a "ca" certificate
                                         then it will be self signed.
                                       enum:
-                                      - ca
-                                      - server
-                                      - client
+                                      - CA
+                                      - Server
+                                      - Client
                                       type: string
                                   required:
                                   - key
                                   - lifetime
-                                  - name
+                                  - subject
                                   - usage
                                   type: object
                                 generateKey:
@@ -300,25 +300,26 @@ spec:
                                     bits:
                                       description: Bits is the number of bits of key
                                         to generate, only relevant for RSA.
+                                      minimum: 1
                                       type: integer
                                     encoding:
                                       description: Encoding is how to package the
                                         key.
                                       enum:
-                                      - pkcs1
-                                      - pkcs8
-                                      - sec1
+                                      - PKCS1
+                                      - PKCS8
+                                      - SEC1
                                       type: string
                                     type:
                                       description: Type is the type of key as defined
                                         above.
                                       enum:
-                                      - rsa
-                                      - ellipticP244
-                                      - ellipticP256
-                                      - ellipticP384
-                                      - ellipticP521
-                                      - ed25519
+                                      - RSA
+                                      - EllipticP244
+                                      - EllipticP256
+                                      - EllipticP384
+                                      - EllipticP521
+                                      - ED25519
                                       type: string
                                   required:
                                   - encoding
@@ -577,8 +578,8 @@ spec:
                                       description: Lifetime is how long the certificate
                                         will last.
                                       type: string
-                                    name:
-                                      description: Name is the certificate name.
+                                    subject:
+                                      description: Subject is the certificate subject.
                                       properties:
                                         commonName:
                                           description: CommonName is what the certificate
@@ -594,14 +595,14 @@ spec:
                                         CA is not specified for a "ca" certificate
                                         then it will be self signed.
                                       enum:
-                                      - ca
-                                      - server
-                                      - client
+                                      - CA
+                                      - Server
+                                      - Client
                                       type: string
                                   required:
                                   - key
                                   - lifetime
-                                  - name
+                                  - subject
                                   - usage
                                   type: object
                                 generateKey:
@@ -611,25 +612,26 @@ spec:
                                     bits:
                                       description: Bits is the number of bits of key
                                         to generate, only relevant for RSA.
+                                      minimum: 1
                                       type: integer
                                     encoding:
                                       description: Encoding is how to package the
                                         key.
                                       enum:
-                                      - pkcs1
-                                      - pkcs8
-                                      - sec1
+                                      - PKCS1
+                                      - PKCS8
+                                      - SEC1
                                       type: string
                                     type:
                                       description: Type is the type of key as defined
                                         above.
                                       enum:
-                                      - rsa
-                                      - ellipticP244
-                                      - ellipticP256
-                                      - ellipticP384
-                                      - ellipticP521
-                                      - ed25519
+                                      - RSA
+                                      - EllipticP244
+                                      - EllipticP256
+                                      - EllipticP384
+                                      - EllipticP521
+                                      - ED25519
                                       type: string
                                   required:
                                   - encoding
@@ -699,7 +701,7 @@ spec:
                           Service Plans can override this field (see Service Plan
                           Object).
                         type: boolean
-                      dashboard_client:
+                      dashboardClient:
                         description: Dashboard is a Cloud Foundry extension described
                           in Catalog Extensions. Contains the data necessary to activate
                           the Dashboard SSO feature for this service.
@@ -710,7 +712,7 @@ spec:
                               string.
                             minLength: 1
                             type: string
-                          redirected_uri:
+                          redirectedURI:
                             description: RedirectedURI is a URI for the service dashboard.
                               Validated by the OAuth token server when the dashboard
                               requests a token.
@@ -752,7 +754,7 @@ spec:
                           name is RECOMMENDED.
                         minLength: 1
                         type: string
-                      plan_updatable:
+                      planUpdatable:
                         description: PlanUpdatable is whether the Service Offering
                           supports upgrade/downgrade for Service Plans by default.
                           Service Plans can override this field (see Service Plan).
@@ -812,7 +814,7 @@ spec:
                               description: Schemas are schema definitions for Service
                                 Instances and Service Bindings for the Service Plan.
                               properties:
-                                service_binding:
+                                serviceBinding:
                                   description: ServiceBinding is the schema definition
                                     for creating a Service Binding. Used only if the
                                     Service Plan is bindable.
@@ -829,7 +831,7 @@ spec:
                                           type: object
                                       type: object
                                   type: object
-                                service_instance:
+                                serviceInstance:
                                   description: ServiceInstance is the schema definitions
                                     for creating and updating a Service Instance.
                                   properties:
@@ -1111,8 +1113,8 @@ spec:
                                   description: Lifetime is how long the certificate
                                     will last.
                                   type: string
-                                name:
-                                  description: Name is the certificate name.
+                                subject:
+                                  description: Subject is the certificate subject.
                                   properties:
                                     commonName:
                                       description: CommonName is what the certificate
@@ -1128,14 +1130,14 @@ spec:
                                     specified for a "ca" certificate then it will
                                     be self signed.
                                   enum:
-                                  - ca
-                                  - server
-                                  - client
+                                  - CA
+                                  - Server
+                                  - Client
                                   type: string
                               required:
                               - key
                               - lifetime
-                              - name
+                              - subject
                               - usage
                               type: object
                             generateKey:
@@ -1145,24 +1147,25 @@ spec:
                                 bits:
                                   description: Bits is the number of bits of key to
                                     generate, only relevant for RSA.
+                                  minimum: 1
                                   type: integer
                                 encoding:
                                   description: Encoding is how to package the key.
                                   enum:
-                                  - pkcs1
-                                  - pkcs8
-                                  - sec1
+                                  - PKCS1
+                                  - PKCS8
+                                  - SEC1
                                   type: string
                                 type:
                                   description: Type is the type of key as defined
                                     above.
                                   enum:
-                                  - rsa
-                                  - ellipticP244
-                                  - ellipticP256
-                                  - ellipticP384
-                                  - ellipticP521
-                                  - ed25519
+                                  - RSA
+                                  - EllipticP244
+                                  - EllipticP256
+                                  - EllipticP384
+                                  - EllipticP521
+                                  - ED25519
                                   type: string
                               required:
                               - encoding
