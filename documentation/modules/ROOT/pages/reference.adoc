@@ -14,4 +14,8 @@ These are boradly separated into a number of categories:
 
 .Data Structures
 
-** xref:reference-servicebrokerconfigs.adoc[ServiceBrokerConfig Resource Reference]
+* xref:reference-servicebrokerconfigs.adoc[ServiceBrokerConfig Resource Reference]
+
+.Containers
+
+* xref:reference-container.adoc[Service Broker Container Reference]

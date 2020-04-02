@@ -9,6 +9,8 @@ endif::[]
 
 == What are Service Brokers?
 
+image::osb-logo.png[align="center"]
+
 Service brokers implement the https://www.openservicebrokerapi.org/[Open Service Broker API^], an open standard for interoperability between clients and service brokers.
 Service brokers are an abstraction layer around a service that allow users to create instances of a service and bind applications to them.
 

@@ -1,0 +1,43 @@
+= Service Broker Container Reference
+
+[abstract]
+This section details any relevant configuration for the Service Broker.
+
+ifdef::env-github[]
+:imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]
+
+The Service Broker requires very little configuration to start using it--the vast majority is handled through the `ServiceBrokerConfig` Kubernetes resource.
+For the most part, the examples will suffice for simple proof-of-concept deployments.
+For production deployments, you may require the Service Broker to be run in a non-`default` namespace, or with enhanced logging.
+This section details the modifications that can be made along with requirements.
+
+== Command Line Arguments
+
+-logtostderr::
+
+The Service Broker currently uses glog to report logging.
+By default this logs to files, it needs to be redirected to the console to correctly integrate with Kubernetes.
+This argument should always be present.
+
+-v value::
+
+The Service Broker has multiple log levels to control the verbosity of log output.
+If not specified, this will default to "0" and show only informational logs.
+The Service Broker also supports log level "1" to include debug logging.
+Debug logging should be used with caution as verbose API logging will reveal API credentials.
+
+-tls-certificate string::
+
+The Service Broker must use TLS to provide network level security.
+The TLS certificate argument must be a path to a PEM formatted X.509 TLS certificate, valid for the Service Broker's Kubernetes `Service` resource.
+
+-tls-private-key string::
+
+The Service Broker must use TLS to provide network level security.
+The TLS private key argument must be a path to a PEM formatted private key.
+
+-token string::
+
+The Service Broker must use bearer token authentication to provide API level protection against malicious attacks.
+The token argument must be a path to a file containing a bearer token string.
