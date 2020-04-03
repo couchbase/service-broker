@@ -65,8 +65,31 @@ func (p *Creator) createResource(template *v1.ConfigurationTemplate, entry *regi
 
 	glog.Infof("creating resource %s/%s %s", object.GetAPIVersion(), object.GetKind(), object.GetName())
 
+	// To support updates, knowing that Kubernetes can modify resources,
+	// we must annotate the resource with the deterministic representation
+	// of the resource as defined by the template rendering.
+	resourceJSON, err := json.Marshal(object)
+	if err != nil {
+		return err
+	}
+
+	annotations, ok, err := unstructured.NestedStringMap(object.Object, "metadata", "annotations")
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		annotations = map[string]string{}
+	}
+
+	annotations[v1.ResourceAnnotation] = string(resourceJSON)
+	if err := unstructured.SetNestedStringMap(object.Object, annotations, "metadata", "annotations"); err != nil {
+		return err
+	}
+
 	// First we need to set up owner references so that we can garbage collect the
-	// cluster easily.
+	// cluster easily.  These should not be considered as part of the cached annotation
+	// defined above.
 	ownerReference := entry.GetOwnerReference()
 	object.SetOwnerReferences([]metav1.OwnerReference{ownerReference})
 
@@ -97,9 +120,9 @@ func (p *Creator) createResource(template *v1.ConfigurationTemplate, entry *regi
 
 	glog.Infof("using namespace %s", namespace)
 
+	// Create the object
 	client := config.Clients().Dynamic()
 
-	// Create the object
 	if _, err := client.Resource(mapping.Resource).Namespace(namespace).Create(object, metav1.CreateOptions{}); err != nil {
 		// When the object already exists and it is marked as a singleton we need to
 		// update the owner references to include this new serivce instance so it
@@ -188,7 +211,7 @@ func (p *Creator) Prepare(entry *registry.Entry) error {
 
 		glog.Infof("rendering parameter %s", parameter.Name)
 
-		value, err := resolveTemplateParameter(parameter, entry, true)
+		value, err := resolveTemplateParameter(parameter, entry)
 		if err != nil {
 			return err
 		}

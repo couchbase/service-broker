@@ -6,10 +6,12 @@ import (
 	"reflect"
 
 	"github.com/couchbase/service-broker/pkg/api"
+	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/pkg/operation"
 	"github.com/couchbase/service-broker/pkg/registry"
 
+	"github.com/evanphx/json-patch"
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -99,13 +101,15 @@ func (u *Updater) Prepare(entry *registry.Entry) error {
 			return err
 		}
 
+		newJSON := t.Template.Raw
+
 		// Unmarshal the object so we can derive the kind and name.
-		object := &unstructured.Unstructured{}
-		if err := json.Unmarshal(t.Template.Raw, object); err != nil {
+		newObject := &unstructured.Unstructured{}
+		if err := json.Unmarshal(newJSON, newObject); err != nil {
 			return err
 		}
 
-		gvk := object.GroupVersionKind()
+		gvk := newObject.GroupVersionKind()
 
 		mapping, err := config.Clients().RESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version)
 		if err != nil {
@@ -115,7 +119,7 @@ func (u *Updater) Prepare(entry *registry.Entry) error {
 		// The namespace defaults to that configured in the object, if not
 		// specified we use the namespace defined in the context (where the
 		// service instance or binding is created).
-		namespace := object.GetNamespace()
+		namespace := newObject.GetNamespace()
 		if namespace == "" {
 			n, ok, err := entry.GetString(registry.Namespace)
 			if err != nil {
@@ -131,42 +135,75 @@ func (u *Updater) Prepare(entry *registry.Entry) error {
 
 		glog.Infof("using namespace %s", namespace)
 
-		// Get the resource.
-		objectCurr, err := client.Resource(mapping.Resource).Namespace(namespace).Get(object.GetName(), metav1.GetOptions{})
+		// Get the current resource.
+		// We will extract the annotation that contains the JSON we generated
+		// when creating the resource, then compare it against the JSON when
+		// we re-render the resource.  If those two differ then make a merge
+		// patch and apply it to the current resource.  This way we can and and
+		// remove configuration in response to parameter changes and also
+		// preserve any mutations that have been applied by Kubernetes or any
+		// other controller.
+		currentObject, err := client.Resource(mapping.Resource).Namespace(namespace).Get(newObject.GetName(), metav1.GetOptions{})
 		if err != nil {
-			glog.Infof("failed to get resource %s/%s %s", object.GetAPIVersion(), object.GetKind(), object.GetName())
+			glog.Infof("failed to get resource %s/%s %s", newObject.GetAPIVersion(), newObject.GetKind(), newObject.GetName())
 			return err
 		}
 
-		objectRaw, err := json.Marshal(objectCurr)
-		if err != nil {
+		originalJSONString, ok, _ := unstructured.NestedString(currentObject.Object, "metadata", "annotations", v1.ResourceAnnotation)
+		if !ok {
+			return fmt.Errorf("failed to lookup original resource")
+		}
+
+		originalJSON := []byte(originalJSONString)
+
+		originalObject := &unstructured.Unstructured{}
+		if err := json.Unmarshal(originalJSON, originalObject); err != nil {
 			return err
 		}
 
-		glog.Infof("current resource: %s", string(objectRaw))
+		glog.Infof("original resource: %s", string(originalJSON))
+		glog.Infof("new resource: %s", string(newJSON))
 
-		// Apply the parameters.  Only affect parameters that are defined
-		// in the request, so be sure not to apply any defaults as they may
-		// cause the resource to do something that was not intended.
-		objectRaw, err = patchObject(objectRaw, template.Parameters, entry, false)
-		if err != nil {
-			return err
-		}
-
-		// Commit the resource if it has changed
-		objectNew := &unstructured.Unstructured{}
-		if err := json.Unmarshal(objectRaw, objectNew); err != nil {
-			return err
-		}
-
-		if reflect.DeepEqual(objectCurr, objectNew) {
+		// jsonpatch.Equal is broken, so use reflection.
+		if reflect.DeepEqual(originalObject, newObject) {
 			glog.Infof("resource unchanged")
 			continue
 		}
 
-		glog.Infof("new resource: %s", string(objectRaw))
+		mergePatch, err := jsonpatch.CreateMergePatch(originalJSON, newJSON)
+		if err != nil {
+			return err
+		}
 
-		u.resources = append(u.resources, objectNew)
+		glog.Infof("marge patch: %s", string(mergePatch))
+
+		currentJSON, err := json.Marshal(currentObject)
+		if err != nil {
+			return err
+		}
+
+		glog.Infof("current resource: %s", string(currentJSON))
+
+		mergedJSON, err := jsonpatch.MergePatch(currentJSON, mergePatch)
+		if err != nil {
+			return err
+		}
+
+		mergedObject := &unstructured.Unstructured{}
+		if err := json.Unmarshal(mergedJSON, mergedObject); err != nil {
+			return err
+		}
+
+		// Update the resource annotation with our new idealized representation
+		// of what we asked for, so future updates will diff against the right
+		// things.
+		if err := unstructured.SetNestedField(mergedObject.Object, string(newJSON), "metadata", "annotations", v1.ResourceAnnotation); err != nil {
+			return err
+		}
+
+		glog.Infof("merged resource: %s", string(mergedJSON))
+
+		u.resources = append(u.resources, mergedObject)
 	}
 
 	return nil

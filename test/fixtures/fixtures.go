@@ -3,16 +3,21 @@ package fixtures
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"testing"
 	"time"
 
 	"github.com/couchbase/service-broker/pkg/api"
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
+	"github.com/couchbase/service-broker/pkg/client"
 	"github.com/couchbase/service-broker/pkg/registry"
 	"github.com/couchbase/service-broker/test/util"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 const (
@@ -42,6 +47,9 @@ const (
 
 	// DashboardURL is the expected dashboard URL to be generated.
 	DashboardURL = "http://instance-" + ServiceInstanceName + "." + util.Namespace + ".svc"
+
+	// OptionalParameter is a template parameter this is optional.
+	OptionalParameter = "hostname"
 )
 
 var (
@@ -89,6 +97,12 @@ var (
 
 	// basicResourceDNSPath is an addressable JSON pointer.
 	basicResourceDNSPath = "/spec/dnsConfig"
+
+	// optionalParameterPath is used to access the optional parameter.
+	optionalParameterPath = "/hostname"
+
+	// optionalParameterPatchPath is used to apply the optional parameter.
+	optionalParameterPatchPath = "/spec/hostname"
 
 	// basicResource is used to test object creation, and conflict handling.
 	basicResource = &corev1.Pod{
@@ -201,6 +215,17 @@ var (
 						},
 						Destinations: []v1.ConfigurationParameterDestination{
 							{Path: &basicResourceDNSPath},
+						},
+					},
+					{
+						Name: "hostname",
+						Source: &v1.ConfigurationParameterSource{
+							Accessor: v1.Accessor{
+								Parameter: &optionalParameterPath,
+							},
+						},
+						Destinations: []v1.ConfigurationParameterDestination{
+							{Path: &optionalParameterPatchPath},
 						},
 					},
 				},
@@ -585,5 +610,55 @@ func PasswordParameterToRegistry(length int, dictionary *string, destination str
 				{Registry: &destination},
 			},
 		},
+	}
+}
+
+var (
+	fixtureGVR = schema.GroupVersionResource{
+		Group:    "",
+		Version:  "v1",
+		Resource: "pods",
+	}
+)
+
+func MustSetFixtureField(t *testing.T, clients client.Clients, value interface{}, path ...string) {
+	object, err := clients.Dynamic().Resource(fixtureGVR).Namespace(util.Namespace).Get("instance-"+ServiceInstanceName, metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := unstructured.SetNestedField(object.Object, value, path...); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := clients.Dynamic().Resource(fixtureGVR).Namespace(util.Namespace).Update(object, metav1.UpdateOptions{}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func AssertFixtureFieldSet(t *testing.T, clients client.Clients, value interface{}, path ...string) {
+	object, err := clients.Dynamic().Resource(fixtureGVR).Namespace(util.Namespace).Get("instance-"+ServiceInstanceName, metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	objValue, ok, _ := unstructured.NestedFieldCopy(object.Object, path...)
+	if !ok {
+		t.Fatal("path not found in fixture")
+	}
+
+	if !reflect.DeepEqual(objValue, value) {
+		t.Fatal("value mismatch", objValue, value)
+	}
+}
+
+func AssertFixtureFieldNotSet(t *testing.T, clients client.Clients, path ...string) {
+	object, err := clients.Dynamic().Resource(fixtureGVR).Namespace(util.Namespace).Get("instance-"+ServiceInstanceName, metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, ok, _ := unstructured.NestedFieldCopy(object.Object, path...); ok {
+		t.Fatal("path found in fixture")
 	}
 }

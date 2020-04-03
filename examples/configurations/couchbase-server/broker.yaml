@@ -121,7 +121,12 @@ spec:
               parameters:
                 $schema: "http://json-schema.org/draft-04/schema#"
                 type: object
+                required:
+                  - password
                 properties:
+                  password:
+                    description: "Administrator password"
+                    type: string
                   size:
                     description: "Cluster size"
                     type: number

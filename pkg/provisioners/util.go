@@ -725,14 +725,14 @@ func resolveSource(source *v1.ConfigurationParameterSource, entry *registry.Entr
 }
 
 // resolveTemplateParameter applies parameter lookup rules and tries to return a value.
-func resolveTemplateParameter(parameter *v1.ConfigurationParameter, entry *registry.Entry, useDefaults bool) (interface{}, error) {
+func resolveTemplateParameter(parameter *v1.ConfigurationParameter, entry *registry.Entry) (interface{}, error) {
 	value, err := resolveSource(parameter.Source, entry)
 	if err != nil {
 		return nil, err
 	}
 
 	// If no value has been found or generated then use a default if set.
-	if value == nil && useDefaults && parameter.Default != nil {
+	if value == nil && parameter.Default != nil {
 		switch {
 		case parameter.Default.String != nil:
 			value = *parameter.Default.String
@@ -765,14 +765,18 @@ func resolveTemplateParameter(parameter *v1.ConfigurationParameter, entry *regis
 }
 
 // patchObject takes a raw JSON object and applies parameters to it.
-func patchObject(object []byte, parameters []v1.ConfigurationParameter, entry *registry.Entry, useDefaults bool) ([]byte, error) {
+func patchObject(object []byte, parameters []v1.ConfigurationParameter, entry *registry.Entry) ([]byte, error) {
 	// Now for the fun bit.  Work through each defined parameter and apply it to
 	// the object.  This basically works like JSON patch++, automatically filling
 	// in parent objects and arrays as necessary.
 	for index, parameter := range parameters {
-		value, err := resolveTemplateParameter(&parameters[index], entry, useDefaults)
+		value, err := resolveTemplateParameter(&parameters[index], entry)
 		if err != nil {
 			return nil, err
+		}
+
+		if value == nil {
+			continue
 		}
 
 		// Set each destination path using JSON patch.
@@ -841,7 +845,7 @@ func renderTemplate(template *v1.ConfigurationTemplate, entry *registry.Entry) (
 	// config is immutable.
 	t := template.DeepCopy()
 
-	object, err := patchObject(t.Template.Raw, t.Parameters, entry, true)
+	object, err := patchObject(t.Template.Raw, t.Parameters, entry)
 	if err != nil {
 		return nil, err
 	}

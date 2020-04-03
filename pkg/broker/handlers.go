@@ -475,6 +475,16 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
+	parameters := &runtime.RawExtension{}
+	if request.Parameters != nil {
+		parameters = request.Parameters
+	}
+
+	if err := entry.Set(registry.Parameters, parameters); err != nil {
+		util.JSONError(w, err)
+		return
+	}
+
 	updater, err := provisioners.NewUpdater(provisioners.ResourceTypeServiceInstance, request)
 	if err != nil {
 		util.JSONErrorUsable(w, err)

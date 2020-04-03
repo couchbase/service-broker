@@ -5,6 +5,17 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+const (
+	// labelBase is the root of all labels and annotations.
+	labelBase = "servicebroker.couchbase.com"
+
+	// VersionAnnotaiton records the broker version for upgrades.
+	VersionAnnotaiton = labelBase + "/version"
+
+	// ResourceAnnotation records the resource for updates.
+	ResourceAnnotation = labelBase + "/resource"
+)
+
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:categories=all;couchbase

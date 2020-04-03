@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/pkg/errors"
 	"github.com/couchbase/service-broker/pkg/version"
@@ -14,14 +15,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-const (
-	// labelBase is the root of all labels and annotations.
-	labelBase = "servicebroker.couchbase.com"
-
-	// versionAnnotaiton recorder the broker version for upgrades.
-	versionAnnotaiton = labelBase + "/version"
 )
 
 // Key is an indentifier of a value in the registry entry's KV map.
@@ -221,10 +214,10 @@ func New(t Type, name string, readOnly bool) (*Entry, error) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: resourceName,
 				Labels: map[string]string{
-					"app": labelBase,
+					"app": version.Application,
 				},
 				Annotations: map[string]string{
-					versionAnnotaiton: version.Version,
+					v1.VersionAnnotaiton: version.Version,
 				},
 			},
 		}

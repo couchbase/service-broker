@@ -764,3 +764,73 @@ func TestServiceInstanceUpdateWithSchemaInvalid(t *testing.T) {
 	}
 	util.MustPatchAndError(t, util.ServiceInstanceURI(fixtures.ServiceInstanceName, util.CreateServiceInstanceQuery()), http.StatusBadRequest, update, api.ErrorValidationError)
 }
+
+// TestServiceInstanceUpdateUpdatedParameters tests that updating a parameter updates
+// the underlying resource.
+func TestServiceInstanceUpdateUpdatedParameters(t *testing.T) {
+	defer mustReset(t)
+
+	optionalParameterValue := "piglet"
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	fixtures.AssertFixtureFieldNotSet(t, clients, "spec", "hostname")
+
+	update := fixtures.BasicServiceInstanceUpdateRequest()
+	update.Parameters = &runtime.RawExtension{
+		Raw: []byte(`{"` + fixtures.OptionalParameter + `":"` + optionalParameterValue + `"}`),
+	}
+	util.MustUpdateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, update)
+
+	fixtures.AssertFixtureFieldSet(t, clients, optionalParameterValue, "spec", "hostname")
+}
+
+// TestServiceInstanceUpdatePreserveExternalMutations tests that mutations made by
+// Kubernetes are preserved e.g. ports changing could be a problem for someone, it
+// shouldn't be, but it will be.
+func TestServiceInstanceUpdatePreserveExternalMutations(t *testing.T) {
+	defer mustReset(t)
+
+	muatatedValue := "dragon"
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	fixtures.MustSetFixtureField(t, clients, muatatedValue, "spec", "subdomain")
+
+	update := fixtures.BasicServiceInstanceUpdateRequest()
+	util.MustUpdateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, update)
+
+	fixtures.AssertFixtureFieldSet(t, clients, muatatedValue, "spec", "subdomain")
+}
+
+// TestServiceInstanceUpdateUpdatedParametersWithExternalMutations tests that updating a parameter
+// updates the underlying resource while preserving external updates.
+func TestServiceInstanceUpdateUpdatedParametersWithExternalMutations(t *testing.T) {
+	defer mustReset(t)
+
+	optionalParameterValue := "chameleon"
+	muatatedValue := "parakeet"
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	fixtures.AssertFixtureFieldNotSet(t, clients, "spec", "hostname")
+	fixtures.MustSetFixtureField(t, clients, muatatedValue, "spec", "subdomain")
+
+	update := fixtures.BasicServiceInstanceUpdateRequest()
+	update.Parameters = &runtime.RawExtension{
+		Raw: []byte(`{"` + fixtures.OptionalParameter + `":"` + optionalParameterValue + `"}`),
+	}
+	util.MustUpdateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, update)
+
+	fixtures.AssertFixtureFieldSet(t, clients, optionalParameterValue, "spec", "hostname")
+	fixtures.AssertFixtureFieldSet(t, clients, muatatedValue, "spec", "subdomain")
+}
