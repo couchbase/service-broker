@@ -1,0 +1,49 @@
+= Open Service Broker API Reference
+
+[abstract]
+This page describes Service Broker behavior where the Open Service Broker specification allows flexibility.
+
+ifdef::env-github[]
+:imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]
+
+The Open Service Broker API is well defined in places--the API must do X in response to Y--but in other respects it is more flexible--it leaves behavior up to the individual implementation.
+This page looks at API behaviors that the Service Broker imposes that are not defined by the Open Service Broker specification.
+
+All other functionality is defined by the https://github.com/openservicebrokerapi/servicebroker/blob/v2.13/spec.md[Open Service Broker API v2.13^].
+
+== Service Instances
+
+All service instance operations (create/update/delete) are asynchronous and require the `accepts_incomplete=true` query parameter.
+This allows the Service Broker to easily include blocking operations e.g. waiting for a service to start, without blocking the API for a non-deterministic period of time.
+This prevents client HTTP timeouts by enforcing a polling based architecture.
+
+=== Service Instance Update
+
+==== Parameter Handling
+
+The service catalog allows service instances to have different schemas for service instance creation and update.
+This implies, for example, that creating a service instance may require a parameter, but a service instance update may not require that parameter as it is a one-time only piece of configuration that can not be modified.
+
+Due to how the Service Broker works, both create and update operations will invoke the same template rendering path.
+As a result, if a template configuration parameter were not specified for an update, there is a risk that the resulting template would be rendered with configuration either unset, or reverting to a default.
+Due to these unintended consequences, the create and update schemas in the service catalog should be the same per-service plan.
+Likewise parameters passed to the create and update APIs should contain all data that is required to correctly render the configuration templates--the Service Broker will not preserve configuration provided to a prior create or update operation.
+
+One benefit of using this model is that to unset a configuration parameter, you simply don't include it in the API parameters.
+
+==== Request Body Handling
+
+The Open Service Broker API defines a `previous_values` object that may be provided with a service instance update request.
+This interface is marked as deprecated, therefore not supported by the Service Broker to avoid supporting legacy functionality in the future.
+
+== Service Bindings
+
+The Open Service Broker API has been designed for a different platform than Kubernetes.
+As a result, it offers some functionality that is irrelevant on Kubernetes, and the Service Broker only supports credentials as return values.
+
+=== Service Binding Create
+
+The `app_guid` parameter is deprecated and not supported supported by the Service Broker to avoid supporting legacy functionality in the future.
+
+The `bind_resource` parameter is not supported by the Service Broker and will be ignored.

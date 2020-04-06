@@ -62,8 +62,9 @@ A service offering explicitly declares a service as bindable.
 If a service instance cannot be bound to, this will be set to `false` and binding requests rejected by the Service Broker API.
 
 A service offering defines whether a plan can be updated.
-Updating a service instance means that its service plan is changed from one to another.
-At present plan updates are not supported and this must be set to `false`.
+Updating can mean modifying parameters, this is fully supported by the Service Broker.
+Updating can also man changing a service plan from one to another.
+At present plan updates are not fully supported by the Service Broker, so should not be used.
 
 [#service-plans]
 == Service Plans

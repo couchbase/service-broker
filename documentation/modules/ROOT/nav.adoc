@@ -16,3 +16,4 @@
 * xref:reference.adoc[Reference]
 ** xref:reference-servicebrokerconfigs.adoc[ServiceBrokerConfig Resource Reference]
 ** xref:reference-container.adoc[Service Broker Container Reference]
+** xref:reference-osb-api.adoc[Open Service Broker API Reference]
