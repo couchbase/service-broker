@@ -28,7 +28,7 @@ func TestServiceInstanceCreate(t *testing.T) {
 func TestServiceInstanceCreateNotAynchronous(t *testing.T) {
 	defer mustReset(t)
 
-	util.MustReplaceBrokerConfig(t, clients, fixtures.EmptyConfiguration())
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
 	util.MustPutAndError(t, util.ServiceInstanceURI(fixtures.ServiceInstanceName, nil), http.StatusUnprocessableEntity, nil, api.ErrorAsyncRequired)
 }
@@ -38,21 +38,20 @@ func TestServiceInstanceCreateNotAynchronous(t *testing.T) {
 func TestServiceInstanceCreateIllegalBody(t *testing.T) {
 	defer mustReset(t)
 
-	util.MustReplaceBrokerConfig(t, clients, fixtures.EmptyConfiguration())
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfiguration())
 
 	util.MustPutAndError(t, util.ServiceInstanceURI(fixtures.ServiceInstanceName, util.CreateServiceInstanceQuery()), http.StatusBadRequest, `illegal`, api.ErrorParameterError)
 }
 
 // TestServiceInstanceCreateIllegalConfiguration tests that the service broker handles
 // misconfiguration of the service catalog gracefully.  On this occasion the default
-// doesn't have any service offerings or plans defined.
+// doesn't have any configuration bindings defined.
 func TestServiceInstanceCreateIllegalConfiguration(t *testing.T) {
 	defer mustReset(t)
 
-	util.MustReplaceBrokerConfig(t, clients, fixtures.EmptyConfiguration())
-
-	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPutAndError(t, util.ServiceInstanceURI(fixtures.ServiceInstanceName, util.CreateServiceInstanceQuery()), http.StatusBadRequest, req, api.ErrorConfigurationError)
+	configuration := fixtures.BasicConfiguration()
+	configuration.Bindings = nil
+	util.MustReplaceBrokerConfigWithInvalidCondition(t, clients, configuration)
 }
 
 // TestServiceInstanceCreateIllegalQuery tests that the service broker rejects service

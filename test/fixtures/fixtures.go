@@ -65,6 +65,9 @@ var (
 	// dashboardURLRegistryKey is the name of the dashboard registry item to set.
 	dashboardURLRegistryKey = "dashboard-url"
 
+	// crdentialsRegistryKey is the name of the credentials registry item to set.
+	crdentialsRegistryKey = "credentials"
+
 	// instanceNameRegistryEntry is the unique instance name to store in the registry.
 	instanceNameRegistryEntry = "instance-name"
 
@@ -73,6 +76,9 @@ var (
 
 	// zeroInt is an addressable integer zero.
 	zeroInt = 0
+
+	// credentialsSnippetName is the name of a credentials snippet.
+	credentialsSnippetName = "credentials-snippet"
 
 	// dnsSnippetName is the name of a template snippet.
 	dnsSnippetName = "dns-snippet"
@@ -123,7 +129,7 @@ var (
 	// basicConfiguration is the absolute minimum valid configuration allowed by the
 	// service broker configuration schema.
 	basicConfiguration = &v1.ServiceBrokerConfigSpec{
-		Catalog: &v1.ServiceCatalog{
+		Catalog: v1.ServiceCatalog{
 			Services: []v1.ServiceOffering{
 				{
 					Name:        "test-offering",
@@ -161,6 +167,12 @@ var (
 							{Path: &dnsSnippetNamespacePath},
 						},
 					},
+				},
+			},
+			{
+				Name: credentialsSnippetName,
+				Template: &runtime.RawExtension{
+					Raw: []byte(`{}`),
 				},
 			},
 			{
@@ -236,7 +248,7 @@ var (
 				Name:    "test-binding",
 				Service: "test-offering",
 				Plan:    "test-plan",
-				ServiceInstance: &v1.ServiceBrokerTemplateList{
+				ServiceInstance: v1.ServiceBrokerTemplateList{
 					Parameters: []v1.ConfigurationParameter{
 						{
 							Name: "instance-name",
@@ -278,12 +290,57 @@ var (
 						"test-template",
 					},
 				},
-				ServiceBinding: &v1.ServiceBrokerTemplateList{},
+				ServiceBinding: &v1.ServiceBrokerTemplateList{
+					Parameters: []v1.ConfigurationParameter{
+						{
+							Name: "credentials",
+							Source: &v1.ConfigurationParameterSource{
+								Template: &credentialsSnippetName,
+							},
+							Destinations: []v1.ConfigurationParameterDestination{
+								{Registry: &crdentialsRegistryKey},
+							},
+						},
+					},
+				},
 			},
 			{
 				Name:    "test-binding-2",
 				Service: "test-offering",
 				Plan:    "test-plan-2",
+				ServiceInstance: v1.ServiceBrokerTemplateList{
+					Parameters: []v1.ConfigurationParameter{
+						{
+							Name: "instance-name",
+							Source: &v1.ConfigurationParameterSource{
+								Format: &v1.ConfigurationParameterSourceFormat{
+									String: "instance-%s",
+									Parameters: []v1.Accessor{
+										{
+											Registry: &instanceIDRegistryEntry,
+										},
+									},
+								},
+							},
+							Destinations: []v1.ConfigurationParameterDestination{
+								{Registry: &instanceNameRegistryEntry},
+							},
+						},
+					},
+				},
+				ServiceBinding: &v1.ServiceBrokerTemplateList{
+					Parameters: []v1.ConfigurationParameter{
+						{
+							Name: "credentials",
+							Source: &v1.ConfigurationParameterSource{
+								Template: &credentialsSnippetName,
+							},
+							Destinations: []v1.ConfigurationParameterDestination{
+								{Registry: &crdentialsRegistryKey},
+							},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -375,7 +432,11 @@ func BasicConfiguration() *v1.ServiceBrokerConfigSpec {
 		return nil
 	}
 
-	configuration.Templates[1].Template.Raw = raw
+	for index, template := range configuration.Templates {
+		if template.Name == "test-template" {
+			configuration.Templates[index].Template.Raw = raw
+		}
+	}
 
 	return configuration
 }

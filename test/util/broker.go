@@ -52,26 +52,95 @@ func MustUpdateBrokerConfig(t *testing.T, clients client.Clients, callback func(
 	}
 }
 
+// configurationValidCondition returns the validity condition of a configuration,
+// or an error if it dosn't exist.
+func configurationValidCondition(config *v1.ServiceBrokerConfig) (bool, error) {
+	for _, condition := range config.Status.Conditions {
+		if condition.Type == v1.ConfigurationValid {
+			return condition.Status == v1.ConditionTrue, nil
+		}
+	}
+
+	return false, fmt.Errorf("configuration valid condition not present")
+}
+
 // MustReplaceBrokerConfig updates the service broker configuration and waits
 // for the broker to acquire the write lock and update the configuration to
 // make it live.
 func MustReplaceBrokerConfig(t *testing.T, clients client.Clients, spec *v1.ServiceBrokerConfigSpec) {
-	configuration, err := clients.Broker().ServicebrokerV1alpha1().ServiceBrokerConfigs(Namespace).Get(config.ConfigurationName, metav1.GetOptions{})
-	if err != nil {
+	if err := clients.Broker().ServicebrokerV1alpha1().ServiceBrokerConfigs(Namespace).Delete(config.ConfigurationName, metav1.NewDeleteOptions(0)); err != nil {
 		t.Fatal(err)
 	}
 
-	configuration.Spec = *spec
+	configuration := &v1.ServiceBrokerConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: config.ConfigurationName,
+		},
+		Spec: *spec,
+	}
 
-	if _, err := clients.Broker().ServicebrokerV1alpha1().ServiceBrokerConfigs(Namespace).Update(configuration); err != nil {
+	if _, err := clients.Broker().ServicebrokerV1alpha1().ServiceBrokerConfigs(Namespace).Create(configuration); err != nil {
 		t.Fatal(err)
 	}
 
 	callback := func() bool {
+		// Service broker will first check validity and update the resource.
+		configuration, err := clients.Broker().ServicebrokerV1alpha1().ServiceBrokerConfigs(Namespace).Get(config.ConfigurationName, metav1.GetOptions{})
+		if err != nil {
+			return false
+		}
+
+		if ok, err := configurationValidCondition(configuration); !ok || err != nil {
+			return false
+		}
+
+		// The config is live when it is set in the config package.
 		config.Lock()
 		defer config.Unlock()
 
-		return reflect.DeepEqual(&config.Config().Spec, spec)
+		c := config.Config()
+		if c == nil {
+			return false
+		}
+
+		return reflect.DeepEqual(&c.Spec, spec)
+	}
+
+	if err := WaitFor(callback, configUpdateTimeout); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// MustReplaceBrokerConfigWithInvalidCondition will updata the configuration and
+// then ensure that the broker has registered it is invalid.
+func MustReplaceBrokerConfigWithInvalidCondition(t *testing.T, clients client.Clients, spec *v1.ServiceBrokerConfigSpec) {
+	if err := clients.Broker().ServicebrokerV1alpha1().ServiceBrokerConfigs(Namespace).Delete(config.ConfigurationName, metav1.NewDeleteOptions(0)); err != nil {
+		t.Fatal(err)
+	}
+
+	configuration := &v1.ServiceBrokerConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: config.ConfigurationName,
+		},
+		Spec: *spec,
+	}
+
+	if _, err := clients.Broker().ServicebrokerV1alpha1().ServiceBrokerConfigs(Namespace).Create(configuration); err != nil {
+		t.Fatal(err)
+	}
+
+	callback := func() bool {
+		// Service broker will first check validity and update the resource.
+		configuration, err := clients.Broker().ServicebrokerV1alpha1().ServiceBrokerConfigs(Namespace).Get(config.ConfigurationName, metav1.GetOptions{})
+		if err != nil {
+			return false
+		}
+
+		if ok, err := configurationValidCondition(configuration); ok || err != nil {
+			return false
+		}
+
+		return true
 	}
 
 	if err := WaitFor(callback, configUpdateTimeout); err != nil {

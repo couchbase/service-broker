@@ -23,17 +23,17 @@ const (
 type ServiceBrokerConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              ServiceBrokerConfigSpec `json:"spec"`
+	Spec              ServiceBrokerConfigSpec   `json:"spec"`
+	Status            ServiceBrokerConfigStatus `json:"status,omitempty"`
 }
 
 // ServiceBrokerConfigSpec defines the top level service broker configuration
 // data structure.
 type ServiceBrokerConfigSpec struct {
 	// Catalog is the service catalog definition and is required.
-	Catalog *ServiceCatalog `json:"catalog"`
+	Catalog ServiceCatalog `json:"catalog"`
 
 	// Templates is a set of resource templates that can be rendered by the service broker and is required.
-	// +kubebuilder:validation:MinItems=1
 	Templates []ConfigurationTemplate `json:"templates"`
 
 	// Bindings is a set of bindings that link service plans to resource templates and is required.
@@ -45,6 +45,7 @@ type ServiceBrokerConfigSpec struct {
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#body
 type ServiceCatalog struct {
 	// Services is an array of Service Offering objects
+	// +kubebuilder:validation:MinItems=1
 	Services []ServiceOffering `json:"services"`
 }
 
@@ -469,7 +470,7 @@ type ConfigurationBinding struct {
 
 	// ServiceInstance defines the set of templates to render and create when
 	// a new service instance is created.
-	ServiceInstance *ServiceBrokerTemplateList `json:"serviceInstance,omitempty"`
+	ServiceInstance ServiceBrokerTemplateList `json:"serviceInstance"`
 
 	// ServiceBinding defines the set of templates to render and create when
 	// a new service binding is created.  This attribute is optional based on
@@ -487,6 +488,52 @@ type ServiceBrokerTemplateList struct {
 	// Templates defines all the templates that will be created, in order,
 	// by the service broker for this operation.
 	Templates []string `json:"templates,omitempty"`
+}
+
+// ServiceBrokerConfigStatus records status information about a configuration
+// as the Service Broker processes it.
+type ServiceBrokerConfigStatus struct {
+	// Conditions indicate state of particular aspects of a configuration.
+	Conditions []ServiceBrokerConfigCondition `json:"conditions,omitempty"`
+}
+
+// ServiceBrokerConfigConditionType is the type of condition being described.
+type ServiceBrokerConfigConditionType string
+
+const (
+	// ConfigurationValid records whether the configuration is valid or
+	// not.
+	ConfigurationValid ServiceBrokerConfigConditionType = "ConfigurationValid"
+)
+
+// ConditionStatus is used to define what state the condition is in.
+type ConditionStatus string
+
+const (
+	// ConditionTrue means that the resource meets the condition.
+	ConditionTrue ConditionStatus = "True"
+
+	// ConditionFalse means that the resource does not meet the condition.
+	ConditionFalse ConditionStatus = "False"
+)
+
+// ServiceBrokerConfigCondition represents a condition associated with the configuration.
+type ServiceBrokerConfigCondition struct {
+	// Type is the type of condition.
+	Type ServiceBrokerConfigConditionType `json:"type"`
+
+	// Status is the status of the condition, whether it is true or false.
+	Status ConditionStatus `json:"status"`
+
+	// LastTransitionTime records the last time the status changed from one value
+	// to another.
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+
+	// Reason is a unique one word camel case reason for the condition's last transition.
+	Reason string `json:"reason,omitempty"`
+
+	// Message is a human readable message indicating details about the last transition.
+	Message string `json:"message,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

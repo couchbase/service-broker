@@ -124,7 +124,7 @@ func getTemplateBinding(t ResourceType, serviceID, planID string) (*v1.ServiceBr
 
 	switch t {
 	case ResourceTypeServiceInstance:
-		templates = bindings.ServiceInstance
+		templates = &bindings.ServiceInstance
 	case ResourceTypeServiceBinding:
 		templates = bindings.ServiceBinding
 	default:

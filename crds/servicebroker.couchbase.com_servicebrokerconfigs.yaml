@@ -683,6 +683,7 @@ spec:
                 - name
                 - plan
                 - service
+                - serviceInstance
                 type: object
               minItems: 1
               type: array
@@ -895,6 +896,7 @@ spec:
                     - name
                     - plans
                     type: object
+                  minItems: 1
                   type: array
               required:
               - services
@@ -1220,12 +1222,47 @@ spec:
                 - name
                 - template
                 type: object
-              minItems: 1
               type: array
           required:
           - bindings
           - catalog
           - templates
+          type: object
+        status:
+          description: ServiceBrokerConfigStatus records status information about
+            a configuration as the Service Broker processes it.
+          properties:
+            conditions:
+              description: Conditions indicate state of particular aspects of a configuration.
+              items:
+                description: ServiceBrokerConfigCondition represents a condition associated
+                  with the configuration.
+                properties:
+                  lastTransitionTime:
+                    description: LastTransitionTime records the last time the status
+                      changed from one value to another.
+                    format: date-time
+                    type: string
+                  message:
+                    description: Message is a human readable message indicating details
+                      about the last transition.
+                    type: string
+                  reason:
+                    description: Reason is a unique one word camel case reason for
+                      the condition's last transition.
+                    type: string
+                  status:
+                    description: Status is the status of the condition, whether it
+                      is true or false.
+                    type: string
+                  type:
+                    description: Type is the type of condition.
+                    type: string
+                required:
+                - status
+                - type
+                type: object
+              type: array
           type: object
       required:
       - spec

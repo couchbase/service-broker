@@ -164,10 +164,6 @@ func AsyncRequired(r *http.Request) error {
 
 // getServiceOffering returns the service offering for a given service offering ID.
 func getServiceOffering(config *v1.ServiceBrokerConfig, serviceID string) (*v1.ServiceOffering, error) {
-	if config.Spec.Catalog == nil {
-		return nil, errors.NewConfigurationError("service catalog not defined")
-	}
-
 	for index, service := range config.Spec.Catalog.Services {
 		if service.ID == serviceID {
 			return &config.Spec.Catalog.Services[index], nil

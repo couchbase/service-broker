@@ -25,6 +25,7 @@ type ServiceBrokerConfigsGetter interface {
 type ServiceBrokerConfigInterface interface {
 	Create(*v1alpha1.ServiceBrokerConfig) (*v1alpha1.ServiceBrokerConfig, error)
 	Update(*v1alpha1.ServiceBrokerConfig) (*v1alpha1.ServiceBrokerConfig, error)
+	UpdateStatus(*v1alpha1.ServiceBrokerConfig) (*v1alpha1.ServiceBrokerConfig, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
 	Get(name string, options v1.GetOptions) (*v1alpha1.ServiceBrokerConfig, error)
@@ -112,6 +113,22 @@ func (c *serviceBrokerConfigs) Update(serviceBrokerConfig *v1alpha1.ServiceBroke
 		Namespace(c.ns).
 		Resource("servicebrokerconfigs").
 		Name(serviceBrokerConfig.Name).
+		Body(serviceBrokerConfig).
+		Do().
+		Into(result)
+	return
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+
+func (c *serviceBrokerConfigs) UpdateStatus(serviceBrokerConfig *v1alpha1.ServiceBrokerConfig) (result *v1alpha1.ServiceBrokerConfig, err error) {
+	result = &v1alpha1.ServiceBrokerConfig{}
+	err = c.client.Put().
+		Namespace(c.ns).
+		Resource("servicebrokerconfigs").
+		Name(serviceBrokerConfig.Name).
+		SubResource("status").
 		Body(serviceBrokerConfig).
 		Do().
 		Into(result)

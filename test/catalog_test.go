@@ -26,7 +26,7 @@ func TestCatalogUpdate(t *testing.T) {
 	defer mustReset(t)
 
 	callback := func(config *v1.ServiceBrokerConfig) {
-		config.Spec.Catalog = testCatalogUpdateFixture
+		config.Spec.Catalog = *testCatalogUpdateFixture
 	}
 	util.MustUpdateBrokerConfig(t, clients, callback)
 
