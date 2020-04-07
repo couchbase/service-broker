@@ -757,6 +757,17 @@ spec:
       - couchbase-operator-tls-secret
       - couchbase-server-tls-secret
       - couchbase-developer-private
+      readinessChecks:
+      - name: couchbase-cluster-available
+        condition:
+          apiVersion: couchbase.com/v2
+          kind: CouchbaseCluster
+          namespace:
+            registry: namespace
+          name:
+            registry: instance-name
+          type: Available
+          status: "True"
     serviceBinding:
       parameters:
       - name: binding-name

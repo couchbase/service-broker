@@ -360,6 +360,85 @@ spec:
                           - name
                           type: object
                         type: array
+                      readinessChecks:
+                        description: ReadinessChecks defines a set of tests that define
+                          whether a service instance or service binding is actually
+                          ready as reported by the service broker polling API.
+                        items:
+                          description: ConfigurationReadinessCheck is a readiness
+                            check to perform on a service instance or binding before
+                            declaring it ready and provisioning has completed.
+                          properties:
+                            condition:
+                              description: Condition allows the service broker to
+                                poll well-formed status conditions in order to determine
+                                whether a specific resource is ready.
+                              properties:
+                                apiVersion:
+                                  description: APIVersion is the resource api version
+                                    e.g. "apps/v1"
+                                  type: string
+                                kind:
+                                  description: Kind is the resource kind to poll e.g.
+                                    "Deployment"
+                                  type: string
+                                name:
+                                  description: Name is the resource name to poll.
+                                  properties:
+                                    parameter:
+                                      description: Parameter, if set, uses the corresponding
+                                        request parameter for the parameter source.
+                                      type: string
+                                    registry:
+                                      description: Registry , if set, uses the corresponding
+                                        registry value for the parameter source.
+                                      pattern: ^[a-zA-Z0-9-]+$
+                                      type: string
+                                    string:
+                                      description: String is a literal string value.
+                                      type: string
+                                  type: object
+                                namespace:
+                                  description: Namespace is the namespace the resource
+                                    resides in.
+                                  properties:
+                                    parameter:
+                                      description: Parameter, if set, uses the corresponding
+                                        request parameter for the parameter source.
+                                      type: string
+                                    registry:
+                                      description: Registry , if set, uses the corresponding
+                                        registry value for the parameter source.
+                                      pattern: ^[a-zA-Z0-9-]+$
+                                      type: string
+                                    string:
+                                      description: String is a literal string value.
+                                      type: string
+                                  type: object
+                                status:
+                                  description: Status is the status of the condition
+                                    that must match e.g. "True"
+                                  type: string
+                                type:
+                                  description: Type is the type of the condition to
+                                    look for e.g. "Available"
+                                  type: string
+                              required:
+                              - apiVersion
+                              - kind
+                              - name
+                              - namespace
+                              - status
+                              - type
+                              type: object
+                            name:
+                              description: Name is a unique name for the readiness
+                                check for debugging purposes.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
                       templates:
                         description: Templates defines all the templates that will
                           be created, in order, by the service broker for this operation.
@@ -669,6 +748,85 @@ spec:
                               type: object
                           required:
                           - destinations
+                          - name
+                          type: object
+                        type: array
+                      readinessChecks:
+                        description: ReadinessChecks defines a set of tests that define
+                          whether a service instance or service binding is actually
+                          ready as reported by the service broker polling API.
+                        items:
+                          description: ConfigurationReadinessCheck is a readiness
+                            check to perform on a service instance or binding before
+                            declaring it ready and provisioning has completed.
+                          properties:
+                            condition:
+                              description: Condition allows the service broker to
+                                poll well-formed status conditions in order to determine
+                                whether a specific resource is ready.
+                              properties:
+                                apiVersion:
+                                  description: APIVersion is the resource api version
+                                    e.g. "apps/v1"
+                                  type: string
+                                kind:
+                                  description: Kind is the resource kind to poll e.g.
+                                    "Deployment"
+                                  type: string
+                                name:
+                                  description: Name is the resource name to poll.
+                                  properties:
+                                    parameter:
+                                      description: Parameter, if set, uses the corresponding
+                                        request parameter for the parameter source.
+                                      type: string
+                                    registry:
+                                      description: Registry , if set, uses the corresponding
+                                        registry value for the parameter source.
+                                      pattern: ^[a-zA-Z0-9-]+$
+                                      type: string
+                                    string:
+                                      description: String is a literal string value.
+                                      type: string
+                                  type: object
+                                namespace:
+                                  description: Namespace is the namespace the resource
+                                    resides in.
+                                  properties:
+                                    parameter:
+                                      description: Parameter, if set, uses the corresponding
+                                        request parameter for the parameter source.
+                                      type: string
+                                    registry:
+                                      description: Registry , if set, uses the corresponding
+                                        registry value for the parameter source.
+                                      pattern: ^[a-zA-Z0-9-]+$
+                                      type: string
+                                    string:
+                                      description: String is a literal string value.
+                                      type: string
+                                  type: object
+                                status:
+                                  description: Status is the status of the condition
+                                    that must match e.g. "True"
+                                  type: string
+                                type:
+                                  description: Type is the type of the condition to
+                                    look for e.g. "Available"
+                                  type: string
+                              required:
+                              - apiVersion
+                              - kind
+                              - name
+                              - namespace
+                              - status
+                              - type
+                              type: object
+                            name:
+                              description: Name is a unique name for the readiness
+                                check for debugging purposes.
+                              type: string
+                          required:
                           - name
                           type: object
                         type: array

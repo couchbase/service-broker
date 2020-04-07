@@ -488,6 +488,57 @@ type ServiceBrokerTemplateList struct {
 	// Templates defines all the templates that will be created, in order,
 	// by the service broker for this operation.
 	Templates []string `json:"templates,omitempty"`
+
+	// ReadinessChecks defines a set of tests that define whether a service instance
+	// or service binding is actually ready as reported by the service broker polling
+	// API.
+	ReadinessChecks ConfigurationReadinessCheckList `json:"readinessChecks,omitempty"`
+}
+
+type ConfigurationReadinessCheckList []ConfigurationReadinessCheck
+
+// ConfigurationReadinessCheck is a readiness check to perform on a service instance
+// or binding before declaring it ready and provisioning has completed.
+type ConfigurationReadinessCheck struct {
+	// Name is a unique name for the readiness check for debugging purposes.
+	Name string `json:"name"`
+
+	// Condition allows the service broker to poll well-formed status conditions
+	// in order to determine whether a specific resource is ready.
+	Condition *ConfigurationReadinessCheckCondition `json:"condition,omitempty"`
+}
+
+// ConfigurationReadinessCheckCondition allows the service broker to poll well-formed
+// status conditions in order to determine whether a specific resource is ready.
+// This can be thought of a `kubectl wait` but done properly.
+type ConfigurationReadinessCheckCondition struct {
+	// APIVersion is the resource api version e.g. "apps/v1"
+	APIVersion string `json:"apiVersion"`
+
+	// Kind is the resource kind to poll e.g. "Deployment"
+	Kind string `json:"kind"`
+
+	// Namespace is the namespace the resource resides in.
+	Namespace String `json:"namespace"`
+
+	// Name is the resource name to poll.
+	Name String `json:"name"`
+
+	// Type is the type of the condition to look for e.g. "Available"
+	Type string `json:"type"`
+
+	// Status is the status of the condition that must match e.g. "True"
+	Status string `json:"status"`
+}
+
+// String allows the specification of a string value from either a literal source
+// or an accessor.
+type String struct {
+	// Accessor allows the string to be read from the registry or parameters.
+	Accessor `json:",inline"`
+
+	// String is a literal string value.
+	String *string `json:"string,omitempty"`
 }
 
 // ServiceBrokerConfigStatus records status information about a configuration

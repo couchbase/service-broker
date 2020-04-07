@@ -213,6 +213,25 @@ func resolveAccessor(accessor *v1.Accessor, entry *registry.Entry) (interface{},
 	return value, nil
 }
 
+// resolveString looks up a string value.
+func resolveString(str *v1.String, entry *registry.Entry) (string, error) {
+	if str.String != nil {
+		return *str.String, nil
+	}
+
+	value, err := resolveAccessor(&str.Accessor, entry)
+	if err != nil {
+		return "", err
+	}
+
+	stringValue, ok := value.(string)
+	if !ok {
+		return "", fmt.Errorf("value %v is not a string", value)
+	}
+
+	return stringValue, nil
+}
+
 // resolveAccessorStringList looks up a list of parameters trhrowing an error if
 // any member is not a string.
 func resolveAccessorStringList(accessors []v1.Accessor, entry *registry.Entry) ([]string, error) {

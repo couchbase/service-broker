@@ -62,6 +62,9 @@ var (
 	// dashboardURLMutationFormat describes how to turn the input sources to an output value.
 	dashboardURLMutationFormat = "http://%v.%v.svc"
 
+	// namespaceRegistryKey is used to lookup the service instance namespace.
+	namespaceRegistryKey = "namespace"
+
 	// dashboardURLRegistryKey is the name of the dashboard registry item to set.
 	dashboardURLRegistryKey = "dashboard-url"
 
@@ -122,6 +125,17 @@ var (
 					Name:  "image",
 					Image: "org/image:tag",
 				},
+			},
+		},
+	}
+
+	// basicResourceStatus allow the resource to pass the readiness checks
+	// defined for it.
+	basicResourceStatus = &corev1.PodStatus{
+		Conditions: []corev1.PodCondition{
+			{
+				Type:   corev1.PodReady,
+				Status: corev1.ConditionTrue,
 			},
 		},
 	}
@@ -345,6 +359,30 @@ var (
 		},
 	}
 
+	// basicReadinessChecks are used to check the test resource created by our
+	// service instance is ready.
+	basicReadinessChecks = v1.ConfigurationReadinessCheckList{
+		{
+			Name: "pod-ready",
+			Condition: &v1.ConfigurationReadinessCheckCondition{
+				APIVersion: "v1",
+				Kind:       "Pod",
+				Namespace: v1.String{
+					Accessor: v1.Accessor{
+						Registry: &namespaceRegistryKey,
+					},
+				},
+				Name: v1.String{
+					Accessor: v1.Accessor{
+						Registry: &instanceNameRegistryEntry,
+					},
+				},
+				Type:   "Ready",
+				Status: "True",
+			},
+		},
+	}
+
 	// basicSchema is schema for service instance validation with optional parameters.
 	basicSchema = &v1.Schemas{
 		ServiceInstance: &v1.ServiceInstanceSchema{
@@ -441,6 +479,15 @@ func BasicConfiguration() *v1.ServiceBrokerConfigSpec {
 	return configuration
 }
 
+// BasicConfigurationWithReadiness returns the standard configuration with a readiness
+// check added for the resource that is templated.
+func BasicConfigurationWithReadiness() *v1.ServiceBrokerConfigSpec {
+	configuration := BasicConfiguration()
+	configuration.Bindings[0].ServiceInstance.ReadinessChecks = basicReadinessChecks.DeepCopy()
+
+	return configuration
+}
+
 // BasicSchema is schema for service instance create validation with optional parameters.
 func BasicSchema() *v1.Schemas {
 	return basicSchema.DeepCopy()
@@ -472,6 +519,23 @@ func BasicServiceInstanceUpdateRequest() *api.UpdateServiceInstanceRequest {
 // request to use against the basicConfiguration.
 func BasicServiceBindingCreateRequest() *api.CreateServiceBindingRequest {
 	return basicServiceBindingCreateRequest.DeepCopy()
+}
+
+// BasicResourceStatus returns the templated resource status that will fulfil the
+// readiness checks defined above.  The unstructured application code needs things to
+// be fully unstructured, it's not clever enough to use a raw object type.
+func BasicResourceStatus(t *testing.T) interface{} {
+	raw, err := json.Marshal(basicResourceStatus)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var object interface{}
+	if err := json.Unmarshal(raw, &object); err != nil {
+		t.Fatal(err)
+	}
+
+	return object
 }
 
 // RegistryParametersToRegistryWithDefault returns a parameter list as specified.

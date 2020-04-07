@@ -718,14 +718,27 @@ func handlePollServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 
+	// If the operation status exists, then the asynchronous provisioning
+	// has completed so process the results.
 	if ok {
+		// An empty status means that no errors occurred, whereas a populated
+		// status is the error string.
 		if operationStatus == "" {
-			state = api.PollStateSucceeded
+			// Perform any readiness checks, if these fail remain in the
+			// in-progress state, otherwise we have successfully completed.
+			if err := provisioners.Ready(provisioners.ResourceTypeServiceInstance, entry, instanceServiceID, instancePlanID); err != nil {
+				description = err.Error()
+			} else {
+				state = api.PollStateSucceeded
+			}
 		} else {
 			state = api.PollStateFailed
 			description = operationStatus
 		}
+	}
 
+	// On success or failure clean up the operation.
+	if state != api.PollStateInProgress {
 		if err := operation.End(entry); err != nil {
 			util.JSONError(w, err)
 			return

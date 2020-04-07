@@ -158,6 +158,25 @@ func TestServiceInstancePoll(t *testing.T) {
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 }
 
+// TestServiceInstancePollWithReadiness tests that a configuration with readiness checks
+// responds correctly.
+func TestServiceInstancePollWithReadiness(t *testing.T) {
+	defer mustReset(t)
+
+	util.MustReplaceBrokerConfig(t, clients, fixtures.BasicConfigurationWithReadiness())
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	rsp := util.MustCreateServiceInstance(t, fixtures.ServiceInstanceName, req)
+
+	poll := &api.PollServiceInstanceResponse{}
+	util.MustGet(t, util.ServiceInstancePollURI(fixtures.ServiceInstanceName, util.PollServiceInstanceQuery(nil, rsp)), http.StatusOK, poll)
+	util.Assert(t, poll.State == api.PollStateInProgress)
+
+	fixtures.MustSetFixtureField(t, clients, fixtures.BasicResourceStatus(t), "status")
+
+	util.MustPollServiceInstanceForCompletion(t, fixtures.ServiceInstanceName, rsp)
+}
+
 // TestServiceInstancePollServiceIDOptional tests that the service ID supplied to a service
 // instance polling operation is optional.
 func TestServiceInstancePollServiceIDOptional(t *testing.T) {
