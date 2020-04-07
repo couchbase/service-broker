@@ -18,8 +18,15 @@ import (
 )
 
 const (
+	// ConfigurationNameDefault is the default configuration name.
+	ConfigurationNameDefault = "couchbase-service-broker"
+)
+
+var (
 	// ConfigurationName is the configuration resource name.
-	ConfigurationName = "couchbase-service-broker"
+	// This has a default for the benfit of testing, it is overidden
+	// by flags for the main binary.
+	ConfigurationName = ConfigurationNameDefault
 )
 
 type configuration struct {

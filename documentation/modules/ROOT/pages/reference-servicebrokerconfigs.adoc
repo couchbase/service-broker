@@ -42,8 +42,10 @@ This attribute defines the Kubernetes resource kind.
 ==== metadata.name
 
 This attribute defines the name of the resource.
+By default, the Service Broker will look for a `ServiceBrokerConfig` resource named `couchbase-service-broker`.
+This can be modified by the `-config` argument to the xref:reference-container.adoc#arguments[Service Broker container].
 
-* This attribute is required and must be `couchbase-service-broker`.
+* This attribute is required and must be a string.
 
 ==== spec
 

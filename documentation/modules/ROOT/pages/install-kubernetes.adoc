@@ -37,6 +37,12 @@ role.rbac.authorization.k8s.io/couchbase-service-broker created
 servicebrokerconfig.servicebroker.couchbase.com/couchbase-service-broker created
 ----
 
+.Schema Validation
+****
+At this point, the Kubernetes API may reject the `ServiceBrokerConfig` resource if you have have made any modifications.
+Errors will be based on the https://swagger.io/docs/specification/data-models/[OpenAPI schema specification^].
+****
+
 == Install the Service Broker Service
 
 The Service Broker is installed with a single configuration file:
@@ -76,6 +82,32 @@ Alternatively, you can wait for the `Deployment` to become available:
 $ kubectl wait --for=condition=Available deployment/couchbase-service-broker
 deployment.extensions/couchbase-service-broker condition met
 ----
+
+.Service Broker Validation
+****
+The Service Broker does not use a dynamic admission controller to validate the configuration at present.
+It does, however, perform validation internally and report this back to the user through a status in the configuration resource.
+If for any reason the deployment does not become ready, first check the logs for information:
+
+[source,console]
+----
+$ kubectl logs -f deployment/couchbase-service-broker
+----
+
+If the logs indicate you have a configuration error you can examine this in more detail with the following command:
+
+[source,console]
+----
+$ kubectl describe servicebrokerconfigs
+Status:
+  Conditions:
+    Last Transition Time:  2020-04-06T15:51:17Z
+    Message:               template couchbase-operator-rolebinding referenced by configuration couchbase-developer-private service instance must exist
+    Reason:                ValidationFailed
+    Status:                False
+    Type:                  ConfigurationValid
+----
+****
 
 == Register the Service Broker with the Service Catalog
 

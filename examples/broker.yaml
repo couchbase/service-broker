@@ -55,11 +55,11 @@ spec:
         - -v
         - "0"
         - -token
-        - /var/run/secrets/couchbase.com/couchbase-service-broker/token
+        - /var/run/secrets/couchbase-service-broker/token
         - -tls-certificate
-        - /var/run/secrets/couchbase.com/couchbase-service-broker/tls-certificate
+        - /var/run/secrets/couchbase-service-broker/tls-certificate
         - -tls-private-key
-        - /var/run/secrets/couchbase.com/couchbase-service-broker/tls-private-key
+        - /var/run/secrets/couchbase-service-broker/tls-private-key
         command:
         - /usr/local/bin/broker
         env:
@@ -83,7 +83,7 @@ spec:
           initialDelaySeconds: 3
           periodSeconds: 10
         volumeMounts:
-        - mountPath: /var/run/secrets/couchbase.com/couchbase-service-broker
+        - mountPath: /var/run/secrets/couchbase-service-broker
           name: couchbase-service-broker
           readOnly: true
       serviceAccountName: couchbase-service-broker

@@ -9,6 +9,7 @@ import (
 
 	"github.com/couchbase/service-broker/pkg/broker"
 	"github.com/couchbase/service-broker/pkg/client"
+	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/pkg/version"
 
 	"github.com/golang/glog"
@@ -29,9 +30,10 @@ func main() {
 	// tlsPrivateKeyPath is the location of the file containing the TLS private key.
 	var tlsPrivateKeyPath string
 
-	flag.StringVar(&tokenPath, "token", "/var/run/secrets/couchbase.com/service-broker/token", "Bearer token for API authentication")
-	flag.StringVar(&tlsCertificatePath, "tls-certificate", "/var/run/secrets/couchbase.com/service-broker/tls-certificate", "Path to the server TLS certificate")
-	flag.StringVar(&tlsPrivateKeyPath, "tls-private-key", "/var/run/secrets/couchbase.com/service-broker/tls-private-key", "Path to the server TLS key")
+	flag.StringVar(&tokenPath, "token", "/var/run/secrets/service-broker/token", "Bearer token for API authentication")
+	flag.StringVar(&tlsCertificatePath, "tls-certificate", "/var/run/secrets/service-broker/tls-certificate", "Path to the server TLS certificate")
+	flag.StringVar(&tlsPrivateKeyPath, "tls-private-key", "/var/run/secrets/service-broker/tls-private-key", "Path to the server TLS key")
+	flag.StringVar(&config.ConfigurationName, "config", config.ConfigurationNameDefault, "Configuration resource name")
 	flag.Parse()
 
 	// Start the server.
