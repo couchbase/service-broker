@@ -709,45 +709,65 @@ func handlePollServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 
-	state := api.PollStateInProgress
-	description := ""
-
 	operationStatus, ok, err := entry.GetString(registry.OperationStatus)
 	if err != nil {
 		util.JSONError(w, err)
 		return
 	}
 
-	// If the operation status exists, then the asynchronous provisioning
-	// has completed so process the results.
-	if ok {
-		// An empty status means that no errors occurred, whereas a populated
-		// status is the error string.
-		if operationStatus == "" {
-			// Perform any readiness checks, if these fail remain in the
-			// in-progress state, otherwise we have successfully completed.
-			if err := provisioners.Ready(provisioners.ResourceTypeServiceInstance, entry, instanceServiceID, instancePlanID); err != nil {
-				description = err.Error()
-			} else {
-				state = api.PollStateSucceeded
-			}
-		} else {
-			state = api.PollStateFailed
-			description = operationStatus
+	// If there is no status then the provisioning operation is still in progress (or has crashed...)
+	if !ok {
+		response := &api.PollServiceInstanceResponse{
+			State:       api.PollStateInProgress,
+			Description: "asynchronous provisioning in progress",
 		}
+		util.JSONResponse(w, http.StatusOK, response)
+
+		return
 	}
 
-	// On success or failure clean up the operation.
-	if state != api.PollStateInProgress {
+	// If the status isn't empty then we have encountered an error and need to report failure.
+	if operationStatus != "" {
 		if err := operation.End(entry); err != nil {
 			util.JSONError(w, err)
 			return
 		}
+
+		response := &api.PollServiceInstanceResponse{
+			State:       api.PollStateFailed,
+			Description: operationStatus,
+		}
+		util.JSONResponse(w, http.StatusOK, response)
+
+		return
+	}
+
+	// Check the readiness of resources, an error is a genuine error whereas a condtition
+	// unready error is expected and polling should continue.
+	if err := provisioners.Ready(provisioners.ResourceTypeServiceInstance, entry, instanceServiceID, instancePlanID); err != nil {
+		if provisioners.IsConditionUnreadyError(err) {
+			response := &api.PollServiceInstanceResponse{
+				State:       api.PollStateInProgress,
+				Description: err.Error(),
+			}
+			util.JSONResponse(w, http.StatusOK, response)
+
+			return
+		}
+
+		util.JSONError(w, err)
+
+		return
+	}
+
+	// All checks have passed, instance successfully provisioned.
+	if err := operation.End(entry); err != nil {
+		util.JSONError(w, err)
+		return
 	}
 
 	response := &api.PollServiceInstanceResponse{
-		State:       state,
-		Description: description,
+		State: api.PollStateSucceeded,
 	}
 	util.JSONResponse(w, http.StatusOK, response)
 }
