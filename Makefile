@@ -162,7 +162,7 @@ GENINFORMERS = $(IMPORT_PATH)/$(GENERATED_DIR)/informers
 
 # These phony targets do not refer to actual files and are intended to be
 # invoked by the end user.
-.PHONY: all build crd container test unit lint cover install archive archive-tgz archive-zip rpm deb
+.PHONY: all build crd container test unit lint cover acceptance install archive archive-tgz archive-zip rpm deb
 
 # Main build target, makes the binary and CRD.
 all: build crd
@@ -186,13 +186,22 @@ cover:
 	go tool cover -html=$(COVER_FILE)
 
 # The linter must pass for all code submissions, it is controlled by .golangci.yml.
-lint: ${GENERATED_DIR}
+lint: $(GENERATED_DIR)
 	go run github.com/golangci/golangci-lint/cmd/golangci-lint run
 
 # The unit tests must pass for all code submissions, additionally code
 # coverage should be checked to ensure code submissions actually work.
-unit: ${GENERATED_DIR}
+unit: $(GENERATED_DIR)
 	go test -v -race -cover -coverpkg github.com/couchbase/service-broker/pkg/... -coverprofile=$(COVER_FILE) ./test
+
+# Acceptance testing builds a container and runs tests within Kubernetes.
+# This is higher performance than having to conncet over the internet all
+# the time and avoids any pitfalls associated with external networking.
+acceptance: container crd
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go test -c -o build/bin/acceptance ./acceptance
+	docker build -f acceptance/Dockerfile -t couchbase/service-broker-acceptance:0.0.0 .
+	kubectl apply -f acceptance/serviceaccount.yaml
+	kubectl run -t -i acceptance --serviceaccount=couchbase-service-broker-acceptance --image=couchbase/service-broker-acceptance:0.0.0 --restart=Never -- -test.v -logtostderr -v 1; kubectl delete pod/acceptance
 
 # Main install target, creates all archive files.
 install: $(INSTALL_TARGETS)

@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/evanphx/json-patch v4.5.0+incompatible
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-openapi/jsonpointer v0.19.3
 	github.com/go-openapi/spec v0.19.3
 	github.com/go-openapi/strfmt v0.19.3
