@@ -39,6 +39,17 @@ These are simple functions that accept inputs from a number of sources, optional
 These are covered in more detail in a later section, however we will mention that parameters in the configuration binding may be used to generate values that are stored, and can used as inputs to template rending later.
 Such values can be shared resource names, passwords and even TLS configuration.
 
+=== Readiness Checks
+
+The Service Broker, in simple terms, creates Kubernetes resources.
+This operation is almost instantaneous, however, Kubernetes is an eventually-consistent system.
+It may take time for volumes to be allocated, bound and then attached to a pod, for example--there is a gap between where the Service Broker reports a service instance as ready and where it is actually usable.
+
+To solve this problem, the Service Broker allows you to specify readiness checks.
+These allow you to poll resources created as part of a service instance for actual readiness.
+For example a Kubernetes `Deployment` will report as available only when all of its pods are ready.
+Readiness checks allow the Service Broker API to declare a service instance creation as successful only when its underlying resources are available to be consumed by a client.
+
 === Processing Rules
 
 Service instances and service bindings have their own separate lists of templates and parameters for each service plan.
@@ -54,6 +65,9 @@ Both templates and parameters are optional.
 Take, for example, a service plan that has calculated its credentials while creating a service instance.
 When creating a service binding, in order to communicate these credentials back to an end user, the use of templates is not required.
 Credentials can be communicated back with only parameters.
+
+Readiness checks are performed during asynchronous operation polling.
+This allows the client to control the duration it should poll for, rather than have the asynchronous provisioning operation poll for an arbitrary amount of time.
 
 == Next Steps
 

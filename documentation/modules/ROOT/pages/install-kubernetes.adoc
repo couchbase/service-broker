@@ -129,6 +129,6 @@ NAME                       URL                                            STATUS
 couchbase-service-broker   https://couchbase-service-broker.default.svc   Ready    2s
 ----
 
-= Next Steps
+== Next Steps
 
 * xref:install-serviceinstance.adoc[Creating and Binding to a Service Instance]

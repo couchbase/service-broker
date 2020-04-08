@@ -438,6 +438,7 @@ Configuration binding parameters are defined as follows:
 ----
 parameters: []
 templates: []
+readinessChecks: []
 ----
 
 ==== parameters
@@ -456,6 +457,87 @@ The refers to <<spec-templates-name,configuration template names>> and the refer
 Configuration templates are processed in order.
 
 * This attribute is optional and must be an array of string.
+
+==== readinessChecks
+
+This attribute defines any readiness checks that need to be performed on generated resources before allowing the API to declare the service instance ready.
+Readiness checks are only allowed for service instances as service bindings do not support asynchronous provisioning.
+Readiness checks are only performed on an initial service instance create operation.
+Readiness checks are defined as follows:
+
+[source,yaml]
+----
+readinessChecks:
+- name: my-readiness-check
+  condition: {}
+----
+
+==== readinessChecks.name
+
+This attribute defines a human-readable name for the readiness check.
+The name is primarily used to provide debugging hints.
+
+* The attribute is required and must be a string.
+
+==== readinessChecks.condition
+
+This object represents a readiness check against a Kubernetes resource condition.
+It references a specific Kubernetes resource type, and should be one defined as a configuration templates.
+The namespace and name reference a specific resource of the defined type.
+These attributes are configurable to use either a literal name, or reference one pragmatically from a data source such as the registry.
+The readiness check waits until a named condition condition exists in the resource status with a defined value.
+A condition readiness check is defined as follows:
+
+[source,yaml]
+----
+readinessChecks:
+- condition:
+    apiVersion: apps/v1
+    kind: Deployment
+    namespace: {}
+    name: {}
+    type: Available
+    status: "True"
+----
+
+==== readinessChecks.condition.apiVersion
+
+This attribute defines the API version of the desired resource.
+This is a combination of the resource group, and resource version.
+
+* This attribute is required and must be a string.
+
+==== readinessChecks.condition.kind
+
+This attribute defines the resource kind of the desired resource.
+
+* This attribute is required and must be a string.
+
+==== readinessChecks.condition.namespace
+
+This attribute defines the namespace the desired resource exists in.
+
+* This attribute is required and must be an object.
+* This attribute is described in more detail in the <<string,string>> reference.
+
+==== readinessChecks.condition.name
+
+This attribute defines the name the desired resource has.
+
+* This attribute is required and must be an object.
+* This attribute is described in more detail in the <<string,string>> reference.
+
+==== readinessChecks.condition.type
+
+This attribute defines the condition type to match.
+
+* This attribute is required and must be a string.
+
+==== readinessChecks.condition.status
+
+This attribute defines the condition status to match.
+
+* This attribute is required and must be a string.
 
 [#configuration-parameter]
 === Configuration Parameter
@@ -662,7 +744,7 @@ This attribute defines the key type to generate.
 This attribute defines the PEM and ASN.1 encoding of the private key.
 PKCS#1 can only be used with RSA private keys.
 PKCS#8 can be used with any private key type.
-SEC 1 can only be used with eliiptic private keys.
+SEC 1 can only be used with elliptic private keys.
 
 * This attribute is required and must be one of `PKCS1`, `PKCS8` or `SEC1`.
 
@@ -830,5 +912,37 @@ This attribute causes the Service Broker to source a value from the registry ass
 ==== parameter
 
 This attribute causes the Service Broker to source a value from the user-specified service instance or service binding request parameters.
+
+* This attribute is optional and must be a string.
+
+[#string]
+=== String
+
+This object is a specialization of the <<accessor,accessor>> type that enforces type.
+It also allows a literal string value to be specified.
+Only one of `registry`, `parameter` or `string` can be specified, the result is undefined otherwise.
+
+[source,yaml]
+----
+registry: my-key
+parameter: /path/to/my/value
+string: my-string
+----
+
+==== registry
+
+This attribute causes the Service Broker to source a value from the registry associated with the service instance or service binding.
+
+* This attribute is optional and must be a string.
+
+==== parameter
+
+This attribute causes the Service Broker to source a value from the user-specified service instance or service binding request parameters.
+
+* This attribute is optional and must be a string.
+
+==== string
+
+This attribute provides a literal string value.
 
 * This attribute is optional and must be a string.
