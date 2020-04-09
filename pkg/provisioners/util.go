@@ -1,48 +1,25 @@
 package provisioners
 
 import (
-	"crypto"
-	"crypto/ecdsa"
-	"crypto/ed25519"
-	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/rsa"
-	"crypto/sha1" // nolint:gosec
-	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
 	"math/big"
 	"strings"
-	"time"
 
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/pkg/errors"
 	"github.com/couchbase/service-broker/pkg/log"
 	"github.com/couchbase/service-broker/pkg/registry"
+	"github.com/couchbase/service-broker/pkg/util"
 
 	"github.com/evanphx/json-patch"
 	"github.com/go-openapi/jsonpointer"
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/runtime"
-)
-
-const (
-	// pemTypeRSAPrivateKey is used with PKCS#1 RSA keys.
-	pemTypeRSAPrivateKey = "RSA PRIVATE KEY"
-
-	// pemTypePrivateKey is used with PKCS#8 keys.
-	pemTypePrivateKey = "PRIVATE KEY"
-
-	// pemTypeECPrivateKey is used with EC private keys.
-	pemTypeECPrivateKey = "EC PRIVATE KEY"
-
-	// pemTypeCertificate is used with all certificates.
-	pemTypeCertificate = "CERTIFICATE"
 )
 
 // GetNamespace returns the namespace to provision resources in.  This is the namespace
@@ -314,124 +291,16 @@ func resolveGeneratePassword(config *v1.ConfigurationParameterSourceGeneratePass
 
 // resolveGenerateKey will create a PEM encoded private key.
 func resolveGenerateKey(config *v1.ConfigurationParameterSourceGenerateKey) (interface{}, error) {
-	var key crypto.PrivateKey
-
-	var err error
-
-	switch config.Type {
-	case v1.KeyTypeRSA:
-		if config.Bits == nil {
-			return nil, errors.NewConfigurationError("RSA key length not specified")
-		}
-
-		key, err = rsa.GenerateKey(rand.Reader, *config.Bits)
-	case v1.KeyTypeEllipticP224:
-		key, err = ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
-	case v1.KeyTypeEllipticP256:
-		key, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	case v1.KeyTypeEllipticP384:
-		key, err = ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	case v1.KeyTypeEllipticP521:
-		key, err = ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
-	case v1.KeyTypeED25519:
-		_, key, err = ed25519.GenerateKey(rand.Reader)
-	default:
-		return nil, errors.NewConfigurationError("invalid key type %s", config.Type)
-	}
-
+	key, err := util.GenerateKey(config.Type, config.Encoding, config.Bits)
 	if err != nil {
 		return nil, err
 	}
 
-	var t string
-
-	var b []byte
-
-	switch config.Encoding {
-	case v1.KeyEncodingPKCS1:
-		t = pemTypeRSAPrivateKey
-
-		rsaKey, ok := key.(*rsa.PrivateKey)
-		if !ok {
-			return nil, errors.NewConfigurationError("invalid key for PKCS#1 encoding")
-		}
-
-		b = x509.MarshalPKCS1PrivateKey(rsaKey)
-	case v1.KeyEncodingPKCS8:
-		t = pemTypePrivateKey
-
-		b, err = x509.MarshalPKCS8PrivateKey(key)
-		if err != nil {
-			return nil, err
-		}
-	case v1.KeyEncodingSEC1:
-		t = pemTypeECPrivateKey
-
-		ecKey, ok := key.(*ecdsa.PrivateKey)
-		if !ok {
-			return nil, errors.NewConfigurationError("invalid key for EC encoding")
-		}
-
-		b, err = x509.MarshalECPrivateKey(ecKey)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, errors.NewConfigurationError("invalid encoding type %s", config.Type)
-	}
-
-	block := &pem.Block{
-		Type:  t,
-		Bytes: b,
-	}
-
-	pemData := pem.EncodeToMemory(block)
-
-	return string(pemData), nil
+	return string(key), nil
 }
 
-// generateSerial creates a unique certificate serial number as defined
-// in RFC 3280.  It is upto 20 octets in length and non-negative
-func generateSerial() (*big.Int, error) {
-	one := 1
-	shift := 128
-	serialLimit := new(big.Int).Lsh(big.NewInt(int64(one)), uint(shift))
-
-	serialNumber, err := rand.Int(rand.Reader, serialLimit)
-	if err != nil {
-		return nil, err
-	}
-
-	return new(big.Int).Abs(serialNumber), nil
-}
-
-// generateSubjectKeyIdentifier creates a hash of the public key as defined in
-// RFC3280 used to create certificate paths from a leaf to a CA
-func generateSubjectKeyIdentifier(pub interface{}) ([]byte, error) {
-	var subjectPublicKey []byte
-
-	var err error
-
-	switch pub := pub.(type) {
-	case *rsa.PublicKey:
-		subjectPublicKey, err = asn1.Marshal(*pub)
-	case *ecdsa.PublicKey:
-		subjectPublicKey = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
-	default:
-		return nil, fmt.Errorf("invalid public key type")
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	sum := sha1.Sum(subjectPublicKey) // nolint:gosec
-
-	return sum[:], nil
-}
-
-// decodePrivateKey reads a PEM formatted private key and parses it.
-func decodePrivateKey(parameter *v1.Accessor, entry *registry.Entry) (crypto.PrivateKey, error) {
+// getPrivateKey reads a PEM formatted private key.
+func getPrivateKey(parameter *v1.Accessor, entry *registry.Entry) ([]byte, error) {
 	keyPEM, err := resolveAccessor(parameter, entry)
 	if err != nil {
 		return nil, err
@@ -442,49 +311,11 @@ func decodePrivateKey(parameter *v1.Accessor, entry *registry.Entry) (crypto.Pri
 		return nil, errors.NewConfigurationError("private key is not a string")
 	}
 
-	block, rest := pem.Decode([]byte(data))
-	if block == nil {
-		return nil, errors.NewConfigurationError("unable to decode certificate key PEM file")
-	}
-
-	emptyArray := 0
-	if rest != nil && len(rest) > emptyArray {
-		return nil, errors.NewConfigurationError("unexpected content in PEM file")
-	}
-
-	var key crypto.PrivateKey
-
-	switch block.Type {
-	case pemTypeRSAPrivateKey:
-		v, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-		if err != nil {
-			return nil, err
-		}
-
-		key = v
-	case pemTypePrivateKey:
-		v, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-		if err != nil {
-			return nil, err
-		}
-
-		key = v
-	case pemTypeECPrivateKey:
-		v, err := x509.ParseECPrivateKey(block.Bytes)
-		if err != nil {
-			return nil, err
-		}
-
-		key = v
-	default:
-		return nil, errors.NewConfigurationError("private key format %s unsupported", block.Type)
-	}
-
-	return key, nil
+	return []byte(data), nil
 }
 
-// decodeCertificate resolves and parses a PEM formatted certificate.
-func decodeCertificate(parameter *v1.Accessor, entry *registry.Entry) (*x509.Certificate, error) {
+// getCertificate resolves a PEM formatted certificate.
+func getCertificate(parameter *v1.Accessor, entry *registry.Entry) ([]byte, error) {
 	certPEM, err := resolveAccessor(parameter, entry)
 	if err != nil {
 		return nil, err
@@ -492,98 +323,27 @@ func decodeCertificate(parameter *v1.Accessor, entry *registry.Entry) (*x509.Cer
 
 	data, ok := certPEM.(string)
 	if !ok {
-		return nil, errors.NewConfigurationError("private key is not a string")
+		return nil, errors.NewConfigurationError("certificate is not a string")
 	}
 
-	block, rest := pem.Decode([]byte(data))
-	if block == nil {
-		return nil, errors.NewConfigurationError("unable to decode certificate key PEM file")
-	}
-
-	emptyArray := 0
-	if rest != nil && len(rest) > emptyArray {
-		return nil, errors.NewConfigurationError("unexpected content in PEM file")
-	}
-
-	if block.Type != pemTypeCertificate {
-		return nil, errors.NewConfigurationError("certificate format %s unsupported", block.Type)
-	}
-
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return cert, err
+	return []byte(data), nil
 }
 
 // resolveGenerateCertificate will create a PEM encoded X.509 certificate.
 func resolveGenerateCertificate(config *v1.ConfigurationParameterSourceGenerateCertificate, entry *registry.Entry) (interface{}, error) {
-	key, err := decodePrivateKey(&config.Key, entry)
+	key, err := getPrivateKey(&config.Key, entry)
 	if err != nil {
 		return nil, err
 	}
 
-	// Catch user misconfigurations.
-	if _, ok := key.(ed25519.PrivateKey); ok {
-		return nil, errors.NewConfigurationError("cannot use ed25519 keys for x.509 certificates")
+	subject := pkix.Name{
+		CommonName: config.Subject.CommonName,
 	}
 
-	req := &x509.CertificateRequest{
-		Subject: pkix.Name{
-			CommonName: config.Subject.CommonName,
-		},
-	}
+	// Resolve SANs if defined.
+	var dnsSANs []string
 
-	csr, err := x509.CreateCertificateRequest(rand.Reader, req, key)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err = x509.ParseCertificateRequest(csr)
-	if err != nil {
-		return nil, err
-	}
-
-	serialNumber, err := generateSerial()
-	if err != nil {
-		return nil, err
-	}
-
-	subjectKeyID, err := generateSubjectKeyIdentifier(req.PublicKey)
-	if err != nil {
-		return nil, err
-	}
-
-	notBefore := time.Now()
-	notAfter := notBefore.Add(config.Lifetime.Duration)
-
-	certificate := &x509.Certificate{
-		SerialNumber:          serialNumber,
-		Subject:               req.Subject,
-		NotBefore:             notBefore,
-		NotAfter:              notAfter,
-		BasicConstraintsValid: true,
-		SubjectKeyId:          subjectKeyID,
-	}
-
-	switch config.Usage {
-	case v1.CA:
-		certificate.IsCA = true
-		certificate.KeyUsage = x509.KeyUsageCertSign | x509.KeyUsageCRLSign
-	case v1.Server:
-		certificate.KeyUsage = x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment
-		certificate.ExtKeyUsage = []x509.ExtKeyUsage{
-			x509.ExtKeyUsageServerAuth,
-		}
-	case v1.Client:
-		certificate.KeyUsage = x509.KeyUsageDigitalSignature
-		certificate.ExtKeyUsage = []x509.ExtKeyUsage{
-			x509.ExtKeyUsageClientAuth,
-		}
-	default:
-		return nil, errors.NewConfigurationError("unknown usage type %v", config.Usage)
-	}
+	var emailSANS []string
 
 	if config.AlternativeNames != nil {
 		list, err := resolveAccessorStringList(config.AlternativeNames.DNS, entry)
@@ -591,45 +351,39 @@ func resolveGenerateCertificate(config *v1.ConfigurationParameterSourceGenerateC
 			return nil, err
 		}
 
-		certificate.DNSNames = list
+		dnsSANs = list
 
 		list, err = resolveAccessorStringList(config.AlternativeNames.Email, entry)
 		if err != nil {
 			return nil, err
 		}
 
-		certificate.EmailAddresses = list
+		emailSANS = list
 	}
 
-	// Default to self signing.
-	caCertificate := certificate
-	caKey := key
+	// Resolve CA key pair if defined.
+	var caCertificate []byte
+
+	var caKey []byte
 
 	if config.CA != nil {
-		caKey, err = decodePrivateKey(&config.CA.Key, entry)
+		caKey, err = getPrivateKey(&config.CA.Key, entry)
 		if err != nil {
 			return nil, err
 		}
 
-		caCertificate, err = decodeCertificate(&config.CA.Certificate, entry)
+		caCertificate, err = getCertificate(&config.CA.Certificate, entry)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	cert, err := x509.CreateCertificate(rand.Reader, certificate, caCertificate, req.PublicKey, caKey)
+	cert, err := util.GenerateCertificate(key, subject, config.Lifetime.Duration, config.Usage, dnsSANs, emailSANS, caKey, caCertificate)
 	if err != nil {
 		return nil, err
 	}
 
-	certPEMBlock := &pem.Block{
-		Type:  pemTypeCertificate,
-		Bytes: cert,
-	}
-
-	certPEM := pem.EncodeToMemory(certPEMBlock)
-
-	return string(certPEM), nil
+	return string(cert), nil
 }
 
 // resolveSource gets a parameter source from either metadata or a JSON path into user specified parameters.
