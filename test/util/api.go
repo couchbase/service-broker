@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/couchbase/service-broker/pkg/api"
+	"github.com/couchbase/service-broker/pkg/util"
 )
 
 const (
@@ -520,7 +521,7 @@ func MustCreateServiceInstance(t *testing.T, name string, req *api.CreateService
 
 // MustPollServiceInstanceForCompletion wraps up service instance poll.
 func MustPollServiceInstanceForCompletion(t *testing.T, name string, rsp *api.CreateServiceInstanceResponse) {
-	callback := func() bool {
+	callback := func() error {
 		// Polling will usually always return OK with the status embedded in the response.
 		poll := &api.PollServiceInstanceResponse{}
 		MustGet(t, ServiceInstancePollURI(name, PollServiceInstanceQuery(nil, rsp)), http.StatusOK, poll)
@@ -529,9 +530,13 @@ func MustPollServiceInstanceForCompletion(t *testing.T, name string, rsp *api.Cr
 		Assert(t, poll.State != api.PollStateFailed)
 
 		// Polling completes when the the state is success.
-		return poll.State == api.PollStateSucceeded
+		if poll.State == api.PollStateSucceeded {
+			return nil
+		}
+
+		return fmt.Errorf("poll state %v", poll.State)
 	}
-	MustWaitFor(t, callback, pollTimeout)
+	util.MustWaitFor(t, callback, pollTimeout)
 }
 
 // MustDeleteServiceInstance wraps up service instance deletion.
@@ -547,20 +552,20 @@ func MustDeleteServiceInstance(t *testing.T, name string, req *api.CreateService
 
 // MustPollServiceInstanceForDeletion wraps up polling for an aysnc deletion.
 func MustPollServiceInstanceForDeletion(t *testing.T, name string, rsp *api.CreateServiceInstanceResponse) {
-	callback := func() bool {
+	callback := func() error {
 		// When polling for deletion, it will start as OK (as per MustPollServiceInstanceForCompletion)
 		// however will finally respond with Gone.
 		apiError := &api.Error{}
 		if err := Get(ServiceInstancePollURI(name, PollServiceInstanceQuery(nil, rsp)), http.StatusGone, apiError); err != nil {
-			return false
+			return err
 		}
 
 		// Assert that the correct error message is given.
 		Assert(t, apiError.Error == api.ErrorResourceGone)
 
-		return true
+		return nil
 	}
-	MustWaitFor(t, callback, pollTimeout)
+	util.MustWaitFor(t, callback, pollTimeout)
 }
 
 // MustCreateServiceInstanceSuccessfully wraps up service instance creation and polling.

@@ -1,6 +1,7 @@
 package test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -30,17 +31,17 @@ func TestCatalogUpdate(t *testing.T) {
 	}
 	util.MustUpdateBrokerConfig(t, clients, callback)
 
-	validator := func() bool {
+	validator := func() error {
 		catalog := &util.ServiceCatalog{}
 		if err := util.Get("/v2/catalog", http.StatusOK, catalog); err != nil {
-			return false
+			return err
 		}
 
 		if len(catalog.Services) != 1 || catalog.Services[0].Name != "fluttershy" {
-			return false
+			return fmt.Errorf("catalog not updated as expected")
 		}
 
-		return true
+		return nil
 	}
 	util.MustWaitFor(t, validator, time.Minute)
 }

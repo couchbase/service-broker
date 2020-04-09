@@ -12,7 +12,7 @@ import (
 	"github.com/couchbase/service-broker/pkg/apis"
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/client"
-	"github.com/couchbase/service-broker/test/util"
+	"github.com/couchbase/service-broker/pkg/util"
 
 	"github.com/golang/glog"
 
@@ -72,12 +72,12 @@ func setupCRDs(clients client.Clients) error {
 			return err
 		}
 
-		callback := func() bool {
+		callback := func() error {
 			if _, err := clients.Dynamic().Resource(gvr).Get(name, metav1.GetOptions{}); err == nil {
-				return false
+				return fmt.Errorf("resource still exists")
 			}
 
-			return true
+			return nil
 		}
 
 		if err := util.WaitFor(callback, time.Minute); err != nil {

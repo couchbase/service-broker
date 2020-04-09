@@ -13,6 +13,7 @@ import (
 	"github.com/couchbase/service-broker/pkg/client"
 	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/pkg/registry"
+	"github.com/couchbase/service-broker/pkg/util"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,14 +55,20 @@ func MustUpdateBrokerConfig(t *testing.T, clients client.Clients, callback func(
 
 // configurationValidCondition returns the validity condition of a configuration,
 // or an error if it dosn't exist.
-func configurationValidCondition(config *v1.ServiceBrokerConfig) (bool, error) {
+func configurationValidCondition(config *v1.ServiceBrokerConfig, status v1.ConditionStatus) error {
 	for _, condition := range config.Status.Conditions {
-		if condition.Type == v1.ConfigurationValid {
-			return condition.Status == v1.ConditionTrue, nil
+		if condition.Type != v1.ConfigurationValid {
+			continue
 		}
+
+		if condition.Status != status {
+			return fmt.Errorf("configuration valid condition %v", condition.Status)
+		}
+
+		return nil
 	}
 
-	return false, fmt.Errorf("configuration valid condition not present")
+	return fmt.Errorf("configuration valid condition not present")
 }
 
 // MustReplaceBrokerConfig updates the service broker configuration and waits
@@ -83,15 +90,15 @@ func MustReplaceBrokerConfig(t *testing.T, clients client.Clients, spec *v1.Serv
 		t.Fatal(err)
 	}
 
-	callback := func() bool {
+	callback := func() error {
 		// Service broker will first check validity and update the resource.
 		configuration, err := clients.Broker().ServicebrokerV1alpha1().ServiceBrokerConfigs(Namespace).Get(config.ConfigurationName, metav1.GetOptions{})
 		if err != nil {
-			return false
+			return err
 		}
 
-		if ok, err := configurationValidCondition(configuration); !ok || err != nil {
-			return false
+		if err := configurationValidCondition(configuration, v1.ConditionTrue); err != nil {
+			return err
 		}
 
 		// The config is live when it is set in the config package.
@@ -100,13 +107,17 @@ func MustReplaceBrokerConfig(t *testing.T, clients client.Clients, spec *v1.Serv
 
 		c := config.Config()
 		if c == nil {
-			return false
+			return fmt.Errorf("no config available")
 		}
 
-		return reflect.DeepEqual(&c.Spec, spec)
+		if !reflect.DeepEqual(&c.Spec, spec) {
+			return fmt.Errorf("specification do not match")
+		}
+
+		return nil
 	}
 
-	if err := WaitFor(callback, configUpdateTimeout); err != nil {
+	if err := util.WaitFor(callback, configUpdateTimeout); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -129,21 +140,21 @@ func MustReplaceBrokerConfigWithInvalidCondition(t *testing.T, clients client.Cl
 		t.Fatal(err)
 	}
 
-	callback := func() bool {
+	callback := func() error {
 		// Service broker will first check validity and update the resource.
 		configuration, err := clients.Broker().ServicebrokerV1alpha1().ServiceBrokerConfigs(Namespace).Get(config.ConfigurationName, metav1.GetOptions{})
 		if err != nil {
-			return false
+			return err
 		}
 
-		if ok, err := configurationValidCondition(configuration); ok || err != nil {
-			return false
+		if err := configurationValidCondition(configuration, v1.ConditionFalse); err != nil {
+			return err
 		}
 
-		return true
+		return nil
 	}
 
-	if err := WaitFor(callback, configUpdateTimeout); err != nil {
+	if err := util.WaitFor(callback, configUpdateTimeout); err != nil {
 		t.Fatal(err)
 	}
 }

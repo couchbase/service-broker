@@ -1,29 +1,22 @@
 package util
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"net/http"
 	"testing"
 	"time"
-)
 
-const (
-	// retryPeriod is how often to poll a WaitFunc.
-	retryPeriod = 10 * time.Millisecond
+	"github.com/couchbase/service-broker/pkg/util"
 )
-
-// WaitFunc is a callback that stops a wait when true.
-type WaitFunc func() bool
 
 // ServerRunning is a wait function that checks the server is accepting TCP traffic,
 // and responding with a good status to the readiness check endpoint.
-var ServerRunning = func() bool {
+func ServerRunning() error {
 	request, err := http.NewRequest(http.MethodGet, "https://localhost:8443/readyz", nil)
 	if err != nil {
-		return false
+		return err
 	}
 
 	request.Header.Set("X-Broker-API-Version", "2.13")
@@ -31,7 +24,7 @@ var ServerRunning = func() bool {
 
 	certPool := x509.NewCertPool()
 	if ok := certPool.AppendCertsFromPEM([]byte(CA)); !ok {
-		return false
+		return fmt.Errorf("unable to append CA certificate")
 	}
 
 	client := &http.Client{
@@ -44,38 +37,24 @@ var ServerRunning = func() bool {
 
 	response, err := client.Do(request)
 	if err != nil {
-		return false
+		return err
 	}
+
+	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return false
-	}
-
-	return true
-}
-
-// WaitFor waits until a condition is true.
-func WaitFor(f WaitFunc, timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	tick := time.NewTicker(retryPeriod)
-	defer tick.Stop()
-
-	for !f() {
-		select {
-		case <-tick.C:
-		case <-ctx.Done():
-			return fmt.Errorf("failed to wait for condition")
-		}
+		return fmt.Errorf("unexpected status code %v", response.StatusCode)
 	}
 
 	return nil
 }
 
-// WaitFor waits until a condition is true.
-func MustWaitFor(t *testing.T, f WaitFunc, timeout time.Duration) {
-	if err := WaitFor(f, timeout); err != nil {
-		t.Fatal(err)
-	}
+// WaitFor waits until a condition is nil.
+func WaitFor(f util.WaitFunc, timeout time.Duration) error {
+	return util.WaitFor(f, timeout)
+}
+
+// MustWaitFor waits until a condition is nil.
+func MustWaitFor(t *testing.T, f util.WaitFunc, timeout time.Duration) {
+	util.MustWaitFor(t, f, timeout)
 }

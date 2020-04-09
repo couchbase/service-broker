@@ -11,8 +11,7 @@ import (
 
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/config"
-	brokerutil "github.com/couchbase/service-broker/pkg/util"
-	"github.com/couchbase/service-broker/test/util"
+	"github.com/couchbase/service-broker/pkg/util"
 
 	"github.com/golang/glog"
 
@@ -95,7 +94,7 @@ func mustCreateResources(t *testing.T, namespace string, objects []*unstructured
 func generateServiceBrokerTLS(namespace string) ([]byte, []byte, []byte, error) {
 	bits := 2048
 
-	caKey, err := brokerutil.GenerateKey(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &bits)
+	caKey, err := util.GenerateKey(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &bits)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -104,12 +103,12 @@ func generateServiceBrokerTLS(namespace string) ([]byte, []byte, []byte, error) 
 		CommonName: "Service Broker CA",
 	}
 
-	caCertificate, err := brokerutil.GenerateCertificate(caKey, subject, time.Hour, v1.CA, nil, nil, nil, nil)
+	caCertificate, err := util.GenerateCertificate(caKey, subject, time.Hour, v1.CA, nil, nil, nil, nil)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	serverKey, err := brokerutil.GenerateKey(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &bits)
+	serverKey, err := util.GenerateKey(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &bits)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -124,7 +123,7 @@ func generateServiceBrokerTLS(namespace string) ([]byte, []byte, []byte, error) 
 		fmt.Sprintf("couchbase-service-broker.%s.svc", namespace),
 	}
 
-	serverCertificate, err := brokerutil.GenerateCertificate(serverKey, subject, time.Hour, v1.Server, dnsSANs, nil, caKey, caCertificate)
+	serverCertificate, err := util.GenerateCertificate(serverKey, subject, time.Hour, v1.Server, dnsSANs, nil, caKey, caCertificate)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -144,45 +143,57 @@ func mustGenerateServiceBrokerTLS(t *testing.T, namespace string) ([]byte, []byt
 
 // configurationValid returns a verification function that reports whether a service broker
 // configuration is valid as per the status condition.
-func configurationValid(namespace string) func() bool {
-	return func() bool {
+func configurationValid(namespace string) func() error {
+	return func() error {
 		configuration, err := clients.Broker().ServicebrokerV1alpha1().ServiceBrokerConfigs(namespace).Get(config.ConfigurationNameDefault, metav1.GetOptions{})
 		if err != nil {
-			return false
+			return err
 		}
 
 		for _, condition := range configuration.Status.Conditions {
-			if condition.Type == v1.ConfigurationValid {
-				return condition.Status == v1.ConditionTrue
+			if condition.Type != v1.ConfigurationValid {
+				continue
 			}
+
+			if condition.Status == v1.ConditionTrue {
+				return nil
+			}
+
+			return fmt.Errorf("configuration validation condition %v", condition.Status)
 		}
 
-		return false
+		return fmt.Errorf("configuration validation condition does not exist")
 	}
 }
 
 // deploymentAvailable returns a verification function that reports whether the service
 // broker deployment is available as per its status conditions.
-func deploymentAvailable(namespace string) func() bool {
-	return func() bool {
+func deploymentAvailable(namespace string) func() error {
+	return func() error {
 		deployment, err := clients.Kubernetes().AppsV1().Deployments(namespace).Get(exampleBrokerDeploymentName, metav1.GetOptions{})
 		if err != nil {
-			return false
+			return err
 		}
 
 		for _, condition := range deployment.Status.Conditions {
-			if condition.Type == appsv1.DeploymentAvailable {
-				return condition.Status == corev1.ConditionTrue
+			if condition.Type != appsv1.DeploymentAvailable {
+				continue
 			}
+
+			if condition.Status == corev1.ConditionTrue {
+				return nil
+			}
+
+			return fmt.Errorf("deployment available condition %v", condition.Status)
 		}
 
-		return false
+		return fmt.Errorf("deployment available condition does not exist")
 	}
 }
 
 // clusterServiceBrokerReady is a verification function that reports whether the
 // cluster service broker is ready as per its status conditions.
-func clusterServiceBrokerReady() bool {
+func clusterServiceBrokerReady() error {
 	gvr := schema.GroupVersionResource{
 		Group:    "servicecatalog.k8s.io",
 		Version:  "v1beta1",
@@ -191,23 +202,23 @@ func clusterServiceBrokerReady() bool {
 
 	object, err := clients.Dynamic().Resource(gvr).Get("couchbase-service-broker", metav1.GetOptions{})
 	if err != nil {
-		return false
+		return err
 	}
 
 	conditions, ok, _ := unstructured.NestedSlice(object.Object, "status", "conditions")
 	if !ok {
-		return false
+		return fmt.Errorf("object has no status conditions")
 	}
 
 	for _, condition := range conditions {
 		conditionObject, ok := condition.(map[string]interface{})
 		if !ok {
-			return false
+			return fmt.Errorf("object condition malformed")
 		}
 
 		t, ok, _ := unstructured.NestedString(conditionObject, "type")
 		if !ok {
-			return false
+			return fmt.Errorf("object condition has no type")
 		}
 
 		if t != "Ready" {
@@ -216,13 +227,17 @@ func clusterServiceBrokerReady() bool {
 
 		status, ok, _ := unstructured.NestedString(conditionObject, "status")
 		if !ok {
-			return false
+			return fmt.Errorf("object ready condition has no status")
 		}
 
-		return status == "True"
+		if status != "True" {
+			return fmt.Errorf("object ready condition status %v", status)
+		}
+
+		return nil
 	}
 
-	return false
+	return fmt.Errorf("object ready condition does not exist")
 }
 
 // cleanupClusterServiceBroker removes a cluster service broker from the system.
@@ -240,12 +255,12 @@ func cleanupClusterServiceBroker() {
 		return
 	}
 
-	callback := func() bool {
+	callback := func() error {
 		if _, err := clients.Dynamic().Resource(gvr).Get("couchbase-service-broker", metav1.GetOptions{}); err == nil {
-			return false
+			return fmt.Errorf("resource still exists")
 		}
 
-		return true
+		return nil
 	}
 
 	if err := util.WaitFor(callback, time.Minute); err != nil {
