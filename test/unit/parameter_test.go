@@ -8,8 +8,8 @@ import (
 	"github.com/couchbase/service-broker/pkg/api"
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/registry"
-	"github.com/couchbase/service-broker/test/fixtures"
-	"github.com/couchbase/service-broker/test/util"
+	"github.com/couchbase/service-broker/test/unit/fixtures"
+	"github.com/couchbase/service-broker/test/unit/util"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )

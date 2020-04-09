@@ -11,7 +11,7 @@ import (
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/client"
 	"github.com/couchbase/service-broker/pkg/registry"
-	"github.com/couchbase/service-broker/test/util"
+	"github.com/couchbase/service-broker/test/unit/util"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

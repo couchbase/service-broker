@@ -63,7 +63,7 @@ $ make test
 You can run individual tests or groups of tests while debugging with the following command:
 
 ```bash
-$ go test -v -race ./test -run TestConnect -args -logtostderr -v 1
+$ go test -v -race ./test/unit -run TestConnect -args -logtostderr -v 1
 ```
 
 Code coverage is run as part of the test command and -- although not enforced, it is watched -- should be checked:

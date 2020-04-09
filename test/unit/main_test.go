@@ -10,7 +10,7 @@ import (
 
 	"github.com/couchbase/service-broker/pkg/broker"
 	"github.com/couchbase/service-broker/pkg/client"
-	"github.com/couchbase/service-broker/test/util"
+	"github.com/couchbase/service-broker/test/unit/util"
 )
 
 const (

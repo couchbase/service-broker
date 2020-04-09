@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/couchbase/service-broker/test/util"
+	"github.com/couchbase/service-broker/test/unit/util"
 )
 
 // TestReadiness tests a TLS readiness probe succeeds with no other headers.

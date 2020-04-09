@@ -195,7 +195,7 @@ lint: $(GENERATED_DIR)
 # The unit tests must pass for all code submissions, additionally code
 # coverage should be checked to ensure code submissions actually work.
 unit: $(GENERATED_DIR)
-	go test -v -race -cover -coverpkg github.com/couchbase/service-broker/pkg/... -coverprofile=$(COVER_FILE) ./test
+	go test -v -race -cover -coverpkg github.com/couchbase/service-broker/pkg/... -coverprofile=$(COVER_FILE) ./test/unit
 
 # Acceptance testing builds a container and runs tests within Kubernetes.
 # This is higher performance than having to connect over the internet all
@@ -203,9 +203,9 @@ unit: $(GENERATED_DIR)
 # Assumes that "docker build" is visible to the kubernetes context that
 # is current (e.g. minikube for most of us).
 acceptance: container crd
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go test -c -o build/bin/acceptance ./acceptance
-	docker build -f acceptance/Dockerfile -t $(ACCEPTANCE_IMAGE) .
-	kubectl apply -f acceptance/serviceaccount.yaml
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go test -c -o build/bin/acceptance ./test/acceptance
+	docker build -f test/acceptance/Dockerfile -t $(ACCEPTANCE_IMAGE) .
+	kubectl apply -f test/acceptance/serviceaccount.yaml
 	kubectl run -t -i acceptance --serviceaccount=couchbase-service-broker-acceptance --image=$(ACCEPTANCE_IMAGE) --image-pull-policy=Never --restart=Never -- -test.v -logtostderr -v 1; kubectl delete pod/acceptance
 
 # Main install target, creates all archive files.
