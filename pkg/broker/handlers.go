@@ -11,7 +11,6 @@ import (
 	"github.com/couchbase/service-broker/pkg/operation"
 	"github.com/couchbase/service-broker/pkg/provisioners"
 	"github.com/couchbase/service-broker/pkg/registry"
-	"github.com/couchbase/service-broker/pkg/util"
 
 	"github.com/golang/glog"
 	"github.com/julienschmidt/httprouter"
@@ -22,51 +21,51 @@ import (
 // handleReadyz is a handler for Kubernetes readiness checks.  It is less verbose than the
 // other API calls as it's called significantly more often.
 func handleReadyz(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	util.HTTPResponse(w, http.StatusOK)
+	httpResponse(w, http.StatusOK)
 }
 
 // handleReadCatalog advertises the classes of service we offer, and specifc plans to
 // implement those classes.
 func handleReadCatalog(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	util.JSONResponse(w, http.StatusOK, config.Config().Spec.Catalog)
+	JSONResponse(w, http.StatusOK, config.Config().Spec.Catalog)
 }
 
 // handleCreateServiceInstance creates a service instance of a plan.
 func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	// Ensure the client supports async operation.
-	if err := util.AsyncRequired(r); err != nil {
-		util.JSONError(w, err)
+	if err := asyncRequired(r); err != nil {
+		jsonError(w, err)
 		return
 	}
 
 	// Parse the creation request.
 	request := &api.CreateServiceInstanceRequest{}
-	if err := util.JSONRequest(r, request); err != nil {
-		util.JSONError(w, err)
+	if err := jsonRequest(r, request); err != nil {
+		jsonError(w, err)
 		return
 	}
 
 	// Check parameters.
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		util.JSONError(w, fmt.Errorf("request missing instance_id parameter"))
+		jsonError(w, fmt.Errorf("request missing instance_id parameter"))
 		return
 	}
 
-	if err := util.ValidateServicePlan(config.Config(), request.ServiceID, request.PlanID); err != nil {
-		util.JSONError(w, err)
+	if err := validateServicePlan(config.Config(), request.ServiceID, request.PlanID); err != nil {
+		jsonError(w, err)
 		return
 	}
 
-	if err := util.ValidateParameters(config.Config(), request.ServiceID, request.PlanID, util.SchemaTypeServiceInstance, util.SchemaOperationCreate, request.Parameters); err != nil {
-		util.JSONError(w, err)
+	if err := validateParameters(config.Config(), request.ServiceID, request.PlanID, schemaTypeServiceInstance, schemaOperationCreate, request.Parameters); err != nil {
+		jsonError(w, err)
 		return
 	}
 
 	// Check if the instance already exists.
 	entry, err := registry.New(registry.ServiceInstance, instanceID, false)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
@@ -76,33 +75,33 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		// provisioning with different attributes.
 		serviceID, ok, err := entry.GetString(registry.ServiceID)
 		if err != nil {
-			util.JSONError(w, err)
+			jsonError(w, err)
 			return
 		}
 
 		if !ok {
-			util.JSONError(w, fmt.Errorf("unable to lookup existing service ID"))
+			jsonError(w, fmt.Errorf("unable to lookup existing service ID"))
 			return
 		}
 
 		if serviceID != request.ServiceID {
-			util.JSONError(w, errors.NewResourceConflictError("service ID %s does not match existing value %s", request.ServiceID, serviceID))
+			jsonError(w, errors.NewResourceConflictError("service ID %s does not match existing value %s", request.ServiceID, serviceID))
 			return
 		}
 
 		planID, ok, err := entry.GetString(registry.PlanID)
 		if err != nil {
-			util.JSONError(w, err)
+			jsonError(w, err)
 			return
 		}
 
 		if !ok {
-			util.JSONError(w, fmt.Errorf("unable to lookup existing plan ID"))
+			jsonError(w, fmt.Errorf("unable to lookup existing plan ID"))
 			return
 		}
 
 		if planID != request.PlanID {
-			util.JSONError(w, errors.NewResourceConflictError("plan ID %s does not match existing value %s", request.PlanID, planID))
+			jsonError(w, errors.NewResourceConflictError("plan ID %s does not match existing value %s", request.PlanID, planID))
 			return
 		}
 
@@ -110,12 +109,12 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 		ok, err = entry.Get(registry.Context, context)
 		if err != nil {
-			util.JSONError(w, err)
+			jsonError(w, err)
 			return
 		}
 
 		if !ok {
-			util.JSONError(w, fmt.Errorf("unable to lookup existing context"))
+			jsonError(w, fmt.Errorf("unable to lookup existing context"))
 			return
 		}
 
@@ -125,7 +124,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		}
 
 		if !reflect.DeepEqual(newContext, context) {
-			util.JSONError(w, errors.NewResourceConflictError("request context %v does not match existing value %v", newContext, context))
+			jsonError(w, errors.NewResourceConflictError("request context %v does not match existing value %v", newContext, context))
 			return
 		}
 
@@ -133,12 +132,12 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 		ok, err = entry.Get(registry.Parameters, parameters)
 		if err != nil {
-			util.JSONError(w, err)
+			jsonError(w, err)
 			return
 		}
 
 		if !ok {
-			util.JSONError(w, fmt.Errorf("unable to lookup existing parameters"))
+			jsonError(w, fmt.Errorf("unable to lookup existing parameters"))
 			return
 		}
 
@@ -148,7 +147,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		}
 
 		if !reflect.DeepEqual(newParameters, parameters) {
-			util.JSONError(w, errors.NewResourceConflictError("request parameters %v do not match existing value %v", newParameters, parameters))
+			jsonError(w, errors.NewResourceConflictError("request parameters %v do not match existing value %v", newParameters, parameters))
 			return
 		}
 
@@ -161,24 +160,24 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		// We'll just call it a conflict.
 		operationType, ok, err := entry.GetString(registry.Operation)
 		if err != nil {
-			util.JSONError(w, err)
+			jsonError(w, err)
 			return
 		}
 
 		if ok {
 			if operation.Type(operationType) != operation.TypeProvision {
-				util.JSONError(w, errors.NewResourceConflictError("existing %v operation in progress", operationType))
+				jsonError(w, errors.NewResourceConflictError("existing %v operation in progress", operationType))
 				return
 			}
 
 			operationID, ok, err := entry.GetString(registry.OperationID)
 			if err != nil {
-				util.JSONError(w, err)
+				jsonError(w, err)
 				return
 			}
 
 			if !ok {
-				util.JSONError(w, fmt.Errorf("service instance missing operation ID"))
+				jsonError(w, fmt.Errorf("service instance missing operation ID"))
 				return
 			}
 
@@ -188,7 +187,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 		dashboardURL, ok, err := entry.GetString(registry.DashboardURL)
 		if err != nil {
-			util.JSONError(w, err)
+			jsonError(w, err)
 			return
 		}
 
@@ -196,7 +195,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 			response.DashboardURL = dashboardURL
 		}
 
-		util.JSONResponse(w, status, response)
+		JSONResponse(w, status, response)
 
 		return
 	}
@@ -213,42 +212,42 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 	namespace, err := provisioners.GetNamespace(request.Context)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if err := entry.Set(registry.Namespace, namespace); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if err := entry.Set(registry.InstanceID, instanceID); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if err := entry.Set(registry.ServiceID, request.ServiceID); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if err := entry.Set(registry.PlanID, request.PlanID); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if err := entry.Set(registry.Context, context); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if err := entry.Set(registry.Parameters, parameters); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if err := entry.Commit(); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
@@ -258,17 +257,17 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	// things like the dashboard URL for the synchronous response.
 	provisioner, err := provisioners.NewCreator(provisioners.ResourceTypeServiceInstance)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if err := provisioner.Prepare(entry); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if err := operation.Start(entry, operation.TypeProvision); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
@@ -278,12 +277,12 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 	operationID, ok, err := frozenEntry.GetString(registry.OperationID)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !ok {
-		util.JSONError(w, fmt.Errorf("service instance missing operation ID"))
+		jsonError(w, fmt.Errorf("service instance missing operation ID"))
 		return
 	}
 
@@ -294,7 +293,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 	dashboardURL, ok, err := frozenEntry.GetString(registry.DashboardURL)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
@@ -302,73 +301,73 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		response.DashboardURL = dashboardURL
 	}
 
-	util.JSONResponse(w, http.StatusAccepted, response)
+	JSONResponse(w, http.StatusAccepted, response)
 }
 
 // handleReadServiceInstance
 func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		util.JSONError(w, fmt.Errorf("request missing instance_id parameter"))
+		jsonError(w, fmt.Errorf("request missing instance_id parameter"))
 		return
 	}
 
 	// Check if the instance exists.
 	entry, err := registry.New(registry.ServiceInstance, instanceID, true)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	// Not found, return a 404
 	if !entry.Exists() {
-		util.JSONError(w, errors.NewResourceNotFoundError("service instance does not exist"))
+		jsonError(w, errors.NewResourceNotFoundError("service instance does not exist"))
 		return
 	}
 
 	// service_id is optional and provoded as a hint.
-	serviceID, serviceIDProvided, err := util.MayGetSingleParameter(r, "service_id")
+	serviceID, serviceIDProvided, err := maygetSingleParameter(r, "service_id")
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	// plan_id is optional and provoded as a hint.
-	planID, planIDProvided, err := util.MayGetSingleParameter(r, "plan_id")
+	planID, planIDProvided, err := maygetSingleParameter(r, "plan_id")
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	serviceInstanceServiceID, ok, err := entry.GetString(registry.ServiceID)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !ok {
-		util.JSONError(w, fmt.Errorf("unable to lookup existing service ID"))
+		jsonError(w, fmt.Errorf("unable to lookup existing service ID"))
 		return
 	}
 
 	serviceInstancePlanID, ok, err := entry.GetString(registry.PlanID)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !ok {
-		util.JSONError(w, fmt.Errorf("unable to lookup existing plan ID"))
+		jsonError(w, fmt.Errorf("unable to lookup existing plan ID"))
 		return
 	}
 
 	if serviceIDProvided && serviceID != serviceInstanceServiceID {
-		util.JSONError(w, errors.NewQueryError("specified service ID %s does not match %s", serviceID, serviceInstanceServiceID))
+		jsonError(w, errors.NewQueryError("specified service ID %s does not match %s", serviceID, serviceInstanceServiceID))
 		return
 	}
 
 	if planIDProvided && planID != serviceInstancePlanID {
-		util.JSONError(w, errors.NewQueryError("specified plan ID %s does not match %s", planID, serviceInstancePlanID))
+		jsonError(w, errors.NewQueryError("specified plan ID %s does not match %s", planID, serviceInstancePlanID))
 		return
 	}
 
@@ -376,12 +375,12 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 
 	ok, err = entry.Get(registry.Parameters, parameters)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !ok {
-		util.JSONError(w, fmt.Errorf("unable to lookup existing parameters"))
+		jsonError(w, fmt.Errorf("unable to lookup existing parameters"))
 		return
 	}
 
@@ -389,12 +388,12 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 	// a 404.
 	op, ok, err := entry.GetString(registry.Operation)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if ok {
-		util.JSONError(w, errors.NewParameterError("%s operation in progress", op))
+		jsonError(w, errors.NewParameterError("%s operation in progress", op))
 		return
 	}
 
@@ -403,27 +402,27 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 		PlanID:     serviceInstancePlanID,
 		Parameters: parameters,
 	}
-	util.JSONResponse(w, http.StatusOK, response)
+	JSONResponse(w, http.StatusOK, response)
 }
 
 // handleUpdateServiceInstance
 func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	// Ensure the client supports async operation.
-	if err := util.AsyncRequired(r); err != nil {
-		util.JSONError(w, err)
+	if err := asyncRequired(r); err != nil {
+		jsonError(w, err)
 		return
 	}
 
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		util.JSONErrorUsable(w, fmt.Errorf("request missing instance_id parameter"))
+		jsonErrorUsable(w, fmt.Errorf("request missing instance_id parameter"))
 		return
 	}
 
 	// Parse the update request.
 	request := &api.UpdateServiceInstanceRequest{}
-	if err := util.JSONRequest(r, request); err != nil {
-		util.JSONError(w, err)
+	if err := jsonRequest(r, request); err != nil {
+		jsonError(w, err)
 		return
 	}
 
@@ -431,13 +430,13 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	// Check if the instance exists.
 	entry, err := registry.New(registry.ServiceInstance, instanceID, false)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	// Not found, return a 404
 	if !entry.Exists() {
-		util.JSONError(w, errors.NewResourceNotFoundError("service instance does not exist"))
+		jsonError(w, errors.NewResourceNotFoundError("service instance does not exist"))
 		return
 	}
 
@@ -445,12 +444,12 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	// Override with the request if specified.
 	planID, ok, err := entry.GetString(registry.PlanID)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !ok {
-		util.JSONError(w, fmt.Errorf("unable to lookup existing plan ID"))
+		jsonError(w, fmt.Errorf("unable to lookup existing plan ID"))
 		return
 	}
 
@@ -460,18 +459,18 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	// Check parameters.
-	if err := util.ValidateServicePlan(config.Config(), request.ServiceID, newPlanID); err != nil {
-		util.JSONError(w, err)
+	if err := validateServicePlan(config.Config(), request.ServiceID, newPlanID); err != nil {
+		jsonError(w, err)
 		return
 	}
 
-	if err := util.PlanUpdatable(config.Config(), request.ServiceID, planID, newPlanID); err != nil {
-		util.JSONError(w, err)
+	if err := planUpdatable(config.Config(), request.ServiceID, planID, newPlanID); err != nil {
+		jsonError(w, err)
 		return
 	}
 
-	if err := util.ValidateParameters(config.Config(), request.ServiceID, planID, util.SchemaTypeServiceInstance, util.SchemaOperationUpdate, request.Parameters); err != nil {
-		util.JSONErrorUsable(w, err)
+	if err := validateParameters(config.Config(), request.ServiceID, planID, schemaTypeServiceInstance, schemaOperationUpdate, request.Parameters); err != nil {
+		jsonErrorUsable(w, err)
 		return
 	}
 
@@ -481,23 +480,23 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	if err := entry.Set(registry.Parameters, parameters); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	updater, err := provisioners.NewUpdater(provisioners.ResourceTypeServiceInstance, request)
 	if err != nil {
-		util.JSONErrorUsable(w, err)
+		jsonErrorUsable(w, err)
 		return
 	}
 
 	if err := updater.Prepare(entry); err != nil {
-		util.JSONErrorUsable(w, err)
+		jsonErrorUsable(w, err)
 		return
 	}
 
 	if err := operation.Start(entry, operation.TypeUpdate); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
@@ -507,12 +506,12 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 	operationID, ok, err := frozenEntry.GetString(registry.OperationID)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !ok {
-		util.JSONError(w, fmt.Errorf("service instance missing operation ID"))
+		jsonError(w, fmt.Errorf("service instance missing operation ID"))
 	}
 
 	// Return a response to the client.
@@ -520,76 +519,76 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		Operation: operationID,
 	}
 
-	util.JSONResponse(w, http.StatusAccepted, response)
+	JSONResponse(w, http.StatusAccepted, response)
 }
 
 // handleDeleteServiceInstance
 func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	// Ensure the client supports async operation.
-	if err := util.AsyncRequired(r); err != nil {
-		util.JSONError(w, err)
+	if err := asyncRequired(r); err != nil {
+		jsonError(w, err)
 		return
 	}
 
 	// Check parameters.
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		util.JSONError(w, fmt.Errorf("request missing instance_id parameter"))
+		jsonError(w, fmt.Errorf("request missing instance_id parameter"))
 		return
 	}
 
 	entry, err := registry.New(registry.ServiceInstance, instanceID, false)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !entry.Exists() {
-		util.JSONError(w, errors.NewResourceGoneError("service instance does not exist"))
+		jsonError(w, errors.NewResourceGoneError("service instance does not exist"))
 		return
 	}
 
-	serviceID, err := util.GetSingleParameter(r, "service_id")
+	serviceID, err := getSingleParameter(r, "service_id")
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
-	planID, err := util.GetSingleParameter(r, "plan_id")
+	planID, err := getSingleParameter(r, "plan_id")
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	serviceInstanceServiceID, ok, err := entry.GetString(registry.ServiceID)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !ok {
-		util.JSONError(w, fmt.Errorf("unable to lookup existing service ID"))
+		jsonError(w, fmt.Errorf("unable to lookup existing service ID"))
 		return
 	}
 
 	serviceInstancePlanID, ok, err := entry.GetString(registry.PlanID)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !ok {
-		util.JSONError(w, fmt.Errorf("unable to lookup existing plan ID"))
+		jsonError(w, fmt.Errorf("unable to lookup existing plan ID"))
 		return
 	}
 
 	if serviceID != serviceInstanceServiceID {
-		util.JSONError(w, errors.NewQueryError("specified service ID %s does not match %s", serviceID, serviceInstanceServiceID))
+		jsonError(w, errors.NewQueryError("specified service ID %s does not match %s", serviceID, serviceInstanceServiceID))
 		return
 	}
 
 	if planID != serviceInstancePlanID {
-		util.JSONError(w, errors.NewQueryError("specified plan ID %s does not match %s", planID, serviceInstancePlanID))
+		jsonError(w, errors.NewQueryError("specified plan ID %s does not match %s", planID, serviceInstancePlanID))
 		return
 	}
 
@@ -597,7 +596,7 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 	// Start the delete operation in the background.
 	if err := operation.Start(entry, operation.TypeDeprovision); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
@@ -605,113 +604,113 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 	operationID, ok, err := entry.GetString(registry.OperationID)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !ok {
-		util.JSONError(w, fmt.Errorf("service instance missing operation ID"))
+		jsonError(w, fmt.Errorf("service instance missing operation ID"))
 	}
 
 	response := &api.CreateServiceInstanceResponse{
 		Operation: operationID,
 	}
-	util.JSONResponse(w, http.StatusAccepted, response)
+	JSONResponse(w, http.StatusAccepted, response)
 }
 
 // handlePollServiceInstance
 func handlePollServiceInstance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		util.JSONError(w, fmt.Errorf("request missing instance_id parameter"))
+		jsonError(w, fmt.Errorf("request missing instance_id parameter"))
 		return
 	}
 
 	entry, err := registry.New(registry.ServiceInstance, instanceID, false)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !entry.Exists() {
-		util.JSONError(w, errors.NewResourceGoneError("service instance does not exist"))
+		jsonError(w, errors.NewResourceGoneError("service instance does not exist"))
 		return
 	}
 
 	// service_id is optional and provoded as a hint.
-	serviceID, serviceIDProvided, err := util.MayGetSingleParameter(r, "service_id")
+	serviceID, serviceIDProvided, err := maygetSingleParameter(r, "service_id")
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	// plan_id is optional and provided as a hint.
-	planID, planIDProvided, err := util.MayGetSingleParameter(r, "plan_id")
+	planID, planIDProvided, err := maygetSingleParameter(r, "plan_id")
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	// operation is optional, however the broker only implements asynchronous
 	// operations at present, so require it unconditionally.
-	operationID, err := util.GetSingleParameter(r, "operation")
+	operationID, err := getSingleParameter(r, "operation")
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	instanceServiceID, ok, err := entry.GetString(registry.ServiceID)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !ok {
-		util.JSONError(w, fmt.Errorf("service instance missing operation ID"))
+		jsonError(w, fmt.Errorf("service instance missing operation ID"))
 	}
 
 	instancePlanID, ok, err := entry.GetString(registry.PlanID)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !ok {
-		util.JSONError(w, fmt.Errorf("service instance missing operation ID"))
+		jsonError(w, fmt.Errorf("service instance missing operation ID"))
 	}
 
 	instanceOperationID, ok, err := entry.GetString(registry.OperationID)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !ok {
-		util.JSONError(w, fmt.Errorf("service instance missing operation ID"))
+		jsonError(w, fmt.Errorf("service instance missing operation ID"))
 	}
 
 	// While not specified, we check that the provided service ID matches the one
 	// we expect.  It may be indicative of a client error.
 	if serviceIDProvided && serviceID != instanceServiceID {
-		util.JSONError(w, errors.NewQueryError("provided service ID %s does not match %s", serviceID, instanceServiceID))
+		jsonError(w, errors.NewQueryError("provided service ID %s does not match %s", serviceID, instanceServiceID))
 		return
 	}
 
 	// While not specified, we check that the provided plan ID matches the one
 	// we expect.  It may be indicative of a client error.
 	if planIDProvided && planID != instancePlanID {
-		util.JSONError(w, errors.NewQueryError("provided plan ID %s does not match %s", planID, instancePlanID))
+		jsonError(w, errors.NewQueryError("provided plan ID %s does not match %s", planID, instancePlanID))
 		return
 	}
 
 	if operationID != instanceOperationID {
-		util.JSONError(w, errors.NewQueryError("provided operation %s does not match operation %s", operationID, instanceOperationID))
+		jsonError(w, errors.NewQueryError("provided operation %s does not match operation %s", operationID, instanceOperationID))
 		return
 	}
 
 	operationStatus, ok, err := entry.GetString(registry.OperationStatus)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
@@ -721,7 +720,7 @@ func handlePollServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 			State:       api.PollStateInProgress,
 			Description: "asynchronous provisioning in progress",
 		}
-		util.JSONResponse(w, http.StatusOK, response)
+		JSONResponse(w, http.StatusOK, response)
 
 		return
 	}
@@ -729,7 +728,7 @@ func handlePollServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 	// If the status isn't empty then we have encountered an error and need to report failure.
 	if operationStatus != "" {
 		if err := operation.End(entry); err != nil {
-			util.JSONError(w, err)
+			jsonError(w, err)
 			return
 		}
 
@@ -737,7 +736,7 @@ func handlePollServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 			State:       api.PollStateFailed,
 			Description: operationStatus,
 		}
-		util.JSONResponse(w, http.StatusOK, response)
+		JSONResponse(w, http.StatusOK, response)
 
 		return
 	}
@@ -750,81 +749,81 @@ func handlePollServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 				State:       api.PollStateInProgress,
 				Description: err.Error(),
 			}
-			util.JSONResponse(w, http.StatusOK, response)
+			JSONResponse(w, http.StatusOK, response)
 
 			return
 		}
 
-		util.JSONError(w, err)
+		jsonError(w, err)
 
 		return
 	}
 
 	// All checks have passed, instance successfully provisioned.
 	if err := operation.End(entry); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	response := &api.PollServiceInstanceResponse{
 		State: api.PollStateSucceeded,
 	}
-	util.JSONResponse(w, http.StatusOK, response)
+	JSONResponse(w, http.StatusOK, response)
 }
 
 // handleCreateServiceBinding creates a binding to a service instance.
 func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	// Parse the creation request.
 	request := &api.CreateServiceBindingRequest{}
-	if err := util.JSONRequest(r, request); err != nil {
-		util.JSONError(w, err)
+	if err := jsonRequest(r, request); err != nil {
+		jsonError(w, err)
 		return
 	}
 
 	// Check parameters.
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		util.JSONError(w, fmt.Errorf("request missing instance_id parameter"))
+		jsonError(w, fmt.Errorf("request missing instance_id parameter"))
 		return
 	}
 
 	bindingID := params.ByName("binding_id")
 	if bindingID == "" {
-		util.JSONError(w, fmt.Errorf("request missing binding_id parameter"))
+		jsonError(w, fmt.Errorf("request missing binding_id parameter"))
 		return
 	}
 
-	if err := util.ValidateServicePlan(config.Config(), request.ServiceID, request.PlanID); err != nil {
-		util.JSONError(w, err)
+	if err := validateServicePlan(config.Config(), request.ServiceID, request.PlanID); err != nil {
+		jsonError(w, err)
 		return
 	}
 
-	if err := util.VerifyBindable(config.Config(), request.ServiceID, request.PlanID); err != nil {
-		util.JSONError(w, err)
+	if err := verifyBindable(config.Config(), request.ServiceID, request.PlanID); err != nil {
+		jsonError(w, err)
 		return
 	}
 
-	if err := util.ValidateParameters(config.Config(), request.ServiceID, request.PlanID, util.SchemaTypeServiceBinding, util.SchemaOperationCreate, request.Parameters); err != nil {
-		util.JSONError(w, err)
+	if err := validateParameters(config.Config(), request.ServiceID, request.PlanID, schemaTypeServiceBinding, schemaOperationCreate, request.Parameters); err != nil {
+		jsonError(w, err)
 		return
 	}
 
 	// Check if the service instance exists.
 	instanceEntry, err := registry.New(registry.ServiceInstance, instanceID, true)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !instanceEntry.Exists() {
-		util.JSONError(w, errors.NewParameterError("service instance %s not found", instanceID))
+		jsonError(w, errors.NewParameterError("service instance %s not found", instanceID))
 		return
 	}
 
 	// Check if the binding already exists.
 	entry, err := registry.New(registry.ServiceBinding, bindingID, false)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
@@ -834,33 +833,33 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 		// provisioning with different attributes.
 		serviceID, ok, err := entry.GetString(registry.ServiceID)
 		if err != nil {
-			util.JSONError(w, err)
+			jsonError(w, err)
 			return
 		}
 
 		if !ok {
-			util.JSONError(w, fmt.Errorf("unable to lookup existing service ID"))
+			jsonError(w, fmt.Errorf("unable to lookup existing service ID"))
 			return
 		}
 
 		if serviceID != request.ServiceID {
-			util.JSONError(w, errors.NewResourceConflictError("service ID %s does not match existing value %s", request.ServiceID, serviceID))
+			jsonError(w, errors.NewResourceConflictError("service ID %s does not match existing value %s", request.ServiceID, serviceID))
 			return
 		}
 
 		planID, ok, err := entry.GetString(registry.PlanID)
 		if err != nil {
-			util.JSONError(w, err)
+			jsonError(w, err)
 			return
 		}
 
 		if !ok {
-			util.JSONError(w, fmt.Errorf("unable to lookup existing plan ID"))
+			jsonError(w, fmt.Errorf("unable to lookup existing plan ID"))
 			return
 		}
 
 		if planID != request.PlanID {
-			util.JSONError(w, errors.NewResourceConflictError("plan ID %s does not match existing value %s", request.PlanID, planID))
+			jsonError(w, errors.NewResourceConflictError("plan ID %s does not match existing value %s", request.PlanID, planID))
 			return
 		}
 
@@ -868,12 +867,12 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 
 		ok, err = entry.Get(registry.Context, context)
 		if err != nil {
-			util.JSONError(w, err)
+			jsonError(w, err)
 			return
 		}
 
 		if !ok {
-			util.JSONError(w, fmt.Errorf("unable to lookup existing context"))
+			jsonError(w, fmt.Errorf("unable to lookup existing context"))
 			return
 		}
 
@@ -883,7 +882,7 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 		}
 
 		if !reflect.DeepEqual(newContext, context) {
-			util.JSONError(w, errors.NewResourceConflictError("request context %v does not match existing value %v", newContext, context))
+			jsonError(w, errors.NewResourceConflictError("request context %v does not match existing value %v", newContext, context))
 			return
 		}
 
@@ -891,12 +890,12 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 
 		ok, err = entry.Get(registry.Parameters, parameters)
 		if err != nil {
-			util.JSONError(w, err)
+			jsonError(w, err)
 			return
 		}
 
 		if !ok {
-			util.JSONError(w, fmt.Errorf("unable to lookup existing parameters"))
+			jsonError(w, fmt.Errorf("unable to lookup existing parameters"))
 			return
 		}
 
@@ -906,7 +905,7 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 		}
 
 		if !reflect.DeepEqual(newParameters, parameters) {
-			util.JSONError(w, errors.NewResourceConflictError("request parameters %v do not match existing value %v", newParameters, parameters))
+			jsonError(w, errors.NewResourceConflictError("request parameters %v do not match existing value %v", newParameters, parameters))
 			return
 		}
 
@@ -919,31 +918,31 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 		// We'll just call it a conflict.
 		operationType, ok, err := entry.GetString(registry.Operation)
 		if err != nil {
-			util.JSONError(w, err)
+			jsonError(w, err)
 			return
 		}
 
 		if ok {
 			if operation.Type(operationType) != operation.TypeProvision {
-				util.JSONError(w, errors.NewResourceConflictError("existing %v operation in progress", operationType))
+				jsonError(w, errors.NewResourceConflictError("existing %v operation in progress", operationType))
 				return
 			}
 
 			operationID, ok, err := entry.GetString(registry.OperationID)
 			if err != nil {
-				util.JSONError(w, err)
+				jsonError(w, err)
 				return
 			}
 
 			if !ok {
-				util.JSONError(w, fmt.Errorf("service instance missing operation ID"))
+				jsonError(w, fmt.Errorf("service instance missing operation ID"))
 				return
 			}
 
 			response.Operation = operationID
 		}
 
-		util.JSONResponse(w, status, response)
+		JSONResponse(w, status, response)
 
 		return
 	}
@@ -964,22 +963,22 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 	}
 
 	if err := entry.Set(registry.BindingID, bindingID); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if err := entry.Set(registry.Context, context); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if err := entry.Set(registry.Parameters, parameters); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if err := entry.Commit(); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
@@ -989,17 +988,17 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 	// things like the dashboard URL for the synchronous response.
 	provisioner, err := provisioners.NewCreator(provisioners.ResourceTypeServiceBinding)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if err := provisioner.Prepare(entry); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if err := operation.Start(entry, operation.TypeProvision); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
@@ -1010,94 +1009,94 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 	credentials := &runtime.RawExtension{}
 
 	if _, err := frozenEntry.Get(registry.Credentials, credentials); err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	response := &api.GetServiceBindingResponse{
 		Credentials: credentials,
 	}
-	util.JSONResponse(w, http.StatusCreated, response)
+	JSONResponse(w, http.StatusCreated, response)
 }
 
 // handleDeleteServiceBinding
 func handleDeleteServiceBinding(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		util.JSONError(w, fmt.Errorf("request missing instance_id parameter"))
+		jsonError(w, fmt.Errorf("request missing instance_id parameter"))
 		return
 	}
 
 	instanceEntry, err := registry.New(registry.ServiceInstance, instanceID, true)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !instanceEntry.Exists() {
-		util.JSONError(w, errors.NewParameterError("service instance %s not found", instanceID))
+		jsonError(w, errors.NewParameterError("service instance %s not found", instanceID))
 		return
 	}
 
 	// Check parameters.
 	bindingID := params.ByName("binding_id")
 	if bindingID == "" {
-		util.JSONError(w, fmt.Errorf("request missing binding_id parameter"))
+		jsonError(w, fmt.Errorf("request missing binding_id parameter"))
 		return
 	}
 
 	entry, err := registry.New(registry.ServiceBinding, bindingID, false)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !entry.Exists() {
-		util.JSONError(w, errors.NewResourceGoneError("service instance does not exist"))
+		jsonError(w, errors.NewResourceGoneError("service instance does not exist"))
 		return
 	}
 
-	serviceID, err := util.GetSingleParameter(r, "service_id")
+	serviceID, err := getSingleParameter(r, "service_id")
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
-	planID, err := util.GetSingleParameter(r, "plan_id")
+	planID, err := getSingleParameter(r, "plan_id")
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	serviceInstanceServiceID, ok, err := entry.GetString(registry.ServiceID)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !ok {
-		util.JSONError(w, fmt.Errorf("unable to lookup existing service ID"))
+		jsonError(w, fmt.Errorf("unable to lookup existing service ID"))
 		return
 	}
 
 	serviceInstancePlanID, ok, err := entry.GetString(registry.PlanID)
 	if err != nil {
-		util.JSONError(w, err)
+		jsonError(w, err)
 		return
 	}
 
 	if !ok {
-		util.JSONError(w, fmt.Errorf("unable to lookup existing plan ID"))
+		jsonError(w, fmt.Errorf("unable to lookup existing plan ID"))
 		return
 	}
 
 	if serviceID != serviceInstanceServiceID {
-		util.JSONError(w, errors.NewQueryError("specified service ID %s does not match %s", serviceID, serviceInstanceServiceID))
+		jsonError(w, errors.NewQueryError("specified service ID %s does not match %s", serviceID, serviceInstanceServiceID))
 		return
 	}
 
 	if planID != serviceInstancePlanID {
-		util.JSONError(w, errors.NewQueryError("specified plan ID %s does not match %s", planID, serviceInstancePlanID))
+		jsonError(w, errors.NewQueryError("specified plan ID %s does not match %s", planID, serviceInstancePlanID))
 		return
 	}
 
@@ -1106,5 +1105,5 @@ func handleDeleteServiceBinding(w http.ResponseWriter, r *http.Request, params h
 	deleter.Run(entry)
 
 	response := &api.DeleteServiceBindingResponse{}
-	util.JSONResponse(w, http.StatusOK, response)
+	JSONResponse(w, http.StatusOK, response)
 }

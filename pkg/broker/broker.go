@@ -13,7 +13,6 @@ import (
 	"github.com/couchbase/service-broker/pkg/client"
 	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/pkg/log"
-	"github.com/couchbase/service-broker/pkg/util"
 
 	"github.com/golang/glog"
 	"github.com/julienschmidt/httprouter"
@@ -51,7 +50,7 @@ func getHeaderSingle(r *http.Request, name string) (string, error) {
 // handleReadiness returns 503 until the configuration is correct.
 func handleReadiness(w http.ResponseWriter) error {
 	if config.Config() == nil {
-		util.HTTPResponse(w, http.StatusServiceUnavailable)
+		httpResponse(w, http.StatusServiceUnavailable)
 		return fmt.Errorf("service not ready")
 	}
 
@@ -62,12 +61,12 @@ func handleReadiness(w http.ResponseWriter) error {
 func handleBrokerBearerToken(w http.ResponseWriter, r *http.Request) error {
 	header, err := getHeaderSingle(r, "Authorization")
 	if err != nil {
-		util.HTTPResponse(w, http.StatusUnauthorized)
+		httpResponse(w, http.StatusUnauthorized)
 		return err
 	}
 
 	if header != "Bearer "+config.Token() {
-		util.HTTPResponse(w, http.StatusUnauthorized)
+		httpResponse(w, http.StatusUnauthorized)
 		return fmt.Errorf("authorization failed")
 	}
 
@@ -78,18 +77,18 @@ func handleBrokerBearerToken(w http.ResponseWriter, r *http.Request) error {
 func handleBrokerAPIHeader(w http.ResponseWriter, r *http.Request) error {
 	header, err := getHeaderSingle(r, "X-Broker-API-Version")
 	if err != nil {
-		util.HTTPResponse(w, http.StatusBadRequest)
+		httpResponse(w, http.StatusBadRequest)
 		return err
 	}
 
 	apiVersion, err := strconv.ParseFloat(header, 64)
 	if err != nil {
-		util.HTTPResponse(w, http.StatusBadRequest)
+		httpResponse(w, http.StatusBadRequest)
 		return fmt.Errorf("malformed X-Broker-Api-Version header: %v", err)
 	}
 
 	if apiVersion < minBrokerAPIVersion {
-		util.HTTPResponse(w, http.StatusPreconditionFailed)
+		httpResponse(w, http.StatusPreconditionFailed)
 		return fmt.Errorf("unsupported X-Broker-Api-Version header %v, requires at least %.2f", header, minBrokerAPIVersion)
 	}
 
@@ -105,12 +104,12 @@ func handleContentTypeHeader(w http.ResponseWriter, r *http.Request) error {
 
 	header, err := getHeaderSingle(r, "Content-Type")
 	if err != nil {
-		util.HTTPResponse(w, http.StatusBadRequest)
+		httpResponse(w, http.StatusBadRequest)
 		return err
 	}
 
 	if header != "application/json" {
-		util.HTTPResponse(w, http.StatusBadRequest)
+		httpResponse(w, http.StatusBadRequest)
 		return fmt.Errorf("invalid Content-Type header")
 	}
 

@@ -1,4 +1,4 @@
-package util
+package broker
 
 import (
 	"encoding/json"
@@ -19,14 +19,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// HTTPResponse is the canonical writer for HTTP responses.
-func HTTPResponse(w http.ResponseWriter, status int) {
+// httpResponse is the canonical writer for HTTP responses.
+func httpResponse(w http.ResponseWriter, status int) {
 	w.WriteHeader(status)
 }
 
-// JSONRequest reads the JSON body into the give structure and raises the
+// jsonRequest reads the JSON body into the give structure and raises the
 // appropriate errors on error.
-func JSONRequest(r *http.Request, data interface{}) error {
+func jsonRequest(r *http.Request, data interface{}) error {
 	// Parse the creation request.
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -48,14 +48,14 @@ func JSONResponse(w http.ResponseWriter, status int, data interface{}) {
 	resp, err := json.Marshal(data)
 	if err != nil {
 		glog.Infof("failed to marshal body: %v", err)
-		HTTPResponse(w, http.StatusInternalServerError)
+		httpResponse(w, http.StatusInternalServerError)
 	}
 
 	glog.V(log.LevelDebug).Infof("JSON rsp: %s", string(resp))
 
 	w.Header().Set("Content-Type", "application/json")
 
-	HTTPResponse(w, status)
+	httpResponse(w, status)
 
 	if _, err := w.Write(resp); err != nil {
 		glog.Infof("error writing response: %v", err)
@@ -86,8 +86,8 @@ func translateError(err error) (int, api.ErrorType) {
 	}
 }
 
-// JSONError is a helper method to return an error back to the client.
-func JSONError(w http.ResponseWriter, err error) {
+// jsonError is a helper method to return an error back to the client.
+func jsonError(w http.ResponseWriter, err error) {
 	status, apiError := translateError(err)
 	e := &api.Error{
 		Error:       apiError,
@@ -96,10 +96,10 @@ func JSONError(w http.ResponseWriter, err error) {
 	JSONResponse(w, status, e)
 }
 
-// JSONErrorUsable is a helper method to return an error back to the client,
+// jsonErrorUsable is a helper method to return an error back to the client,
 // it also communicates the instance is usable for example when an update goes
 // wrong.
-func JSONErrorUsable(w http.ResponseWriter, err error) {
+func jsonErrorUsable(w http.ResponseWriter, err error) {
 	status, apiError := translateError(err)
 	usable := true
 	e := &api.Error{
@@ -110,9 +110,9 @@ func JSONErrorUsable(w http.ResponseWriter, err error) {
 	JSONResponse(w, status, e)
 }
 
-// MayGetSingleParameter gets a named parameter from the request URL.  Returns false
+// maygetSingleParameter gets a named parameter from the request URL.  Returns false
 // if it doesn't exist and an error if there is any abiguity.
-func MayGetSingleParameter(r *http.Request, name string) (string, bool, error) {
+func maygetSingleParameter(r *http.Request, name string) (string, bool, error) {
 	query, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
 		return "", false, errors.NewQueryError("malformed query data: %v", err)
@@ -131,10 +131,10 @@ func MayGetSingleParameter(r *http.Request, name string) (string, bool, error) {
 	return values[0], true, nil
 }
 
-// GetSingleParameter gets a named parameter from the request URL.  Returns an
+// getSingleParameter gets a named parameter from the request URL.  Returns an
 // error if it doesn't exist or there is any abiguity.
-func GetSingleParameter(r *http.Request, name string) (string, error) {
-	value, exists, err := MayGetSingleParameter(r, name)
+func getSingleParameter(r *http.Request, name string) (string, error) {
+	value, exists, err := maygetSingleParameter(r, name)
 	if err != nil {
 		return "", err
 	}
@@ -146,10 +146,10 @@ func GetSingleParameter(r *http.Request, name string) (string, error) {
 	return value, nil
 }
 
-// AsyncRequired is called when the handler only supports async requests.
-// Don't use GetSingleParameter as we need to selectively return the correct
+// asyncRequired is called when the handler only supports async requests.
+// Don't use getSingleParameter as we need to selectively return the correct
 // status codes.
-func AsyncRequired(r *http.Request) error {
+func asyncRequired(r *http.Request) error {
 	query, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
 		return errors.NewQueryError("malformed query data: %v", err)
@@ -189,8 +189,8 @@ func getServicePlan(config *v1.ServiceBrokerConfig, serviceID, planID string) (*
 	return nil, errors.NewParameterError("service plan %s not defined for service offering %s", planID, serviceID)
 }
 
-// ValidateServicePlan checks the parameters are valid for the configuration.
-func ValidateServicePlan(config *v1.ServiceBrokerConfig, serviceID, planID string) error {
+// validateServicePlan checks the parameters are valid for the configuration.
+func validateServicePlan(config *v1.ServiceBrokerConfig, serviceID, planID string) error {
 	if _, err := getServicePlan(config, serviceID, planID); err != nil {
 		return err
 	}
@@ -207,11 +207,11 @@ type schemaType string
 type schemaOperation string
 
 const (
-	SchemaTypeServiceInstance schemaType = "serviceInstance"
-	SchemaTypeServiceBinding  schemaType = "serviceBinding"
+	schemaTypeServiceInstance schemaType = "serviceInstance"
+	schemaTypeServiceBinding  schemaType = "serviceBinding"
 
-	SchemaOperationCreate schemaOperation = "create"
-	SchemaOperationUpdate schemaOperation = "update"
+	schemaOperationCreate schemaOperation = "create"
+	schemaOperationUpdate schemaOperation = "update"
 )
 
 // getSchema returns the schema associated with an operation on a resource type.  If none
@@ -227,26 +227,26 @@ func getSchema(config *v1.ServiceBrokerConfig, serviceID, planID string, t schem
 	}
 
 	switch t {
-	case SchemaTypeServiceInstance:
+	case schemaTypeServiceInstance:
 		if plan.Schemas.ServiceInstance == nil {
 			return nil, nil
 		}
 
 		switch o {
-		case SchemaOperationCreate:
+		case schemaOperationCreate:
 			return plan.Schemas.ServiceInstance.Create, nil
-		case SchemaOperationUpdate:
+		case schemaOperationUpdate:
 			return plan.Schemas.ServiceInstance.Update, nil
 		default:
 			return nil, fmt.Errorf("unexpected schema operation: %v", o)
 		}
-	case SchemaTypeServiceBinding:
+	case schemaTypeServiceBinding:
 		if plan.Schemas.ServiceBinding == nil {
 			return nil, nil
 		}
 
 		switch o {
-		case SchemaOperationCreate:
+		case schemaOperationCreate:
 			return plan.Schemas.ServiceBinding.Create, nil
 		default:
 			return nil, fmt.Errorf("unexpected schema operation: %v", o)
@@ -256,8 +256,8 @@ func getSchema(config *v1.ServiceBrokerConfig, serviceID, planID string, t schem
 	}
 }
 
-// ValidateParameters validates any supplied parameters against an JSON schema if it exists.
-func ValidateParameters(config *v1.ServiceBrokerConfig, serviceID, planID string, t schemaType, o schemaOperation, parametersRaw *runtime.RawExtension) error {
+// validateParameters validates any supplied parameters against an JSON schema if it exists.
+func validateParameters(config *v1.ServiceBrokerConfig, serviceID, planID string, t schemaType, o schemaOperation, parametersRaw *runtime.RawExtension) error {
 	schemaRaw, err := getSchema(config, serviceID, planID, t, o)
 	if err != nil {
 		return err
@@ -289,9 +289,9 @@ func ValidateParameters(config *v1.ServiceBrokerConfig, serviceID, planID string
 	return nil
 }
 
-// PlanUpdatable accepts the service ID the original plan ID, and the new one, returning
+// planUpdatable accepts the service ID the original plan ID, and the new one, returning
 // an error if the service catalog doesn't allow it.
-func PlanUpdatable(config *v1.ServiceBrokerConfig, serviceID, planID, newPlanID string) error {
+func planUpdatable(config *v1.ServiceBrokerConfig, serviceID, planID, newPlanID string) error {
 	service, err := getServiceOffering(config, serviceID)
 	if err != nil {
 		return err
@@ -304,8 +304,8 @@ func PlanUpdatable(config *v1.ServiceBrokerConfig, serviceID, planID, newPlanID 
 	return nil
 }
 
-// VerifyBindable returns an error if the plan cannot be bound to.
-func VerifyBindable(config *v1.ServiceBrokerConfig, serviceID, planID string) error {
+// verifyBindable returns an error if the plan cannot be bound to.
+func verifyBindable(config *v1.ServiceBrokerConfig, serviceID, planID string) error {
 	service, err := getServiceOffering(config, serviceID)
 	if err != nil {
 		return err
