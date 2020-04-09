@@ -136,6 +136,16 @@ func setupNamespace(clients client.Clients) (string, func(), error) {
 	return newNamespace.Name, cleanup, nil
 }
 
+// mustSetupNamespace creates a temporary, random namespace to use for testing in.
+func mustSetupNamespace(t *testing.T, clients client.Clients) (string, func()) {
+	namespace, cleanup, err := setupNamespace(clients)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return namespace, cleanup
+}
+
 // TestMain performs any cluster initialization.
 func TestMain(m *testing.M) {
 	// For the benefit of glog.

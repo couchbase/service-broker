@@ -3,13 +3,14 @@ package acceptance
 import (
 	"io/ioutil"
 	"strings"
+	"testing"
 
 	"github.com/ghodss/yaml"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// readYAML reads in a YAML file and unmarshals as unstructured objects.
+// readYAMLObjects reads in a YAML file and unmarshals as unstructured objects.
 func readYAMLObjects(path string) ([]*unstructured.Unstructured, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -33,4 +34,14 @@ func readYAMLObjects(path string) ([]*unstructured.Unstructured, error) {
 	}
 
 	return objects, nil
+}
+
+// mustReadYAMLObjects reads in a YAML file and unmarshals as unstructured objects.
+func mustReadYAMLObjects(t *testing.T, path string) []*unstructured.Unstructured {
+	objects, err := readYAMLObjects(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return objects
 }

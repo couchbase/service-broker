@@ -52,6 +52,8 @@ Likewise CRDs are linked to from the documentation and must be kept up to date.
 
 All code submissions must include sufficient tests to check correctness.
 All tests must pass, and do so consistently.
+These tests are an amalgamation of unit and integration testing.
+
 Tests can be run with the following command:
 
 ```bash
@@ -77,7 +79,7 @@ See below for addtional testing of examples.
 ### Testing Example Submissions
 
 Examples define sample configurations for a specifc applications.
-Acceptance tests provide end-to-end testing of the service broker.
+Acceptance tests provide end-to-end testing of the service broker and for acceptance and system testing.
 These tests also aid in testing the installation documentation and ensure all configuration works.
 Acceptance tests are not automated as part of continuous integration, but you will be expected to test and confirm your submissions work.
 

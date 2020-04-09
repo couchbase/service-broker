@@ -6,11 +6,11 @@ import (
 )
 
 const (
-	ServiceBrokerConfigKind = "ServiceBrokerConfig"
-	ServiceBrokerConfigName = "servicebrokerconfigs"
-	GroupVersion            = "v1alpha1"
-	GroupName               = "servicebroker.couchbase.com"
-	Group                   = GroupName + "/" + GroupVersion
+	ServiceBrokerConfigKind     = "ServiceBrokerConfig"
+	ServiceBrokerConfigResource = "servicebrokerconfigs"
+	GroupVersion                = "v1alpha1"
+	GroupName                   = "servicebroker.couchbase.com"
+	Group                       = GroupName + "/" + GroupVersion
 )
 
 var (
