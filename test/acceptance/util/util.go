@@ -11,13 +11,11 @@ import (
 
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/client"
-	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/pkg/util"
 
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,6 +64,37 @@ func MustReadYAMLObjects(t *testing.T, path string) []*unstructured.Unstructured
 	return objects
 }
 
+// findResource expects to find a specifc resource in a list of objects.
+func findResource(objects []*unstructured.Unstructured, groupVersion, kind, name string) (*unstructured.Unstructured, error) {
+	for _, object := range objects {
+		if object.GetAPIVersion() != groupVersion {
+			continue
+		}
+
+		if object.GetKind() != kind {
+			continue
+		}
+
+		if object.GetName() != name {
+			continue
+		}
+
+		return object, nil
+	}
+
+	return nil, fmt.Errorf("unable to locate requested resource")
+}
+
+// MustFindResource expects to find a specifc resource in a list of objects.
+func MustFindResource(t *testing.T, objects []*unstructured.Unstructured, groupVersion, kind, name string) *unstructured.Unstructured {
+	object, err := findResource(objects, groupVersion, kind, name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return object
+}
+
 // createResources creates Kubernetes objects.
 func createResources(clients client.Clients, namespace string, objects []*unstructured.Unstructured) error {
 	for _, object := range objects {
@@ -99,6 +128,30 @@ func MustCreateResources(t *testing.T, clients client.Clients, namespace string,
 	if err := createResources(clients, namespace, objects); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// getResource gets the most up to date version of a resource.
+func getResource(clients client.Clients, namespace string, object *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	gvk := object.GroupVersionKind()
+
+	mapping, err := clients.RESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return nil, err
+	}
+
+	if mapping.Scope.Name() == meta.RESTScopeNameRoot {
+		if object, err = clients.Dynamic().Resource(mapping.Resource).Get(object.GetName(), metav1.GetOptions{}); err != nil {
+			return nil, err
+		}
+
+		return object, nil
+	}
+
+	if object, err = clients.Dynamic().Resource(mapping.Resource).Namespace(namespace).Get(object.GetName(), metav1.GetOptions{}); err != nil {
+		return nil, err
+	}
+
+	return object, nil
 }
 
 // setupCRDs deletes any CRDs we find that belong to our API group then creates
@@ -265,66 +318,12 @@ func MustGenerateServiceBrokerTLS(t *testing.T, namespace string) ([]byte, []byt
 	return caCertificate, serverCertificate, serverKey
 }
 
-// ConfigurationValid tests configuration is valid as per the status condition.
-func ConfigurationValid(clients client.Clients, namespace string) func() error {
+// ResourceCondition checks the resource for the specified condition.
+func ResourceCondition(clients client.Clients, namespace string, object *unstructured.Unstructured, conditionType, conditionStatus string) func() error {
 	return func() error {
-		configuration, err := clients.Broker().ServicebrokerV1alpha1().ServiceBrokerConfigs(namespace).Get(config.ConfigurationNameDefault, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
+		var err error
 
-		for _, condition := range configuration.Status.Conditions {
-			if condition.Type != v1.ConfigurationValid {
-				continue
-			}
-
-			if condition.Status == v1.ConditionTrue {
-				return nil
-			}
-
-			return fmt.Errorf("configuration validation condition %v", condition.Status)
-		}
-
-		return fmt.Errorf("configuration validation condition does not exist")
-	}
-}
-
-// DeploymentAvailable returns a verification function that reports whether the service
-// broker deployment is available as per its status conditions.
-func DeploymentAvailable(clients client.Clients, namespace, name string) func() error {
-	return func() error {
-		deployment, err := clients.Kubernetes().AppsV1().Deployments(namespace).Get(name, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-
-		for _, condition := range deployment.Status.Conditions {
-			if condition.Type != appsv1.DeploymentAvailable {
-				continue
-			}
-
-			if condition.Status == corev1.ConditionTrue {
-				return nil
-			}
-
-			return fmt.Errorf("deployment available condition %v", condition.Status)
-		}
-
-		return fmt.Errorf("deployment available condition does not exist")
-	}
-}
-
-// ClusterServiceBrokerReady is a verification function that reports whether the
-// cluster service broker is ready as per its status conditions.
-func ClusterServiceBrokerReady(clients client.Clients) func() error {
-	return func() error {
-		gvr := schema.GroupVersionResource{
-			Group:    "servicecatalog.k8s.io",
-			Version:  "v1beta1",
-			Resource: "clusterservicebrokers",
-		}
-
-		object, err := clients.Dynamic().Resource(gvr).Get("couchbase-service-broker", metav1.GetOptions{})
+		object, err = getResource(clients, namespace, object)
 		if err != nil {
 			return err
 		}
@@ -345,7 +344,7 @@ func ClusterServiceBrokerReady(clients client.Clients) func() error {
 				return fmt.Errorf("object condition has no type")
 			}
 
-			if t != "Ready" {
+			if t != conditionType {
 				continue
 			}
 
@@ -354,7 +353,7 @@ func ClusterServiceBrokerReady(clients client.Clients) func() error {
 				return fmt.Errorf("object ready condition has no status")
 			}
 
-			if status != "True" {
+			if status != conditionStatus {
 				return fmt.Errorf("object ready condition status %v", status)
 			}
 
@@ -365,23 +364,26 @@ func ClusterServiceBrokerReady(clients client.Clients) func() error {
 	}
 }
 
-// CleanupClusterServiceBroker removes a cluster service broker from the system.
-func CleanupClusterServiceBroker(clients client.Clients) {
-	gvr := schema.GroupVersionResource{
-		Group:    "servicecatalog.k8s.io",
-		Version:  "v1beta1",
-		Resource: "clusterservicebrokers",
-	}
+// DeleteClusterResource removes a resource from the system.
+func DeleteClusterResource(clients client.Clients, object *unstructured.Unstructured) {
+	gvk := object.GroupVersionKind()
 
-	glog.V(1).Infof("Deleting ClusterServiceBroker couchbase-service-broker")
-
-	if err := clients.Dynamic().Resource(gvr).Delete("couchbase-service-broker", metav1.NewDeleteOptions(0)); err != nil {
+	mapping, err := clients.RESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
 		glog.V(1).Info(err)
 		return
 	}
 
+	glog.V(1).Infof("Deleting %s %s", object.GetKind(), object.GetName())
+
+	if err := clients.Dynamic().Resource(mapping.Resource).Delete(object.GetName(), metav1.NewDeleteOptions(0)); err != nil {
+		glog.V(1).Info(err)
+		return
+	}
+
+	// Wait for deletion.
 	callback := func() error {
-		if _, err := clients.Dynamic().Resource(gvr).Get("couchbase-service-broker", metav1.GetOptions{}); err == nil {
+		if _, err := getResource(clients, "", object); err == nil {
 			return fmt.Errorf("resource still exists")
 		}
 

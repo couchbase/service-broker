@@ -8,8 +8,11 @@ import (
 	"testing"
 	"time"
 
+	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/test/acceptance/util"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -26,8 +29,8 @@ const (
 	// exampleClusterServiceBroker is the common service broker registration file.
 	exampleClusterServiceBroker = exampleDir + "/clusterservicebroker.yaml"
 
-	// exampleBrokerDeploymentName is the common service broker deployment name.
-	exampleBrokerDeploymentName = "couchbase-service-broker"
+	// exampleDefaultResourceName is the common service broker resource name.
+	exampleDefaultResourceName = "couchbase-service-broker"
 
 	// exampleConfigurationDir contains any application specific examples.
 	exampleConfigurationDir = exampleDir + "/" + "configurations"
@@ -69,6 +72,7 @@ func TestExamples(t *testing.T) {
 			configurationPath := path.Join(exampleConfigurationDir, name, exampleConfigurationSpecification)
 
 			objects := util.MustReadYAMLObjects(t, configurationPath)
+			serviceBrokerConfiguration := util.MustFindResource(t, objects, "broker.couchbase.com/v1alpha1", "ServiceBrokerConfig", exampleDefaultResourceName)
 
 			util.MustCreateResources(t, clients, namespace, objects)
 
@@ -81,68 +85,62 @@ func TestExamples(t *testing.T) {
 			caCertificate, serverCertificate, serverKey := util.MustGenerateServiceBrokerTLS(t, namespace)
 
 			objects = util.MustReadYAMLObjects(t, exampleBrokerConfiguration)
+			serviceBrokerSecret := util.MustFindResource(t, objects, "v1", "Secret", exampleDefaultResourceName)
+			serviceBrokerRoleBinding := util.MustFindResource(t, objects, "rbac.authorization.k8s.io/v1", "RoleBinding", exampleDefaultResourceName)
+			serviceBrokerDeployment := util.MustFindResource(t, objects, "apps/v1", "Deployment", exampleDefaultResourceName)
 
-			for _, object := range objects {
-				// Override the service broker TLS secret data.
-				if object.GetKind() == "Secret" {
-					data := map[string]interface{}{
-						"token":           base64.StdEncoding.EncodeToString([]byte(token)),
-						"tls-certificate": base64.StdEncoding.EncodeToString(serverCertificate),
-						"tls-private-key": base64.StdEncoding.EncodeToString(serverKey),
-					}
+			// Override the service broker TLS secret data.
+			data := map[string]interface{}{
+				"token":           base64.StdEncoding.EncodeToString([]byte(token)),
+				"tls-certificate": base64.StdEncoding.EncodeToString(serverCertificate),
+				"tls-private-key": base64.StdEncoding.EncodeToString(serverKey),
+			}
 
-					if err := unstructured.SetNestedField(object.Object, data, "data"); err != nil {
-						t.Fatal(err)
-					}
-				}
+			if err := unstructured.SetNestedField(serviceBrokerSecret.Object, data, "data"); err != nil {
+				t.Fatal(err)
+			}
 
-				// Override the service broker role binding namespace.
-				if object.GetKind() == "RoleBinding" {
-					subjects := []interface{}{
-						map[string]interface{}{
-							"kind":      "ServiceAccount",
-							"name":      "couchbase-service-broker",
-							"namespace": namespace,
-						},
-					}
+			// Override the service broker role binding namespace.
+			subjects := []interface{}{
+				map[string]interface{}{
+					"kind":      "ServiceAccount",
+					"name":      exampleDefaultResourceName,
+					"namespace": namespace,
+				},
+			}
 
-					if err := unstructured.SetNestedField(object.Object, subjects, "subjects"); err != nil {
-						t.Fatal(err)
-					}
-				}
+			if err := unstructured.SetNestedField(serviceBrokerRoleBinding.Object, subjects, "subjects"); err != nil {
+				t.Fatal(err)
 			}
 
 			util.MustCreateResources(t, clients, namespace, objects)
 
-			util.MustWaitFor(t, util.ConfigurationValid(clients, namespace), time.Minute)
-			util.MustWaitFor(t, util.DeploymentAvailable(clients, namespace, exampleBrokerDeploymentName), time.Minute)
+			util.MustWaitFor(t, util.ResourceCondition(clients, namespace, serviceBrokerConfiguration, string(v1.ConfigurationValid), string(v1.ConditionTrue)), time.Minute)
+			util.MustWaitFor(t, util.ResourceCondition(clients, namespace, serviceBrokerDeployment, string(appsv1.DeploymentAvailable), string(corev1.ConditionTrue)), time.Minute)
 
 			// Register the service broker with the service catalog.
 			// We replaced the service broker configuration with new TLS due to the
 			// namespace change, do the same here.
 			objects = util.MustReadYAMLObjects(t, exampleClusterServiceBroker)
+			clusterServiceBroker := util.MustFindResource(t, objects, "servicecatalog.k8s.io/v1beta1", "ClusterServiceBroker", exampleDefaultResourceName)
 
-			for _, object := range objects {
-				if object.GetKind() == "ClusterServiceBroker" {
-					if err := unstructured.SetNestedField(object.Object, fmt.Sprintf("https://couchbase-service-broker.%s", namespace), "spec", "url"); err != nil {
-						t.Fatal(err)
-					}
+			if err := unstructured.SetNestedField(clusterServiceBroker.Object, fmt.Sprintf("https://%s.%s", exampleDefaultResourceName, namespace), "spec", "url"); err != nil {
+				t.Fatal(err)
+			}
 
-					if err := unstructured.SetNestedField(object.Object, base64.StdEncoding.EncodeToString(caCertificate), "spec", "caBundle"); err != nil {
-						t.Fatal(err)
-					}
+			if err := unstructured.SetNestedField(clusterServiceBroker.Object, base64.StdEncoding.EncodeToString(caCertificate), "spec", "caBundle"); err != nil {
+				t.Fatal(err)
+			}
 
-					if err := unstructured.SetNestedField(object.Object, namespace, "spec", "authInfo", "bearer", "secretRef", "namespace"); err != nil {
-						t.Fatal(err)
-					}
-				}
+			if err := unstructured.SetNestedField(clusterServiceBroker.Object, namespace, "spec", "authInfo", "bearer", "secretRef", "namespace"); err != nil {
+				t.Fatal(err)
 			}
 
 			util.MustCreateResources(t, clients, namespace, objects)
 
-			defer util.CleanupClusterServiceBroker(clients)
+			defer util.DeleteClusterResource(clients, clusterServiceBroker)
 
-			util.MustWaitFor(t, util.ClusterServiceBrokerReady(clients), time.Minute)
+			util.MustWaitFor(t, util.ResourceCondition(clients, namespace, clusterServiceBroker, "Ready", "True"), time.Minute)
 		}
 
 		t.Run("TestExample-"+name, test)
