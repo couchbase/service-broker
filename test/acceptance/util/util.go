@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"runtime/debug"
 	"strings"
 	"testing"
 	"time"
@@ -20,13 +21,20 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
 	// crdDir is where CRDs are installed by the docker file.
 	crdDir = "/usr/local/share/couchbase-service-broker/crds"
 )
+
+// Die provides useful debug information.
+func Die(t *testing.T, err error) {
+	t.Log(err)
+	t.Log(string(debug.Stack()))
+	t.FailNow()
+}
 
 // readYAMLObjects reads in a YAML file and unmarshals as unstructured objects.
 func readYAMLObjects(path string) ([]*unstructured.Unstructured, error) {
@@ -58,7 +66,7 @@ func readYAMLObjects(path string) ([]*unstructured.Unstructured, error) {
 func MustReadYAMLObjects(t *testing.T, path string) []*unstructured.Unstructured {
 	objects, err := readYAMLObjects(path)
 	if err != nil {
-		t.Fatal(err)
+		Die(t, err)
 	}
 
 	return objects
@@ -89,7 +97,49 @@ func findResource(objects []*unstructured.Unstructured, groupVersion, kind, name
 func MustFindResource(t *testing.T, objects []*unstructured.Unstructured, groupVersion, kind, name string) *unstructured.Unstructured {
 	object, err := findResource(objects, groupVersion, kind, name)
 	if err != nil {
-		t.Fatal(err)
+		Die(t, err)
+	}
+
+	return object
+}
+
+// createResource creates a Kubernetes resource.
+func createResource(clients client.Clients, namespace string, object *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	gvk := object.GroupVersionKind()
+
+	mapping, err := clients.RESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return nil, err
+	}
+
+	if mapping.Scope.Name() == meta.RESTScopeNameRoot {
+		glog.V(1).Infof("Creating %s %s %s", object.GetAPIVersion(), object.GetKind(), object.GetName())
+
+		object, err = clients.Dynamic().Resource(mapping.Resource).Create(object, metav1.CreateOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		return object, nil
+	}
+
+	glog.V(1).Infof("Creating %s %s %s/%s", object.GetAPIVersion(), object.GetKind(), namespace, object.GetName())
+
+	object, err = clients.Dynamic().Resource(mapping.Resource).Namespace(namespace).Create(object, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return object, nil
+}
+
+// MustCreateResource creates a Kubernetes resource.
+func MustCreateResource(t *testing.T, clients client.Clients, namespace string, object *unstructured.Unstructured) *unstructured.Unstructured {
+	var err error
+
+	object, err = createResource(clients, namespace, object)
+	if err != nil {
+		Die(t, err)
 	}
 
 	return object
@@ -98,24 +148,7 @@ func MustFindResource(t *testing.T, objects []*unstructured.Unstructured, groupV
 // createResources creates Kubernetes objects.
 func createResources(clients client.Clients, namespace string, objects []*unstructured.Unstructured) error {
 	for _, object := range objects {
-		gvk := object.GroupVersionKind()
-
-		mapping, err := clients.RESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version)
-		if err != nil {
-			return err
-		}
-
-		glog.V(1).Infof("Creating %s %s", object.GetKind(), object.GetName())
-
-		if mapping.Scope.Name() == meta.RESTScopeNameRoot {
-			if _, err := clients.Dynamic().Resource(mapping.Resource).Create(object, metav1.CreateOptions{}); err != nil {
-				return err
-			}
-
-			continue
-		}
-
-		if _, err := clients.Dynamic().Resource(mapping.Resource).Namespace(namespace).Create(object, metav1.CreateOptions{}); err != nil {
+		if _, err := createResource(clients, namespace, object); err != nil {
 			return err
 		}
 	}
@@ -126,7 +159,7 @@ func createResources(clients client.Clients, namespace string, objects []*unstru
 // MustCreateResources creates Kubernetes objects.
 func MustCreateResources(t *testing.T, clients client.Clients, namespace string, objects []*unstructured.Unstructured) {
 	if err := createResources(clients, namespace, objects); err != nil {
-		t.Fatal(err)
+		Die(t, err)
 	}
 }
 
@@ -158,58 +191,12 @@ func getResource(clients client.Clients, namespace string, object *unstructured.
 // any that are installed in the CRD directory installed in the container, the
 // make file will ensure these are up to date.
 func SetupCRDs(clients client.Clients) error {
-	// Just use the dynamic client here as using typed clients requires
-	// a package the main service broker doesn't need to include.
-	gvr := schema.GroupVersionResource{
-		Group:    "apiextensions.k8s.io",
-		Version:  "v1beta1",
-		Resource: "customresourcedefinitions",
-	}
-
-	crds, err := clients.Dynamic().Resource(gvr).List(metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-
-	for _, crd := range crds.Items {
-		group, ok, err := unstructured.NestedString(crd.Object, "spec", "group")
-		if err != nil {
-			return err
-		}
-
-		if !ok {
-			return fmt.Errorf("crd doesn't have value for spec.group")
-		}
-
-		if group != v1.GroupName {
-			continue
-		}
-
-		name := crd.GetName()
-
-		glog.V(1).Info("Deleting CRD", name)
-
-		if err := clients.Dynamic().Resource(gvr).Delete(name, metav1.NewDeleteOptions(0)); err != nil {
-			return err
-		}
-
-		callback := func() error {
-			if _, err := clients.Dynamic().Resource(gvr).Get(name, metav1.GetOptions{}); err == nil {
-				return fmt.Errorf("resource still exists")
-			}
-
-			return nil
-		}
-
-		if err := util.WaitFor(callback, time.Minute); err != nil {
-			return err
-		}
-	}
-
 	files, err := ioutil.ReadDir(crdDir)
 	if err != nil {
 		return err
 	}
+
+	objects := []*unstructured.Unstructured{}
 
 	for _, file := range files {
 		crdPath := path.Join(crdDir, file.Name())
@@ -219,52 +206,46 @@ func SetupCRDs(clients client.Clients) error {
 			return err
 		}
 
-		for _, crd := range crds {
-			glog.V(1).Info("Creating CRD", crd.GetName())
-
-			if _, err := clients.Dynamic().Resource(gvr).Create(crd, metav1.CreateOptions{}); err != nil {
-				return err
-			}
-		}
+		objects = append(objects, crds...)
 	}
 
-	return nil
+	DeleteResources(clients, "", objects)
+
+	return createResources(clients, "", objects)
 }
 
-// setupNamespace creates a temporary, random namespace to use for testing in.
-func setupNamespace(clients client.Clients) (string, func(), error) {
+// getNamespace creates a temporary, random namespace to use for testing in.
+func getNamespace() (*unstructured.Unstructured, error) {
 	namespace := &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Namespace",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "acceptance-",
 		},
 	}
 
-	newNamespace, err := clients.Kubernetes().CoreV1().Namespaces().Create(namespace)
+	o, err := runtime.DefaultUnstructuredConverter.ToUnstructured(namespace)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
-	glog.V(1).Infof("Created Namespace %s", newNamespace.Name)
-
-	cleanup := func() {
-		glog.V(1).Infof("Deleting Namespace %s", newNamespace.Name)
-
-		if err := clients.Kubernetes().CoreV1().Namespaces().Delete(newNamespace.Name, metav1.NewDeleteOptions(0)); err != nil {
-			glog.Fatal(err)
-		}
+	object := &unstructured.Unstructured{
+		Object: o,
 	}
 
-	return newNamespace.Name, cleanup, nil
+	return object, err
 }
 
-// MustSetupNamespace creates a temporary, random namespace to use for testing in.
-func MustSetupNamespace(t *testing.T, clients client.Clients) (string, func()) {
-	namespace, cleanup, err := setupNamespace(clients)
+// MustGetNamespace creates a temporary, random namespace to use for testing in.
+func MustGetNamespace(t *testing.T) *unstructured.Unstructured {
+	object, err := getNamespace()
 	if err != nil {
-		t.Fatal(err)
+		Die(t, err)
 	}
 
-	return namespace, cleanup
+	return object
 }
 
 // generateServiceBrokerTLS returns TLS configuration for the service broker.
@@ -312,7 +293,7 @@ func generateServiceBrokerTLS(namespace string) ([]byte, []byte, []byte, error) 
 func MustGenerateServiceBrokerTLS(t *testing.T, namespace string) ([]byte, []byte, []byte) {
 	caCertificate, serverCertificate, serverKey, err := generateServiceBrokerTLS(namespace)
 	if err != nil {
-		t.Fatal(err)
+		Die(t, err)
 	}
 
 	return caCertificate, serverCertificate, serverKey
@@ -364,8 +345,8 @@ func ResourceCondition(clients client.Clients, namespace string, object *unstruc
 	}
 }
 
-// DeleteClusterResource removes a resource from the system.
-func DeleteClusterResource(clients client.Clients, object *unstructured.Unstructured) {
+// DeleteResource removes a resource from the system.
+func DeleteResource(clients client.Clients, namespace string, object *unstructured.Unstructured) {
 	gvk := object.GroupVersionKind()
 
 	mapping, err := clients.RESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version)
@@ -374,11 +355,20 @@ func DeleteClusterResource(clients client.Clients, object *unstructured.Unstruct
 		return
 	}
 
-	glog.V(1).Infof("Deleting %s %s", object.GetKind(), object.GetName())
+	if mapping.Scope.Name() == meta.RESTScopeNameRoot {
+		glog.V(1).Infof("Deleting %s %s %s", object.GetAPIVersion(), object.GetKind(), object.GetName())
 
-	if err := clients.Dynamic().Resource(mapping.Resource).Delete(object.GetName(), metav1.NewDeleteOptions(0)); err != nil {
-		glog.V(1).Info(err)
-		return
+		if err := clients.Dynamic().Resource(mapping.Resource).Delete(object.GetName(), metav1.NewDeleteOptions(0)); err != nil {
+			glog.V(1).Info(err)
+			return
+		}
+	} else {
+		glog.V(1).Infof("Deleting %s %s %s/%s", object.GetAPIVersion(), object.GetKind(), namespace, object.GetName())
+
+		if err := clients.Dynamic().Resource(mapping.Resource).Namespace(namespace).Delete(object.GetName(), metav1.NewDeleteOptions(0)); err != nil {
+			glog.V(1).Info(err)
+			return
+		}
 	}
 
 	// Wait for deletion.
@@ -392,5 +382,12 @@ func DeleteClusterResource(clients client.Clients, object *unstructured.Unstruct
 
 	if err := util.WaitFor(callback, time.Minute); err != nil {
 		glog.V(1).Info(err)
+	}
+}
+
+// DeleteResources removes resources from the system.
+func DeleteResources(clients client.Clients, namespace string, objects []*unstructured.Unstructured) {
+	for _, object := range objects {
+		DeleteResource(clients, namespace, object)
 	}
 }
