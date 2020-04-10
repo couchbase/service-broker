@@ -264,7 +264,12 @@ spec:
       subjects:
       - kind: ServiceAccount
         name: couchbase-operator
-        namespace: default
+    parameters:
+    - name: namespace
+      source:
+        registry: namespace
+      destinations:
+      - path: /subjects/0/namespace
   - name: couchbase-operator-deployment
     singleton: true
     template:

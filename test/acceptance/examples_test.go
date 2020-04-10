@@ -41,7 +41,11 @@ const (
 
 	// exampleConfigurationServiceInstance contains the configuration service
 	// instance definition.
-	//exampleConfigurationServiceInstance = "serviceinstance.yaml"
+	exampleConfigurationServiceInstance = "serviceinstance.yaml"
+
+	// exampleDefaultServiceInstanceName is the name an example service instance
+	// must be called.
+	exampleDefaultServiceInstanceName = "test-instance"
 
 	// exampleConfigurationServiceBinding contains the configuration service
 	// binding definition.
@@ -81,8 +85,8 @@ func TestExamples(t *testing.T) {
 			// flags the configuration as valid and the deployment is available.
 			// As the namespace is ephemeral we need to watch out for any resources
 			// that usually refer to "default" explicitly.
-			// * Tests service broker comes up in Kubernetes
-			// * Tests example passses service broker validation
+			// * Tests service broker comes up in Kubernetes.
+			// * Tests example passses service broker validation.
 			caCertificate, serverCertificate, serverKey := util.MustGenerateServiceBrokerTLS(t, namespace.GetName())
 
 			objects = util.MustReadYAMLObjects(t, exampleBrokerConfiguration)
@@ -122,6 +126,7 @@ func TestExamples(t *testing.T) {
 			// Register the service broker with the service catalog.
 			// We replaced the service broker configuration with new TLS due to the
 			// namespace change, do the same here.
+			// * Tests the service catalog can talk to the service broker.
 			objects = util.MustReadYAMLObjects(t, exampleClusterServiceBroker)
 			clusterServiceBroker := util.MustFindResource(t, objects, "servicecatalog.k8s.io/v1beta1", "ClusterServiceBroker", exampleDefaultResourceName)
 
@@ -142,6 +147,21 @@ func TestExamples(t *testing.T) {
 			defer util.DeleteResource(clients, "", clusterServiceBroker)
 
 			util.MustWaitFor(t, util.ResourceCondition(clients, namespace.GetName(), clusterServiceBroker, "Ready", "True"), time.Minute)
+
+			// Create the service instance.
+			// * Tests the configuration provisions.
+			serviceInstancePath := path.Join(exampleConfigurationDir, name, exampleConfigurationServiceInstance)
+
+			objects = util.MustReadYAMLObjects(t, serviceInstancePath)
+			serviceInstance := util.MustFindResource(t, objects, "servicecatalog.k8s.io/v1beta1", "ServiceInstance", exampleDefaultServiceInstanceName)
+
+			util.MustCreateResources(t, clients, namespace.GetName(), objects)
+
+			util.MustWaitFor(t, util.ResourceCondition(clients, namespace.GetName(), serviceInstance, "Ready", "True"), 5*time.Minute)
+
+			// Delete the service instance.
+			// * Tests the service instance is deprovisioned cleanly.
+			util.DeleteResource(clients, namespace.GetName(), serviceInstance)
 		}
 
 		t.Run("TestExample-"+name, test)

@@ -372,15 +372,7 @@ func DeleteResource(clients client.Clients, namespace string, object *unstructur
 	}
 
 	// Wait for deletion.
-	callback := func() error {
-		if _, err := getResource(clients, "", object); err == nil {
-			return fmt.Errorf("resource still exists")
-		}
-
-		return nil
-	}
-
-	if err := util.WaitFor(callback, time.Minute); err != nil {
+	if err := util.WaitFor(ResourceDeleted(clients, namespace, object), time.Minute); err != nil {
 		glog.V(1).Info(err)
 	}
 }
@@ -389,5 +381,16 @@ func DeleteResource(clients client.Clients, namespace string, object *unstructur
 func DeleteResources(clients client.Clients, namespace string, objects []*unstructured.Unstructured) {
 	for _, object := range objects {
 		DeleteResource(clients, namespace, object)
+	}
+}
+
+// ResourceDeleted checks whether a resource has need deleted and no longer exists.
+func ResourceDeleted(clients client.Clients, namespace string, object *unstructured.Unstructured) func() error {
+	return func() error {
+		if _, err := getResource(clients, namespace, object); err == nil {
+			return fmt.Errorf("resource still exists")
+		}
+
+		return nil
 	}
 }
