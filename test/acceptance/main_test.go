@@ -7,6 +7,7 @@ import (
 
 	"github.com/couchbase/service-broker/pkg/apis"
 	"github.com/couchbase/service-broker/pkg/client"
+	"github.com/couchbase/service-broker/test/acceptance/util"
 
 	"github.com/golang/glog"
 
@@ -40,7 +41,7 @@ func TestMain(m *testing.M) {
 
 	// Delete and recreate any CRDs so we have the most up to date
 	// versions installed.
-	if err := setupCRDs(clients); err != nil {
+	if err := util.SetupCRDs(clients); err != nil {
 		glog.Fatal(err)
 		os.Exit(0)
 	}

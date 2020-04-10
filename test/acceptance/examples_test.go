@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/couchbase/service-broker/pkg/util"
+	"github.com/couchbase/service-broker/test/acceptance/util"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -61,16 +61,16 @@ func TestExamples(t *testing.T) {
 		test := func(t *testing.T) {
 			// Create a clean namespace to test in, we can clean up everything
 			// by just deleting it and letting the cascade do its thing.
-			namespace, cleanupNamespace := mustSetupNamespace(t, clients)
+			namespace, cleanupNamespace := util.MustSetupNamespace(t, clients)
 			defer cleanupNamespace()
 
 			// Install the service broker configuration for the example.
 			// * Tests example passes CRD validation.
 			configurationPath := path.Join(exampleConfigurationDir, name, exampleConfigurationSpecification)
 
-			objects := mustReadYAMLObjects(t, configurationPath)
+			objects := util.MustReadYAMLObjects(t, configurationPath)
 
-			mustCreateResources(t, clients, namespace, objects)
+			util.MustCreateResources(t, clients, namespace, objects)
 
 			// Install the service broker, we need to check that the service broker
 			// flags the configuration as valid and the deployment is available.
@@ -78,9 +78,9 @@ func TestExamples(t *testing.T) {
 			// that usually refer to "default" explicitly.
 			// * Tests service broker comes up in Kubernetes
 			// * Tests example passses service broker validation
-			caCertificate, serverCertificate, serverKey := mustGenerateServiceBrokerTLS(t, namespace)
+			caCertificate, serverCertificate, serverKey := util.MustGenerateServiceBrokerTLS(t, namespace)
 
-			objects = mustReadYAMLObjects(t, exampleBrokerConfiguration)
+			objects = util.MustReadYAMLObjects(t, exampleBrokerConfiguration)
 
 			for _, object := range objects {
 				// Override the service broker TLS secret data.
@@ -112,15 +112,15 @@ func TestExamples(t *testing.T) {
 				}
 			}
 
-			mustCreateResources(t, clients, namespace, objects)
+			util.MustCreateResources(t, clients, namespace, objects)
 
-			util.MustWaitFor(t, configurationValid(clients, namespace), time.Minute)
-			util.MustWaitFor(t, deploymentAvailable(clients, namespace, exampleBrokerDeploymentName), time.Minute)
+			util.MustWaitFor(t, util.ConfigurationValid(clients, namespace), time.Minute)
+			util.MustWaitFor(t, util.DeploymentAvailable(clients, namespace, exampleBrokerDeploymentName), time.Minute)
 
 			// Register the service broker with the service catalog.
 			// We replaced the service broker configuration with new TLS due to the
 			// namespace change, do the same here.
-			objects = mustReadYAMLObjects(t, exampleClusterServiceBroker)
+			objects = util.MustReadYAMLObjects(t, exampleClusterServiceBroker)
 
 			for _, object := range objects {
 				if object.GetKind() == "ClusterServiceBroker" {
@@ -138,11 +138,11 @@ func TestExamples(t *testing.T) {
 				}
 			}
 
-			mustCreateResources(t, clients, namespace, objects)
+			util.MustCreateResources(t, clients, namespace, objects)
 
-			defer cleanupClusterServiceBroker(clients)
+			defer util.CleanupClusterServiceBroker(clients)
 
-			util.MustWaitFor(t, clusterServiceBrokerReady(clients), time.Minute)
+			util.MustWaitFor(t, util.ClusterServiceBrokerReady(clients), time.Minute)
 		}
 
 		t.Run("TestExample-"+name, test)

@@ -1,4 +1,4 @@
-package acceptance
+package util
 
 import (
 	"crypto/x509/pkix"
@@ -56,8 +56,8 @@ func readYAMLObjects(path string) ([]*unstructured.Unstructured, error) {
 	return objects, nil
 }
 
-// mustReadYAMLObjects reads in a YAML file and unmarshals as unstructured objects.
-func mustReadYAMLObjects(t *testing.T, path string) []*unstructured.Unstructured {
+// MustReadYAMLObjects reads in a YAML file and unmarshals as unstructured objects.
+func MustReadYAMLObjects(t *testing.T, path string) []*unstructured.Unstructured {
 	objects, err := readYAMLObjects(path)
 	if err != nil {
 		t.Fatal(err)
@@ -94,8 +94,8 @@ func createResources(clients client.Clients, namespace string, objects []*unstru
 	return nil
 }
 
-// mustCreateResources creates Kubernetes objects.
-func mustCreateResources(t *testing.T, clients client.Clients, namespace string, objects []*unstructured.Unstructured) {
+// MustCreateResources creates Kubernetes objects.
+func MustCreateResources(t *testing.T, clients client.Clients, namespace string, objects []*unstructured.Unstructured) {
 	if err := createResources(clients, namespace, objects); err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func mustCreateResources(t *testing.T, clients client.Clients, namespace string,
 // setupCRDs deletes any CRDs we find that belong to our API group then creates
 // any that are installed in the CRD directory installed in the container, the
 // make file will ensure these are up to date.
-func setupCRDs(clients client.Clients) error {
+func SetupCRDs(clients client.Clients) error {
 	// Just use the dynamic client here as using typed clients requires
 	// a package the main service broker doesn't need to include.
 	gvr := schema.GroupVersionResource{
@@ -204,8 +204,8 @@ func setupNamespace(clients client.Clients) (string, func(), error) {
 	return newNamespace.Name, cleanup, nil
 }
 
-// mustSetupNamespace creates a temporary, random namespace to use for testing in.
-func mustSetupNamespace(t *testing.T, clients client.Clients) (string, func()) {
+// MustSetupNamespace creates a temporary, random namespace to use for testing in.
+func MustSetupNamespace(t *testing.T, clients client.Clients) (string, func()) {
 	namespace, cleanup, err := setupNamespace(clients)
 	if err != nil {
 		t.Fatal(err)
@@ -255,8 +255,8 @@ func generateServiceBrokerTLS(namespace string) ([]byte, []byte, []byte, error) 
 	return caCertificate, serverCertificate, serverKey, nil
 }
 
-// mustGenerateServiceBrokerTLS returns TLS configuration for the service broker.
-func mustGenerateServiceBrokerTLS(t *testing.T, namespace string) ([]byte, []byte, []byte) {
+// MustGenerateServiceBrokerTLS returns TLS configuration for the service broker.
+func MustGenerateServiceBrokerTLS(t *testing.T, namespace string) ([]byte, []byte, []byte) {
 	caCertificate, serverCertificate, serverKey, err := generateServiceBrokerTLS(namespace)
 	if err != nil {
 		t.Fatal(err)
@@ -265,8 +265,8 @@ func mustGenerateServiceBrokerTLS(t *testing.T, namespace string) ([]byte, []byt
 	return caCertificate, serverCertificate, serverKey
 }
 
-// configuration is valid as per the status condition.
-func configurationValid(clients client.Clients, namespace string) func() error {
+// ConfigurationValid tests configuration is valid as per the status condition.
+func ConfigurationValid(clients client.Clients, namespace string) func() error {
 	return func() error {
 		configuration, err := clients.Broker().ServicebrokerV1alpha1().ServiceBrokerConfigs(namespace).Get(config.ConfigurationNameDefault, metav1.GetOptions{})
 		if err != nil {
@@ -289,9 +289,9 @@ func configurationValid(clients client.Clients, namespace string) func() error {
 	}
 }
 
-// deploymentAvailable returns a verification function that reports whether the service
+// DeploymentAvailable returns a verification function that reports whether the service
 // broker deployment is available as per its status conditions.
-func deploymentAvailable(clients client.Clients, namespace, name string) func() error {
+func DeploymentAvailable(clients client.Clients, namespace, name string) func() error {
 	return func() error {
 		deployment, err := clients.Kubernetes().AppsV1().Deployments(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
@@ -314,9 +314,9 @@ func deploymentAvailable(clients client.Clients, namespace, name string) func() 
 	}
 }
 
-// clusterServiceBrokerReady is a verification function that reports whether the
+// ClusterServiceBrokerReady is a verification function that reports whether the
 // cluster service broker is ready as per its status conditions.
-func clusterServiceBrokerReady(clients client.Clients) func() error {
+func ClusterServiceBrokerReady(clients client.Clients) func() error {
 	return func() error {
 		gvr := schema.GroupVersionResource{
 			Group:    "servicecatalog.k8s.io",
@@ -365,8 +365,8 @@ func clusterServiceBrokerReady(clients client.Clients) func() error {
 	}
 }
 
-// cleanupClusterServiceBroker removes a cluster service broker from the system.
-func cleanupClusterServiceBroker(clients client.Clients) {
+// CleanupClusterServiceBroker removes a cluster service broker from the system.
+func CleanupClusterServiceBroker(clients client.Clients) {
 	gvr := schema.GroupVersionResource{
 		Group:    "servicecatalog.k8s.io",
 		Version:  "v1beta1",
