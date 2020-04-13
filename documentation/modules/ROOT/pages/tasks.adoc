@@ -1,0 +1,7 @@
+= Tasks
+
+[abstract]
+
+ifdef::env-github[]
+:imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]
