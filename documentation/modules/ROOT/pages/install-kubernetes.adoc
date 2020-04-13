@@ -43,6 +43,11 @@ At this point, the Kubernetes API may reject the `ServiceBrokerConfig` resource 
 Errors will be based on the https://swagger.io/docs/specification/data-models/[OpenAPI schema specification^].
 ****
 
+The Couchbase Server configuration uses the Couchbase Autonomous Operator to provision service instances.
+This requires the installation of custom resource definitions and a dynamic admission controller to provided defaults to custom resource attributes.
+The Service Broker examples, however, use a namespace scoped role and cannot create the resources required.
+You will need to manually https://docs.couchbase.com/operator/2.0/install-kubernetes.html[install the CRDs and dynamic admission controller] before proceeding.
+
 == Install the Service Broker Service
 
 The Service Broker is installed with a single configuration file:
