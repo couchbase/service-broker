@@ -4,10 +4,11 @@
 This page describes how catalog service plans are bound to templates in the service broker configuration.
 
 ifdef::env-github[]
+:relfileprefix: ../
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
-In the xref:concepts-catalog.adoc[previous section] we looked, in detail, at how the service catalog is exposed to an end user.
+In the xref:concepts/catalog.adoc[previous section] we looked, in detail, at how the service catalog is exposed to an end user.
 What was clear was that service plans abstract a lot of the details about a service and how it is implemented.
 A user need only concern themselves with a service offering and plan that suits their particular workload.
 
@@ -74,4 +75,4 @@ This allows the client to control the duration it should poll for, rather than h
 We have seen how a service plan is mapped to lists of templates and parameters for both service instances and bindings.
 Next we will look in detail at how templates are rendered into Kubernetes resources.
 
-* xref:concepts-templates.adoc[Configuration Templates]
+* xref:concepts/templates.adoc[Configuration Templates]

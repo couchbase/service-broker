@@ -4,6 +4,7 @@
 This page describes how to create and consume a service.
 
 ifdef::env-github[]
+:relfileprefix: ../
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
@@ -152,4 +153,4 @@ You have seen just a taste of what the Service Broker can offer.
 Next you should read our learning resources that describe the key concepts of the Service Broker architecture and how it works.
 From there you can begin to configure your own service instances and bindings for any service you desire.
 
-* xref:concepts.adoc[Concepts]
+* xref:concepts/index.adoc[Concepts]

@@ -46,12 +46,12 @@ These inputs include metadata--provided by the client to provision the instance-
 
 To fully understand how the Service Broker works, and its capabilities, we suggest you read the following sections:
 
-* The xref:install.adoc[Getting Started] section describes how to install and configure the Service Broker.
+* The xref:install/index.adoc[Getting Started] section describes how to install and configure the Service Broker.
   The best way to understand how to use service brokers is by example.
   Using the provided example configuration files it will demonstrate the ease of deployment of a service for an end user and how to consume services as an application.
-* The xref:concepts.adoc[Concepts] section describes the architecture of the Service Broker.
+* The xref:concepts/index.adoc[Concepts] section describes the architecture of the Service Broker.
   By gaining an understanding of what the Service Broker does, and how it does it, you will gain an appreciation for what can be achieved for your desired service.
-* The xref:tasks.adoc[Tasks] section describes how to put concepts into action.
+* The xref:tasks/index.adoc[Tasks] section describes how to put concepts into action.
   Tasks show--with simple examples--how to accomplish common tasks that may not be immediately obvious from the core Service Broker concepts.
-* The xref:reference.adoc[Reference] section describes low-level configuration of the Service Broker.
+* The xref:reference/index.adoc[Reference] section describes low-level configuration of the Service Broker.
   Once you understand the core concepts, the reference section will teach you all the configuration that can be altered and any constraints to be aware of.

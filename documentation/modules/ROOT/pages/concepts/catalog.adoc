@@ -4,11 +4,12 @@
 This page describes the core functionality of the service catalog.
 
 ifdef::env-github[]
+:relfileprefix: ../
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
 The service catalog is a centralized directory used by clients to discover service offerings and plans.
-In the xref:concepts-architecture.adoc#service-catalog[previous section], we described that the service catalog conceptually describes a service by characteristics, and then by sizing.
+In the xref:concepts/architecture.adoc#service-catalog[previous section], we described that the service catalog conceptually describes a service by characteristics, and then by sizing.
 This layout is only for guidance--you may configure the service catalog however you desire.
 
 In this section we will look a bit deeper into what the service catalog looks like, and then how this affects the operation of the Service Broker.
@@ -124,4 +125,4 @@ The service catalog allows end users to discover and search for services to use,
 It also allows the server to communicate acceptable behavior to the client.
 Next we will see how a request to create a service instance from a specific service plan begins to actually create resources to provision the service instance.
 
-* xref:concepts-bindings.adoc[Configuration Bindings]
+* xref:concepts/bindings.adoc[Configuration Bindings]

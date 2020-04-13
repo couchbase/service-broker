@@ -4,6 +4,7 @@
 This page details package options and how to get them.
 
 ifdef::env-github[]
+:relfileprefix: ../
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
@@ -32,4 +33,4 @@ If installing into a non-standard directory this will affect the paths described
 
 == Next Steps
 
-* xref:install-container.adoc[Creating Container Images]
+* xref:install/container.adoc[Creating Container Images]

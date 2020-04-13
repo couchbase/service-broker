@@ -1,7 +1,8 @@
-= Configure a Service Instance Dashboard URL
+= Tasks
 
 [abstract]
 
 ifdef::env-github[]
+:relfileprefix: ../
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]

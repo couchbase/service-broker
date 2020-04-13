@@ -4,6 +4,7 @@
 This page describes all fields in the ServiceBrokerConfig Kubernetes resource.
 
 ifdef::env-github[]
+:relfileprefix: ../
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
@@ -43,7 +44,7 @@ This attribute defines the Kubernetes resource kind.
 
 This attribute defines the name of the resource.
 By default, the Service Broker will look for a `ServiceBrokerConfig` resource named `couchbase-service-broker`.
-This can be modified by the `-config` argument to the xref:reference-container.adoc#arguments[Service Broker container].
+This can be modified by the `-config` argument to the xref:reference/container.adoc#arguments[Service Broker container].
 
 * This attribute is required and must be a string.
 
@@ -65,7 +66,7 @@ spec:
 ==== spec.catalog
 
 This attribute controls what services are advertised to clients and how clients should behave:
-Service catalog use is described by the xref:concepts-catalog.adoc[service catalog concepts documentation].
+Service catalog use is described by the xref:concepts/catalog.adoc[service catalog concepts documentation].
 A service catalog is defined as follows:
 
 [source,yaml]
@@ -80,7 +81,7 @@ spec:
 ==== spec.catalog.services
 
 This attribute contains a list of service offerings that the Service Broker can provision.
-Service offering use is described by the xref:concepts-catalog.adoc#service-offerings[service offering concepts documentation].
+Service offering use is described by the xref:concepts/catalog.adoc#service-offerings[service offering concepts documentation].
 A service offering is configured as follows:
 
 [source,yaml]
@@ -159,7 +160,7 @@ Changing the plan ID should, however, be possible if the underlying Kubernetes r
 
 This attribute defines service plans.
 Service offerings are an abstract representation of a service, a service plan is a realization of that service.
-Service plan use is described by the xref:concepts-catalog.adoc#service-plans[service plan concepts documentation].
+Service plan use is described by the xref:concepts/catalog.adoc#service-plans[service plan concepts documentation].
 A service plan is defined as follows:
 
 [source,yaml]
@@ -229,7 +230,7 @@ This attribute overrides the service offering default set by the <<spec-catalog-
 
 This attribute defines schemas that are advertised to the client.
 These define the parameter object that can be passed to the Service Broker when performing API operations.
-Schema use is described by the xref:concepts-catalog.adoc#json-schemas[JSON schema concepts documentation].
+Schema use is described by the xref:concepts/catalog.adoc#json-schemas[JSON schema concepts documentation].
 Service plan schemas are defined as follows:
 
 [source,yaml]
@@ -284,7 +285,7 @@ This attribute defines a schema that can be associated with service binding crea
 ==== spec.bindings
 
 This attribute defines how service plans are mapped to configuration templates.
-Configuration binding use is described in the xref:concepts-bindings.adoc[configuration bindings concepts documentation].
+Configuration binding use is described in the xref:concepts/bindings.adoc[configuration bindings concepts documentation].
 Configuration bindings are defined as follows:
 
 [source,yaml]
@@ -339,7 +340,7 @@ This attribute defines the parameters and templates that are processed when a se
 ==== spec.templates
 
 This attribute defines an array of configuration templates that may be referenced by configuration bindings and configuration parameters.
-Configuration template use is described in the xref:concepts-templates.adoc[configuration templates concepts documentation].
+Configuration template use is described in the xref:concepts/templates.adoc[configuration templates concepts documentation].
 Configuration templates are defined as follows:
 
 [source,yaml]
@@ -396,7 +397,7 @@ Common types are configuration objects that are referenced in multiple places in
 === Input Parameter Schema
 
 This object is used to provide a schema for advertising parameters that can be passed to the Service Broker API for creating and updating service instance and service bindings.
-Schema use is described by the xref:concepts-catalog.adoc#json-schemas[JSON schema concepts documentation].
+Schema use is described by the xref:concepts/catalog.adoc#json-schemas[JSON schema concepts documentation].
 Schemas primarily define the structure of the parameter object that can be provided to the Service Broker API.
 The Service Broker will also validate parameters--if provided--against the schema.
 
@@ -545,7 +546,7 @@ This attribute defines the condition status to match.
 This object represents a parameter that reads data, performs a function on that data, then stores the result.
 Configuration parameters associated with configuration templates may define any path or registry destination.
 Configuration parameters associated with configuration bindings may only define registry destinations.
-Configuration parameter use is described in the xref:concepts-parameters.adoc[configuration parameters concepts documentation].
+Configuration parameter use is described in the xref:concepts/parameters.adoc[configuration parameters concepts documentation].
 Configuration parameters are defined as follows:
 
 [source,yaml]
@@ -620,7 +621,7 @@ This attribute defines a default object value.
 
 This attribute defines the configuration parameter source type.
 A configuration parameter source may not be specified only when a parameter source default is specified.
-Configuration parameter sources are described in more detail in the xref:concepts-parameters.adoc#parameter-sources[configuration parameter source concepts documentation].
+Configuration parameter sources are described in more detail in the xref:concepts/parameters.adoc#parameter-sources[configuration parameter source concepts documentation].
 Parameter sources are defined as follows:
 
 [source,yaml]
@@ -864,7 +865,7 @@ This attribute defines the X.509 CA certificate to use with an accessor.
 ==== destinations
 
 This attribute defines a list of where to store non-`nil` configuration parameter results.
-Configuration parameter destinations are described in more detail in the xref:concepts-parameters.adoc#parameter-destinations[configuration parameter destination concepts documentation].
+Configuration parameter destinations are described in more detail in the xref:concepts/parameters.adoc#parameter-destinations[configuration parameter destination concepts documentation].
 Configuration parameter destinations may be stored to either the registry or a path per entry, but not both, behavior is undefined in this case.
 Configuration parameter destinations are defined as follows:
 

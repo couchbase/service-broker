@@ -4,6 +4,7 @@
 This section describes core concepts to consider when configuring and deploying your services.
 
 ifdef::env-github[]
+:relfileprefix: ../
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
@@ -17,10 +18,10 @@ It is recommended all users read and fully understand this entire section.
 
 == Next Steps
 
-* xref:concepts-architecture.adoc[Architecture]
-* xref:concepts-catalog.adoc[Service Catalog]
-* xref:concepts-bindings.adoc[Configuration Bindings]
-* xref:concepts-templates.adoc[Configuration Templates]
-* xref:concepts-parameters.adoc[Configuration Parameters]
-* xref:concepts-registry.adoc[Service Instance and Binding Registries]
-* xref:concepts-security.adoc[Security Models]
+* xref:concepts/architecture.adoc[Architecture]
+* xref:concepts/catalog.adoc[Service Catalog]
+* xref:concepts/bindings.adoc[Configuration Bindings]
+* xref:concepts/templates.adoc[Configuration Templates]
+* xref:concepts/parameters.adoc[Configuration Parameters]
+* xref:concepts/registry.adoc[Service Instance and Binding Registries]
+* xref:concepts/security.adoc[Security Models]

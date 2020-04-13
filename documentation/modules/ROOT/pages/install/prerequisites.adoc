@@ -4,6 +4,7 @@
 This page details the platform and software requirements for running the Service Broker.
 
 ifdef::env-github[]
+:relfileprefix: ../
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
@@ -36,4 +37,4 @@ To get up and running you will need to install on your local machine:
 
 == Next Steps
 
-* xref:install-packages.adoc[Package Downloads]
+* xref:install/packages.adoc[Package Downloads]

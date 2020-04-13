@@ -4,10 +4,11 @@
 This page describes how configuration templates are used in the Service Broker.
 
 ifdef::env-github[]
+:relfileprefix: ../
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
-In the xref:concepts-bindings.adoc[previous section] we looked at how configuration bindings map service instances and service bindings for a service plan to a set of templates.
+In the xref:concepts/bindings.adoc[previous section] we looked at how configuration bindings map service instances and service bindings for a service plan to a set of templates.
 This section examines how templates are defined and are processed to result in Kubernetes resources that can be created.
 
 [#configuration-templates]
@@ -133,4 +134,4 @@ We have seen how service instance and bindings are mapped to a set of configurat
 Configuration templates map a resource template to final object by applying parameters to the configuration template.
 Next we will look at parameters, where they can source data from, what processing can be performed on the source data, and where it can be stored.
 
-* xref:concepts-parameters.adoc[Configuration Parameters]
+* xref:concepts/parameters.adoc[Configuration Parameters]

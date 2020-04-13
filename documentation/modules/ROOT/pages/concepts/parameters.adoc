@@ -4,10 +4,11 @@
 This page describes how configuration parameters are processed and stored in the Service Broker.
 
 ifdef::env-github[]
+:relfileprefix: ../
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
-In the xref:concepts-templates.adoc[last section] we described configuration templates and how they are used to generate valid Kubernetes resources.
+In the xref:concepts/templates.adoc[last section] we described configuration templates and how they are used to generate valid Kubernetes resources.
 In this section we will look in detail at parameters, how they work, what they can do and how they can make your service instances truly dynamic.
 
 == Configuration Parameters
@@ -48,7 +49,7 @@ For example, if a parameter source resolves to an object, it will be handled as 
 ==== Optional Parameters
 
 All parameters are optional by default.
-This supports such use cases where parameters supplied by the end user--as defined by the xref:concepts-catalog.adoc#json-schemas[service catalog schemas]--are optional.
+This supports such use cases where parameters supplied by the end user--as defined by the xref:concepts/catalog.adoc#json-schemas[service catalog schemas]--are optional.
 If a user defined parameter is not specified, but referred to by a parameter argument, the parameter argument lookup fails and the result will be internally set to `nil`.
 If a configuration parameter value is `nil`, then the destinations are ignored.
 
@@ -56,7 +57,7 @@ By exploiting optional parameters and how they are handled by the Service Broker
 
 ==== Mandatory Parameters
 
-As we have seen in our xref:concepts-templates#template-example[earlier template example], resource templates will not generate valid Kubernetes resources without certain attributes being populated.
+As we have seen in our xref:concepts/templates#template-example[earlier template example], resource templates will not generate valid Kubernetes resources without certain attributes being populated.
 This will manifest itself as a Kubernetes creation error, which may be difficult to debug.
 You can catch these types of errors earlier, and with more context, by specifying that the parameter is required.
 
@@ -314,11 +315,11 @@ Additional details about the registry are provided in the next section.
 Path destinations may only be used for configuration templates.
 Like the parameter source type, the path destination is a https://tools.ietf.org/html/rfc6902[JSON pointer^] that tells the Service Broker where to patch the result into a resource template.
 
-An example and additional details of using the path destination are given in the xref:concepts-templates.adoc##configuration-templates[configuration templates section].
+An example and additional details of using the path destination are given in the xref:concepts/templates.adoc#configuration-templates[configuration templates section].
 
 == Next Steps
 
 The final step to explain the Service Broker configuration is to look at the registry.
 This is the last fundamental component of the Service Broker that must be understood in order to use and configure it effectively.
 
-* xref:concepts-registry.adoc[Service Instance and Binding Registries]
+* xref:concepts/registry.adoc[Service Instance and Binding Registries]

@@ -4,6 +4,7 @@
 This page describes the functionality of registries in the Service Broker.
 
 ifdef::env-github[]
+:relfileprefix: ../
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
@@ -133,4 +134,4 @@ You should also be able to create your own configurations to provision services 
 
 The next section begins to look at more advanced topics.
 
-* xref:concepts-security.adoc[Security Models]
+* xref:concepts/security.adoc[Security Models]

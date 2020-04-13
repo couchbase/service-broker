@@ -4,6 +4,7 @@
 This page describes how to create the Service Broker container image.
 
 ifdef::env-github[]
+:relfileprefix: ../
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
@@ -56,4 +57,4 @@ If you are using a non-standard name (i.e. not `couchbase/service-broker`) you w
 
 == Next Steps
 
-* xref:install-kubernetes.adoc[Creating the Service Broker Service]
+* xref:install/kubernetes.adoc[Creating the Service Broker Service]

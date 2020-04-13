@@ -4,6 +4,7 @@
 This section describes how to get and install the service broker and create your first service instance.
 
 ifdef::env-github[]
+:relfileprefix: ../
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
@@ -13,8 +14,8 @@ Finally we will start and register the service, and create our first service ins
 
 == Next Steps
 
-* xref:install-prerequisites.adoc[Prerequisites]
-* xref:install-packages.adoc[Package Downloads]
-* xref:install-container.adoc[Creating Container Images]
-* xref:install-kubernetes.adoc[Creating the Service Broker Service]
-* xref:install-serviceinstance.adoc[Creating and Binding to a Service Instance]
+* xref:install/prerequisites.adoc[Prerequisites]
+* xref:install/packages.adoc[Package Downloads]
+* xref:install/container.adoc[Creating Container Images]
+* xref:install/kubernetes.adoc[Creating the Service Broker Service]
+* xref:install/serviceinstance.adoc[Creating and Binding to a Service Instance]

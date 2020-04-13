@@ -4,6 +4,7 @@
 This page describes Service Broker behavior where the Open Service Broker specification allows flexibility.
 
 ifdef::env-github[]
+:relfileprefix: ../
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
