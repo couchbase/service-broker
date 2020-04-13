@@ -19,5 +19,11 @@ Tasks are organized into domain specific areas:
 
 These tasks alter how the Open Service Broker API behaves and responds to end-user requests.
 
-** xref:tasks/service-instance-url.adoc[Configure a Service Instance Dashboard URL]
-** xref:tasks/service-binding-credentials.adoc[Configure Service Binding Credentials]
+* xref:tasks/service-instance-url.adoc[Configure a Service Instance Dashboard URL]
+* xref:tasks/service-binding-credentials.adoc[Configure Service Binding Credentials]
+
+.Service Instance Configuration
+
+These tasks cover how to configure advanced options for service instances.
+
+* xref:tasks/tls.adoc[Configure Service Instance TLS]

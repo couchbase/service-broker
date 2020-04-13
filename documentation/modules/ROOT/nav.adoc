@@ -16,6 +16,7 @@
 * xref:tasks/index.adoc[Tasks]
 ** xref:tasks/service-instance-url.adoc[Configure a Service Instance Dashboard URL]
 ** xref:tasks/service-binding-credentials.adoc[Configure Service Binding Credentials]
+** xref:tasks/tls.adoc[Configure Service Instance TLS]
 * xref:reference/index.adoc[Reference]
 ** xref:reference/servicebrokerconfigs.adoc[ServiceBrokerConfig Resource Reference]
 ** xref:reference/container.adoc[Service Broker Container Reference]

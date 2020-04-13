@@ -798,6 +798,7 @@ This attribute defines the certificate subject.
 ==== source.generateCertificate.subject.commonName
 
 This attribute defines the certificate subject common name (CN).
+This attribute is deliberately a literal string, DNS name must be defined as subject alternative addresses.
 
 * This attribute is required and must be a string.
 

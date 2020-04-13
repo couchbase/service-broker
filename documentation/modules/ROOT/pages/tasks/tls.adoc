@@ -1,0 +1,136 @@
+= Configure Service Instance TLS
+  
+[abstract]
+This guide describes how to configure and use TLS with service instances.
+
+ifdef::env-github[]
+:relfileprefix: ../
+:imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]
+
+Transport Layer Security (TLS) provides trust and secrecy within distributed systems.
+It is now mandatory with such protocols as HTTP/2 and HTTP/3.
+Your service instances should be provisioned with TLS enabled to prevent eavesdropping on your private or sensitive data.
+To that end, the Service Broker provides support to generate and use TLS certificates.
+This guide describes a simple configuration that uses TLS.
+
+== TLS Overview
+
+While we are acutely aware that some standards are antiquated, or some configurations are insecure, the Service Broker places no restrictions on TLS.
+This allows the Service Broker to address the broadest possible audience.
+
+* All private key schemes supported by the Go language are supported (RSA, Elliptic Curve DSA, and Edwards Curve).
+* All private key encodings supported by the Go language are supported (PKCS#1, PKCS#8, and SEC 1).
+* The X.509 certificate standard is supported.
+
+=== TLS Certificate Hierarchy
+
+For the purposes of this guide we will demonstrate a typical certificate hierarchy:
+
+* Self-signed root certificate authority (CA)
+* Per-service instance server certificate.
+
+=== Configuring Service Instance TLS
+
+When configuring the service instance we need to create the CA certificate/key pair, then use this to sign the server certificate used by the service instance itself:
+
+[source,yaml]
+----
+apiVersion: servicebroker.couchbase.com/v1alpha1
+kind: ServiceBrokerConfig
+spec:
+  bindings:
+  - serviceInstance: # <1>
+      parameters:
+      - name: ca-key # <2>
+        source:
+          generateKey:
+            type: EllipticP256
+            encoding: PKCS8
+        destinations:
+        - registry: ca-key
+      - name: ca-cert # <3>
+        source:
+          generateCertificate:
+            key:
+              registry: ca-key
+            subject:
+              commonName: My CA
+            lifetime: '8760h'
+            usage: CA
+        destinations:
+        - registry: ca-cert
+      - name: server-key # <4>
+        source:
+          generateKey:
+            type: EllipticP256
+            encoding: PKCS8
+        destinations:
+        - registry: server-key
+      - name: server-san # <5>
+        source:
+          format:
+            string: '%s.%s'
+            parameters:
+            - registry: instance-id
+            - registry: namespace
+        destinations:
+        - registry: server-san
+      - name: server-cert # <6>
+        source:
+          generateCertificate:
+            key:
+              registry: server-key
+            subject:
+              commonName: My Service
+            lifetime: '8760h'
+            usage: Server
+            alternativeNames:
+              dns:
+              - registry: server-san
+            ca:
+              key:
+                registry: ca-key
+              certificate:
+                registry: ca-cert
+        destinations:
+        - registry: server-cert
+----
+
+While this configuration looks big and scary, it is quite intuitive when you break it down.
+The important points to note are:
+
+<1> TLS configuration is done for the service instance as this is typically a physical server or cluster that requires a server certificate.
+<2> The CA needs a private key in order to digitally sign certificates.
+    For this example we are using elliptic curve P256, and encoding the file as PKCS#8.
+    The CA private key is then stored in the registry.
+<3> The CA certificate contains the public key related to the CA's private key.
+    This is used by clients to verify that a server's certificate was signed by this CA and can be trusted.
+    The certificate references the private key we generated--in the previous step--from the registry.
+    We provide an arbitrary certificate name, make it valid for 8760 hours (1 year), and set its usage to `CA`.
+    The CA certificate is self-signed and is stored in the registry.
+<4> The server certificate will need a private key too.
+    Again like the CA key we use the same algorithm and encoding.
+    This key too is stored in the registry.
+<5> If our service instance is modeled with a Kubernetes service to provide service discovery and high-availability, then service will be reachable at the DNS address `my-service.my-namespace`.
+    The server certificate needs to be valid for the address clients connect to, in order for to be accepted by the client.
+    Valid DNS names are encoded as subject alternative names (SAN).
+    This parameter formats a DNS SAN and stores it in the registry.
+<6> The server certificate is much the same as the CA certificate, it references its own private key, has a name and lifetime.
+    Unlike the CA certificate, it defines its usage as server--meaning it can be used to encrypt data and verify digital signatures.
+    It accepts a list of DNS SANs that the certificate is valid for.
+    The server certificate also defines a CA key and certificate pair, this is used to sign the certificate with our CA.
+
+The server certificate and key pair can be read from the registry and passed to the service instance however you wish, this is typically with a Kubernetes secret configuration template.
+The CA certificate can be passed to clients with service binding credentials.
+
+=== Client Certificates
+
+It is possible that your service bindings may need to provide clients with per-service binding TLS client certificates, and return them as service binding credentials.
+A service binding can be configured to generate these as needed in much the same way as our server certificate example.
+
+As service binding registries inherit values from their service instance's registry, the service instance CA certificate and key are available and may be used to digitally sign the client certificate using the same certificate hierarchy.
+Provided the service instance is aware of the CA certificate, it can verify the service binding generate client certificate is authentic.
+
+Unique certificate identity can only--at present--be dynamically configured with E-mail SANs.
+This allows service bindings to also encode authorization credentials in client certificates.
