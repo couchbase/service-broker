@@ -1,8 +1,23 @@
 = Tasks
 
 [abstract]
+This section describes common configuration tasks.
 
 ifdef::env-github[]
 :relfileprefix: ../
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
+
+The xref:concepts/index.adoc[Concepts] section covered high-level documentation of what the Service Broker can do, and how it does it.
+This section has a slightly deeper focus--taking conceptual ideas and realizing them as Service Broker configuration.
+
+While impossible to provide a one-size-fits-all solution, this section intends to provide and explain simple configuration snippets that can be copied and modified to suit your needs.
+
+Tasks are organized into domain specific areas:
+
+.Open Service Broker API
+
+These tasks alter how the Open Service Broker API behaves and responds to end-user requests.
+
+** xref:tasks/service-instance-url.adoc[Configure a Service Instance Dashboard URL]
+** xref:tasks/service-binding-credentials.adoc[Configure Service Binding Credentials]

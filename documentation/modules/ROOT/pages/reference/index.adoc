@@ -13,14 +13,20 @@ This section digs into the finer details and gives a full description of all ava
 
 These are boradly separated into a number of categories:
 
-.Data Structures
+.Kubernetes Data Types
+
+These reference topics describe Kubernetes custom resource types defined by the Service Broker.
 
 * xref:reference/servicebrokerconfigs.adoc[ServiceBrokerConfig Resource Reference]
 
-.Open Service Broker API
+.Docker and Container Images
 
-* xref:reference/osb-api.adoc[Open Service Broker API Reference]
-
-.Containers
+These reference topics describe the use of Service Broker container images.
 
 * xref:reference/container.adoc[Service Broker Container Reference]
+
+.Open Service Broker API
+
+These reference topics describe Service Broker specific behavior within the bounds of the Open Service Broker API.
+
+* xref:reference/osb-api.adoc[Open Service Broker API Reference]

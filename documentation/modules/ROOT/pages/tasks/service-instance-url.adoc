@@ -1,8 +1,60 @@
 = Configure a Service Instance Dashboard URL
 
 [abstract]
+This guide describes how to expose a dashboard URL for a service instance.
 
 ifdef::env-github[]
 :relfileprefix: ../
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
+
+The xref:concepts/architecture.adoc#service-instances[service instances concepts] documentation introduced the idea that a service instance can return a https://en.wikipedia.org/wiki/URL[URL^] to the end-user upon successful provisioning.
+This URL is typically used to access a service dashboard, but may also be sufficient for an application client to consume the service.
+This guide describes how to configure your services to return a URL to the end-user.
+
+== Dashboard URL Overview
+
+The Service Broker places no restrictions on the dashboard URL.
+The dashboard URL is generated completely under the control of configuration provided by you.
+Likewise whether or not to return a dashboard URL is completely under your control.
+
+=== Returning a Dashboard URL
+
+Whether or not a dashboard URL is returned to the user is dependent up whether the `dashboard-url` registry key is populated during service instance generation.
+The registry and system-defined registry keys are discussed further in the xref:concepts/registry.adoc[registry concepts documentation].
+
+=== Configuring a Dashboard URL
+
+Consider the following configuration:
+
+[source,yaml]
+----
+apiVersion: servicebroker.couchbase.com/v1alpha1
+kind: ServiceBrokerConfig
+spec:
+  bindings:
+    serviceInstance: # <1>
+      parameters: # <2>
+      - name: dashboard-url
+        required: true
+        source:
+          format: # <3>
+            string: 'https://%s.acme.com:12345'
+            parameters:
+            - registry: instance-id
+        destinations:
+        - registry: dashboard-url # <4>
+----
+
+These are the relevant things to note:
+
+<1> The dashboard URL must be defined for the service instance only.
+    The service instance registry will be examined for the presence of the `dashboard-url` registry key.
+<2> The dashboard URL may be defined during template processing, however for clarity it is usually defined as a configuration binding.
+<3> How you generate and format the dashboard URL is completely up to you.
+    In this example our service instance will generate a publicly addressable service based upon the instance ID.
+    We can calculate this address using the format parameter source.
+<4> To make the Service Broker aware of the dashboard URL, set the special `dashboard-url` registry key.
+    This value will be returned when a service instance creation request is successfully accepted.
+
+While we have chosen to provide an example based on a publicly addressable service, you can equally provide a Kubernetes Service to be consumed with in same Kubernetes cluster e.g. `\http://my-service.my-namespace`.

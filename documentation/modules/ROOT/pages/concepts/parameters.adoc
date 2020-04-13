@@ -218,6 +218,7 @@ Generators create new data items.
 They may accept arguments--in the form of accessors--that allow the generation functions to be dynamically configured.
 Any cryptographic generators use cryptographically secure random number generators.
 
+[#generate-password]
 ==== Generate Password
 
 The password generator generates ephemeral passwords of a specific length and results in a string.
