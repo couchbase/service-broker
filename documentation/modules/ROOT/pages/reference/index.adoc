@@ -11,7 +11,7 @@ endif::[]
 The xref:concepts/index.adoc[concepts] section gives a broad, high-level, overview of what the Service Broker can do, how the Service Broker functions and how to use it.
 This section digs into the finer details and gives a full description of all available features.
 
-These are boradly separated into a number of categories:
+These are broadly separated into a number of categories:
 
 .Kubernetes Data Types
 

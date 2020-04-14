@@ -33,19 +33,19 @@ Debug logging should be used with caution as verbose API logging will reveal API
 
 The Service Broker must use TLS to provide network level security.
 The TLS certificate argument must be a path to a PEM formatted X.509 TLS certificate, valid for the Service Broker's Kubernetes `Service` resource.
-This argument defualts to `/var/run/secrets/service-broker/tls-certificate`.
+This argument defaults to `/var/run/secrets/service-broker/tls-certificate`.
 
 -tls-private-key string::
 
 The Service Broker must use TLS to provide network level security.
 The TLS private key argument must be a path to a PEM formatted private key.
-This argument defualts to `/var/run/secrets/service-broker/tls-private-key`.
+This argument defaults to `/var/run/secrets/service-broker/tls-private-key`.
 
 -token string::
 
 The Service Broker must use bearer token authentication to provide API level protection against malicious attacks.
 The token argument must be a path to a file containing a bearer token string.
-This argument defualts to `/var/run/secrets/service-broker/token`.
+This argument defaults to `/var/run/secrets/service-broker/token`.
 
 -config string::
 

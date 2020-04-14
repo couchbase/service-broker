@@ -33,7 +33,7 @@ Or for Red Hat RPMs:
 $ make rpm -e VERSION=1.0.0 REVISION=beta1
 ```
 
-Or for debian DEBs:
+Or for Debian DEBs:
 
 ```bash
 $ make deb -e VERSION=1.0.0 REVISION=beta1
@@ -74,11 +74,11 @@ $ make cover
 
 Any code that is added (and not auto-generated) should be covered by testing.
 
-See below for addtional testing of examples.
+See below for additional testing of examples.
 
 ### Testing Example Submissions
 
-Examples define sample configurations for a specifc applications.
+Examples define sample configurations for a specific applications.
 Acceptance tests provide end-to-end testing of the service broker and for acceptance and system testing.
 These tests also aid in testing the installation documentation and ensure all configuration works.
 Acceptance tests are not automated as part of continuous integration, but you will be expected to test and confirm your submissions work.
@@ -108,7 +108,7 @@ The important files are:
 #### examples/broker.yaml
 
 This contains the service broker service, deployment, rolebinding and service account.
-When conbined with a configuration it should yield a working service broker service.
+When combined with a configuration it should yield a working service broker service.
 
 #### examples/clusterservicebroker.yaml
 
@@ -129,4 +129,4 @@ Every configuration must have a service instance definition to tests that servic
 
 #### examples/configurations/my-configuration/servicebinding.yaml
 
-A configuration may have a service binding defintition, this will test that a service instance can be bound to.
+A configuration may have a service binding definition, this will test that a service instance can be bound to.

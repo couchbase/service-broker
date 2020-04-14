@@ -19,7 +19,7 @@ Registries are stored in the same namespace as the Service Broker, therefore, if
 A registry is the only persistent storage the Service Broker uses.
 This persistence layer allows the Service Broker to tolerate service restarts during service provisioning.
 
-A registry provides a "scratch" area where configuration parameters can be stored and then referenced later by other configuration paramters.
+A registry provides a "scratch" area where configuration parameters can be stored and then referenced later by other configuration parameters.
 This allows configuration parameters to chain their inputs and outputs together.
 
 === Scoping Rules
@@ -106,9 +106,9 @@ Used to define the asynchronous operation status when provisioning.
 
 == User Defined Registry Keys
 
-Service Broker adminstrators can define and use registry keys during service instance and service binding provisioning.
+Service Broker administrators can define and use registry keys during service instance and service binding provisioning.
 Registry keys are set by configuration parameters with the `registry` destination type.
-Key names may be any valid string that a Kubenetes `Secret` resource allows with the `data` and `stringData` attributes.
+Key names may be any valid string that a Kubernetes `Secret` resource allows with the `data` and `stringData` attributes.
 
 == Registry Based Garbage Collection
 
