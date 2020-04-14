@@ -14,14 +14,14 @@ This page describes simple scenarios for test and development work.
 == Building the Container Image
 
 On the previous page you downloaded and installed the official package.
-First change to the install directory:
+First, change to the install directory:
 
 [source,console]
 ----
 $ cd /usr/share/couchbase-service-broker
 ----
 
-We recommend simple testing environments like https://kubernetes.io/docs/setup/learning-environment/minikube/[Minikube^] as you can use the provided examples, without modification, later on.
+We recommend simple testing environments like https://kubernetes.io/docs/setup/learning-environment/minikube/[Minikube^] as you can use the provided examples, without modification, on the following pages.
 If you are using Minikube, ensure it is installed and running, then run the following to install the container:
 
 [source,console]

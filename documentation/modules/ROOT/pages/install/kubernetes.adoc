@@ -76,6 +76,7 @@ The `ServiceAccount` the Service Broker runs as is bound to the `Role` we create
 A `Secret` contains the TLS configuration and bearer token for authentication as the Service Broker is secure by default.
 The `Deployment` creates the Service Broker and ensures it is highly available and a `Service` makes it discoverable by the Kubernetes Service Catalog in the next step.
 
+.Using Non-Standard Container Image Names
 [NOTE]
 ====
 Is you are using a non-standard container image name or container registry, you will need to download and edit the `Deployment` to reference your image before creating in Kubernetes.
