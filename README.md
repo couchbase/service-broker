@@ -130,3 +130,26 @@ Every configuration must have a service instance definition to tests that servic
 #### examples/configurations/my-configuration/servicebinding.yaml
 
 A configuration may have a service binding definition, this will test that a service instance can be bound to.
+
+### Documentation
+
+If you write something new, don't assume users will magically be able to know about it, document it!
+The CI system will do a rudimentary spell check and tell you how to fix it, however you can save yourself the effort and run:
+
+```bash
+$ make docs
+```
+
+#### Documentation Rules
+
+* One line per sentence - easier to diff.
+* No complex words - English may not be someone's first language.
+* Be clear and concise, do not go off on a tangent - don't confuse the reader.
+* Don't repeat yourself - keep DRY.
+* Be version agnostic - avoid having to continually update things.
+* Use [images](diagrams.net) - _a picture paints a thousand words!_
+* Use source code callouts - draw attention to interesting code snippets.
+* Use `xref`, not `link` within the module - xrefs are error checked.
+* Don't use includes, GitHub doesn't allow this - we've only been waiting for 3 years...
+* All admonitions and images need a title - quick summary whether soneone needs to read this.
+* If in doubt, follow the existing style.
