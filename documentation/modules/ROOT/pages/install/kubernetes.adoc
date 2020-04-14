@@ -39,15 +39,22 @@ servicebrokerconfig.servicebroker.couchbase.com/couchbase-service-broker created
 ----
 
 .Schema Validation
-****
+[TIP]
+====
 At this point, the Kubernetes API may reject the `ServiceBrokerConfig` resource if you have have made any modifications.
 Errors will be based on the https://swagger.io/docs/specification/data-models/[OpenAPI schema specification^].
-****
+====
 
-The Couchbase Server configuration uses the Couchbase Autonomous Operator to provision service instances.
-This requires the installation of custom resource definitions and a dynamic admission controller to provided defaults to custom resource attributes.
-The Service Broker examples, however, use a namespace scoped role and cannot create the resources required.
-You will need to manually https://docs.couchbase.com/operator/2.0/install-kubernetes.html[install the CRDs and dynamic admission controller] before proceeding.
+.Licensing and Prerequisite Requirements
+[IMPORTANT]
+====
+The Couchbase Server configuration uses the https://www.couchbase.com/products/cloud/kubernetes[Couchbase Autonomous Operator^] to provision service instances.
+Use of the Couchbase Autonomous Operator is governed by the https://www.couchbase.com/LA11122019[Couchbase License Agreement Version 7^]
+
+The Couchbase Server configuration requires the installation of custom resource definitions, and a dynamic admission controller to provide defaults to custom resource attributes.
+The Service Broker examples use a namespace-scoped role and cannot create the cluster-scoped resources required.
+You will need to manually https://docs.couchbase.com/operator/2.0/install-kubernetes.html[install the CRDs and dynamic admission controller^] before proceeding.
+====
 
 == Install the Service Broker Service
 
@@ -90,7 +97,8 @@ deployment.extensions/couchbase-service-broker condition met
 ----
 
 .Service Broker Validation
-****
+[TIP]
+====
 The Service Broker does not use a dynamic admission controller to validate the configuration at present.
 It does, however, perform validation internally and report this back to the user through a status in the configuration resource.
 If for any reason the deployment does not become ready, first check the logs for information:
@@ -113,7 +121,7 @@ Status:
     Status:                False
     Type:                  ConfigurationValid
 ----
-****
+====
 
 == Register the Service Broker with the Service Catalog
 

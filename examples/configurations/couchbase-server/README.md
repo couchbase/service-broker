@@ -1,7 +1,11 @@
 # Couchbase Server Example Configuration
 
-This example creates a Couchbase Server cluster.
-It is deployed and managed by the Couchbase Autonomous Operator.
+This example creates a Couchbase Server cluster, an in-memory NoSQL database.
+It is deployed and managed by the [Couchbase Autonomous Operator](https://www.couchbase.com/products/cloud/kubernetes).
+
+## Licensing
+
+Use of the Couchbase Autonomous Operator is governed by the [Couchbase License Agreement Version 7](https://www.couchbase.com/LA11122019).
 
 ## Prerequisites
 
