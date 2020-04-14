@@ -212,7 +212,7 @@ This attribute defines an object that contains metadata associated with a servic
 ==== spec.catalog.services.plans.free
 
 This attribute is an indication to the end user whether creating as service instance of this service plan is free.
-If set to `false`, you may wish to also state the cost in the <<spec-catalog-serivces-plans-metadata,`spec.catalog.services.plans.metadata`>> object, for example.
+If set to `false`, you may wish to also state the cost in the <<spec-catalog-services-plans-metadata,`spec.catalog.services.plans.metadata`>> object, for example.
 
 * This attribute is optional and must be a boolean.
 * This attribute defaults to `false`.

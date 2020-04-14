@@ -87,7 +87,7 @@ Templates are xref:concepts/bindings.adoc[bound] to a service offering and plan 
 Thus when you create a service instance of the web application, all the broker does is lookup the set of templates associated with the service offering and plan then dynamically create then in Kubernetes.
 
 The Service Broker contains no knowledge of any Kubernetes types.
-By treating every resource template as generic and un-typed it will work with any Kubernetes resource type, both core types and custom.
+By treating every resource template as generic and untyped it will work with any Kubernetes resource type, both core types and custom.
 
 .Service Instance Creation Bound to Resource Templates
 image::sb-binding.png[align="center"]
@@ -106,7 +106,7 @@ Applying parameters to templates is done using the well known https://tools.ietf
 .JSON Template Parameterized with JSON Patches
 image::sb-templates.png[align="center"]
 
-=== Flexible Parameterization
+=== Flexible Parameterized Configuration
 
 Parameters are provided by a number of different sources.
 

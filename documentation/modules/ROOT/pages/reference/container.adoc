@@ -18,7 +18,7 @@ This section details the modifications that can be made along with requirements.
 
 -logtostderr::
 
-The Service Broker currently uses glog to report logging.
+The Service Broker currently uses `glog` to report logging.
 By default this logs to files, it needs to be redirected to the console to correctly integrate with Kubernetes.
 This argument should always be present.
 

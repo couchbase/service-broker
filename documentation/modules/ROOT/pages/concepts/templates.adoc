@@ -121,7 +121,7 @@ Any other error will cause the operation to fail.
 
 Singletons can not be updated by service instance updates.
 The singleton configuration is considered fixed after creation.
-If singletons were allowed to be updated during service instance updates, then there is a risk of split-brain problems leading to underfined or unexpected behavior.
+If singletons were allowed to be updated during service instance updates, then there is a risk of split-brain problems leading to undefined or unexpected behavior.
 
 == Processing Rules
 

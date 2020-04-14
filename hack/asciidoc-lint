@@ -1,0 +1,38 @@
+#!/bin/bash -e
+
+# FILTER allows us to pre-process the source and discard irrelevant parts.
+FILTER="sed"
+# Ignore source code blocks (contain arbitrary non-English configuration).
+FILTER="${FILTER} -e /^----$/,/^----$/d"
+# Ignore asciidoc ifdef blocks (contain arbitrary non-English configuration).
+FILTER="${FILTER} -e /^ifdef/,/^endif/d"
+# Ignore inline literals (contain arbitrary non-English configuration).
+FILTER="${FILTER} -e s/\`[^\`]*\`//g"
+# Ignore defintiion lists (contain arbitrary non-English configuration).
+FILTER="${FILTER} -e s/^.*::$//g"
+# Ignore cross-reference file names (not user-visisble, however this may affect SEO).
+FILTER="${FILTER} -e s/xref:[^\[]*//g"
+# Ignore image file names (not user-visisble, however this may affect SEO).
+FILTER="${FILTER} -e s/image:[^\[]*//g"
+
+# CHECK_ARGS is the spell checking command to run.
+CHECK_ARGS="-l en_US --home-dir=."
+
+# For each asciidoc we find in the documentation, filter out the
+# stuff that isn't real text and spell check the remainder.
+FAIL=""
+for DOCUMENT in $(find documentation -type f -name *.adoc); do
+  MISTAKES=$(cat ${DOCUMENT} | ${FILTER} | aspell list ${CHECK_ARGS} | sort | uniq)
+  if [[ ${MISTAKES} != "" ]]; then
+    echo "Spell check for file ${DOCUMENT} failed:"
+    echo "${MISTAKES}" | sed 's/^/    /g'
+    FAIL="yes"
+  fi
+done
+
+# Any failures need to be fixed up, and we need to report and error for CI.
+if [[ ${FAIL} != "" ]]; then
+  echo "Documentation contains errors"
+  echo "    run 'aspell check ${CHECK_ARGS}' to fix typos or add to .aspell.en.pws"
+  exit 1
+fi

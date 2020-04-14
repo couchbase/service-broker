@@ -55,3 +55,13 @@ jobs:
         go-version: '^1.13.3'
     - name: Build Archives
       run: make archive -e DESTDIR=/tmp/archive
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+      with:
+        path: github.com/couchbase/service-broker
+    - name: Asciidoc Lint
+      run: make docs
