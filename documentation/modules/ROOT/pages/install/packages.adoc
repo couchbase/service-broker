@@ -30,6 +30,7 @@ sudo tar xf -C / couchbase-service-broker-0.0.0-99999.tar.gz
 [IMPORTANT]
 ====
 If installing into a non-standard directory this will affect the paths described in the following sections.
+Replace any instances of `/usr/share/couchbase-service-broker` with the location of your unpacked archive.
 ====
 
 == Next Steps
