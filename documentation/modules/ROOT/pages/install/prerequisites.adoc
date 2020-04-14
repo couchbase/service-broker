@@ -27,7 +27,7 @@ The Service Broker is recommended for use with the https://kubernetes.io/docs/co
 
 Installation instructions can be found in the https://svc-cat.io/docs/install/[official documentation].
 
-As the Service Broker is standards based, any version of the Service Catalog supporting the Open Service Broker API version 1.13 is supported.
+As the Service Broker is standards based, any version of the Service Catalog supporting the Open Service Broker API version 2.13 is supported.
 
 == Build Requirements
 
