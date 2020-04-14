@@ -124,6 +124,23 @@ The important points to note are:
 The server certificate and key pair can be read from the registry and passed to the service instance however you wish, this is typically with a Kubernetes secret configuration template.
 The CA certificate can be passed to clients with service binding credentials.
 
+.Using Intermediate CA Certificates
+[TIP]
+====
+The Service Broker configuration is designed to be generic and flexible.
+As such, it is possible for a root CA to sign an intermediate CA, then for the intermediate CA to sign a leaf certificate.
+You can generate a certificate chain for use by a server or client by using the format configuration parameter source.
+====
+
+.Using a Pre-Defined Signing Certificates
+[TIP]
+====
+Our examples use a self signed root certificate, however, you can use an existing root CA or signing CA.
+This may aid in seamlessly integrating service instances with your existing public key infrastructure (PKI).
+Certificates and keys may be defined implicitly as default strings to configuration parameters.
+You may also choose to provide them explicitly through service instance parameters to API calls.
+====
+
 === Client Certificates
 
 It is possible that your service bindings may need to provide clients with per-service binding TLS client certificates, and return them as service binding credentials.
