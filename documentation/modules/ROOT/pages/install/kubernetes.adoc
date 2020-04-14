@@ -12,9 +12,11 @@ Installation is divided into a number of steps.
 The Service Broker comes with different configurations that define what service will be created by the Service Broker and what permissions it requires to do so.
 A configuration will be installed first, followed by the generic Service Broker deployment, then finally it will be registered with the Kubernetes Service Catalog.
 
+.Environment Requirements
 [IMPORTANT]
 ====
-This tutorial assumes you are using the `default` namespace and will not work otherwise.
+This tutorial--and, in fact, all examples--assume you are using the `default` namespace.
+Due to explicit `default` namespace references in role bindings and TLS certificates, this tutorial will not work with any other namespace.
 ====
 
 == Install CRDs
@@ -49,7 +51,7 @@ Errors will be based on the https://swagger.io/docs/specification/data-models/[O
 [IMPORTANT]
 ====
 The Couchbase Server configuration uses the https://www.couchbase.com/products/cloud/kubernetes[Couchbase Autonomous Operator^] to provision service instances.
-Use of the Couchbase Autonomous Operator is governed by the https://www.couchbase.com/LA11122019[Couchbase License Agreement Version 7^]
+Use of the Couchbase Autonomous Operator is governed by the https://www.couchbase.com/LA11122019[Couchbase License Agreement Version 7^].
 
 The Couchbase Server configuration requires the installation of custom resource definitions, and a dynamic admission controller to provide defaults to custom resource attributes.
 The Service Broker examples use a namespace-scoped role and cannot create the cluster-scoped resources required.

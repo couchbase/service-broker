@@ -31,6 +31,7 @@ $ docker build . -t couchbase/service-broker:0.0.0
 $ docker tag couchbase/service-broker:0.0.0 couchbase/service-broker:latest
 ----
 
+.Container Image Versioning
 [NOTE]
 ====
 You should match the version number to the package version that you downloaded.
@@ -50,6 +51,7 @@ $ docker push acmecorp/service-broker:0.0.0
 $ docker push acmecorp/service-broker:latest
 ----
 
+.Using Non-Standard Container Image Names
 [IMPORTANT]
 ====
 If you are using a non-standard name (i.e. not `couchbase/service-broker`) you will need to update YAML manifests in the following pages to reflect this.

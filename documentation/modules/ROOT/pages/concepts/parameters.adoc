@@ -282,7 +282,8 @@ For example, to generate a signed X.509 certificate:
           registry: my-ca-certificate
 ----
 
-[IMPORTANT]
+.Automatic Certificate Rotation
+[TIP]
 ====
 The Service Broker is reactive--it responds to API calls--therefore will never support certificate rotation directly.
 You should deploy a certificate manager with your service instances if this functionality is required by your security policy.
