@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/couchbase/service-broker/pkg/api"
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
@@ -70,29 +69,11 @@ var (
 	// instanceIDRegistryEntry is the metadata key for accessing the instance ID from a template parameter.
 	instanceIDRegistryEntry = string(registry.InstanceID)
 
-	// namespaceRegistryEntry is the metadata key for accessing the namespace from a template parameter.
-	namespaceRegistryEntry = string(registry.Namespace)
-
-	// dashboardURLMutationFormat describes how to turn the input sources to an output value.
-	dashboardURLMutationFormat = "http://%v.%v.svc"
-
 	// namespaceRegistryKey is used to lookup the service instance namespace.
 	namespaceRegistryKey = "namespace"
 
-	// dashboardURLRegistryKey is the name of the dashboard registry item to set.
-	dashboardURLRegistryKey = "dashboard-url"
-
-	// crdentialsRegistryKey is the name of the credentials registry item to set.
-	crdentialsRegistryKey = "credentials"
-
 	// instanceNameRegistryEntry is the unique instance name to store in the registry.
 	instanceNameRegistryEntry = "instance-name"
-
-	// falseBool is an addressable boolean false.
-	falseBool = false
-
-	// zeroInt is an addressable integer zero.
-	zeroInt = 0
 
 	// credentialsSnippetName is the name of a credentials snippet.
 	credentialsSnippetName = "credentials-snippet"
@@ -102,46 +83,6 @@ var (
 
 	// dnsDefault is an addressable DNS server name.
 	dnsDefault = "192.168.0.1"
-
-	// dnsSnippetNamespacePath is an addressable JSON pointer.
-	dnsSnippetNamespacePath = "/nameservers/-"
-
-	// basicResourceNamePath is an addressable JSON pointer.
-	basicResourceNamePath = "/metadata/name"
-
-	// basicResourceAutomountPath is an addressable JSON pointer.
-	basicResourceAutomountPath = "/spec/automountServiceAccountToken"
-
-	// basicResourcePriorityPath is an addressable JSON pointer.
-	basicResourcePriorityPath = "/spec/priority"
-
-	// basicResourceContainersPath is an addressable JSON pointer.
-	basicResourceContainersPath = "/spec/containers/-"
-
-	// basicResourceDNSPath is an addressable JSON pointer.
-	basicResourceDNSPath = "/spec/dnsConfig"
-
-	// optionalParameterPath is used to access the optional parameter.
-	optionalParameterPath = "/hostname"
-
-	// optionalParameterPatchPath is used to apply the optional parameter.
-	optionalParameterPatchPath = "/spec/hostname"
-
-	// basicResource is used to test object creation, and conflict handling.
-	basicResource = &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
-			Kind:       "Pod",
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:  "image",
-					Image: "org/image:tag",
-				},
-			},
-		},
-	}
 
 	// basicResourceStatus allow the resource to pass the readiness checks
 	// defined for it.
@@ -183,18 +124,7 @@ var (
 			{
 				Name: dnsSnippetName,
 				Template: &runtime.RawExtension{
-					Raw: []byte(`{"nameservers":[]}`),
-				},
-				Parameters: []v1.ConfigurationParameter{
-					{
-						Name: "nameserver",
-						Default: &v1.Literal{
-							String: &dnsDefault,
-						},
-						Destinations: []v1.ConfigurationParameterDestination{
-							{Path: &dnsSnippetNamespacePath},
-						},
-					},
+					Raw: []byte(`{"nameservers":["{{default \"` + dnsDefault + `\" nil | json}}"]}`),
 				},
 			},
 			{
@@ -206,69 +136,7 @@ var (
 			{
 				Name: "test-template",
 				// Populated by the configuration function.
-				Template: &runtime.RawExtension{},
-				Parameters: []v1.ConfigurationParameter{
-					{
-						Name: "instance-name",
-						Source: &v1.ConfigurationParameterSource{
-							Accessor: v1.Accessor{
-								Registry: &instanceNameRegistryEntry,
-							},
-						},
-						Destinations: []v1.ConfigurationParameterDestination{
-							{Path: &basicResourceNamePath},
-						},
-					},
-					{
-						Name: "automount-service-token",
-						Default: &v1.Literal{
-							Bool: &falseBool,
-						},
-						Destinations: []v1.ConfigurationParameterDestination{
-							{Path: &basicResourceAutomountPath},
-						},
-					},
-					{
-						Name: "priority",
-						Default: &v1.Literal{
-							Int: &zeroInt,
-						},
-						Destinations: []v1.ConfigurationParameterDestination{
-							{Path: &basicResourcePriorityPath},
-						},
-					},
-					{
-						Name: "sidecar",
-						Default: &v1.Literal{
-							Object: &runtime.RawExtension{
-								Raw: []byte(`{"name":"sidecar","image":"org/sidecar:tag"}`),
-							},
-						},
-						Destinations: []v1.ConfigurationParameterDestination{
-							{Path: &basicResourceContainersPath},
-						},
-					},
-					{
-						Name: "dns",
-						Source: &v1.ConfigurationParameterSource{
-							Template: &dnsSnippetName,
-						},
-						Destinations: []v1.ConfigurationParameterDestination{
-							{Path: &basicResourceDNSPath},
-						},
-					},
-					{
-						Name: "hostname",
-						Source: &v1.ConfigurationParameterSource{
-							Accessor: v1.Accessor{
-								Parameter: &optionalParameterPath,
-							},
-						},
-						Destinations: []v1.ConfigurationParameterDestination{
-							{Path: &optionalParameterPatchPath},
-						},
-					},
-				},
+				Template: &runtime.RawExtension{Raw: []byte(`{"apiVersion":"v1","kind":"Pod","metadata":{"name":"{{registry \"instance-name\" | json}}"},"spec":{"containers":[{"name":"image","image":"name/image:tag"}],"automountServiceAccountToken":"{{true | json}}","priority":"{{0 | json}}","dnsConfig":"{{snippet \"dns-snippet\" | json}}","hostname":"{{parameter \"/hostname\" | json}}"}}`)},
 			},
 		},
 		Bindings: []v1.ConfigurationBinding{
@@ -277,41 +145,14 @@ var (
 				Service: "test-offering",
 				Plan:    "test-plan",
 				ServiceInstance: v1.ServiceBrokerTemplateList{
-					Parameters: []v1.ConfigurationParameter{
+					Registry: []v1.RegistryValue{
 						{
-							Name: "instance-name",
-							Source: &v1.ConfigurationParameterSource{
-								Format: &v1.ConfigurationParameterSourceFormat{
-									String: "instance-%s",
-									Parameters: []v1.Accessor{
-										{
-											Registry: &instanceIDRegistryEntry,
-										},
-									},
-								},
-							},
-							Destinations: []v1.ConfigurationParameterDestination{
-								{Registry: &instanceNameRegistryEntry},
-							},
+							Name:  "instance-name",
+							Value: "{{printf \"instance-%s\" (registry \"instance-id\") | json}}",
 						},
 						{
-							Name: "dashboard-url",
-							Source: &v1.ConfigurationParameterSource{
-								Format: &v1.ConfigurationParameterSourceFormat{
-									String: dashboardURLMutationFormat,
-									Parameters: []v1.Accessor{
-										{
-											Registry: &instanceNameRegistryEntry,
-										},
-										{
-											Registry: &namespaceRegistryEntry,
-										},
-									},
-								},
-							},
-							Destinations: []v1.ConfigurationParameterDestination{
-								{Registry: &dashboardURLRegistryKey},
-							},
+							Name:  "dashboard-url",
+							Value: "{{printf \"http://%v.%v.svc\" (registry \"instance-name\") (registry \"namespace\") | json}}",
 						},
 					},
 					Templates: []string{
@@ -319,15 +160,10 @@ var (
 					},
 				},
 				ServiceBinding: &v1.ServiceBrokerTemplateList{
-					Parameters: []v1.ConfigurationParameter{
+					Registry: []v1.RegistryValue{
 						{
-							Name: "credentials",
-							Source: &v1.ConfigurationParameterSource{
-								Template: &credentialsSnippetName,
-							},
-							Destinations: []v1.ConfigurationParameterDestination{
-								{Registry: &crdentialsRegistryKey},
-							},
+							Name:  "credentials",
+							Value: "{{snippet \"" + credentialsSnippetName + "\" | json}}",
 						},
 					},
 				},
@@ -337,35 +173,18 @@ var (
 				Service: "test-offering",
 				Plan:    "test-plan-2",
 				ServiceInstance: v1.ServiceBrokerTemplateList{
-					Parameters: []v1.ConfigurationParameter{
+					Registry: []v1.RegistryValue{
 						{
-							Name: "instance-name",
-							Source: &v1.ConfigurationParameterSource{
-								Format: &v1.ConfigurationParameterSourceFormat{
-									String: "instance-%s",
-									Parameters: []v1.Accessor{
-										{
-											Registry: &instanceIDRegistryEntry,
-										},
-									},
-								},
-							},
-							Destinations: []v1.ConfigurationParameterDestination{
-								{Registry: &instanceNameRegistryEntry},
-							},
+							Name:  "instance-name",
+							Value: "{{registry \"" + instanceIDRegistryEntry + "\" | json}}",
 						},
 					},
 				},
 				ServiceBinding: &v1.ServiceBrokerTemplateList{
-					Parameters: []v1.ConfigurationParameter{
+					Registry: []v1.RegistryValue{
 						{
-							Name: "credentials",
-							Source: &v1.ConfigurationParameterSource{
-								Template: &credentialsSnippetName,
-							},
-							Destinations: []v1.ConfigurationParameterDestination{
-								{Registry: &crdentialsRegistryKey},
-							},
+							Name:  "credentials",
+							Value: "{{snippet \"" + credentialsSnippetName + "\" | json}}",
 						},
 					},
 				},
@@ -477,20 +296,7 @@ func EmptyConfiguration() *v1.ServiceBrokerConfigSpec {
 // BasicConfiguration is the absolute minimum valid configuration allowed by the
 // service broker configuration schema.
 func BasicConfiguration() *v1.ServiceBrokerConfigSpec {
-	configuration := basicConfiguration.DeepCopy()
-
-	raw, err := json.Marshal(basicResource)
-	if err != nil {
-		return nil
-	}
-
-	for index, template := range configuration.Templates {
-		if template.Name == "test-template" {
-			configuration.Templates[index].Template.Raw = raw
-		}
-	}
-
-	return configuration
+	return basicConfiguration.DeepCopy()
 }
 
 // BasicConfigurationWithReadiness returns the standard configuration with a readiness
@@ -552,204 +358,50 @@ func BasicResourceStatus(t *testing.T) interface{} {
 	return object
 }
 
-// RegistryParametersToRegistryWithDefault returns a parameter list as specified.
-func RegistryParametersToRegistryWithDefault(key, destination, defaultValue string, required bool) []v1.ConfigurationParameter {
-	return []v1.ConfigurationParameter{
+// SetRegistry sets the service instance binding registry entries for the first binding
+// to the requested template expression.
+func SetRegistry(spec *v1.ServiceBrokerConfigSpec, name string, expression interface{}) {
+	var str string
+
+	switch t := expression.(type) {
+	case Function:
+		str = string(t)
+	case Pipeline:
+		str = string(t)
+	case string, int, bool, nil:
+		str = argument(t)
+	default:
+		fmt.Println("fail")
+	}
+
+	spec.Bindings[0].ServiceInstance.Registry = []v1.RegistryValue{
 		{
-			Name:     "test-parameter",
-			Required: required,
-			Source: &v1.ConfigurationParameterSource{
-				Accessor: v1.Accessor{
-					Registry: &key,
-				},
-			},
-			Default: &v1.Literal{
-				String: &defaultValue,
-			},
-			Destinations: []v1.ConfigurationParameterDestination{
-				{Registry: &destination},
-			},
+			Name:  name,
+			Value: `{{` + str + `}}`,
 		},
 	}
 }
 
-// ParametersToRegistry returns a parameter list as specified.
-func ParametersToRegistry(path, destination string, required bool) []v1.ConfigurationParameter {
-	return []v1.ConfigurationParameter{
-		{
-			Name:     "test-parameter",
-			Required: required,
-			Source: &v1.ConfigurationParameterSource{
-				Accessor: v1.Accessor{
-					Parameter: &path,
-				},
-			},
-			Destinations: []v1.ConfigurationParameterDestination{
-				{Registry: &destination},
-			},
-		},
-	}
-}
+// AddRegistry appends the requested template expression to the service instance binding
+// registry entry for the first binding.
+func AddRegistry(spec *v1.ServiceBrokerConfigSpec, name string, expression interface{}) {
+	var str string
 
-// DefaultParameterToRegistry return a parameter with a string default only.
-func DefaultParameterToRegistry(destination, defaultValue string) []v1.ConfigurationParameter {
-	return []v1.ConfigurationParameter{
-		{
-			Name: "test-parameter",
-			Default: &v1.Literal{
-				String: &defaultValue,
-			},
-			Destinations: []v1.ConfigurationParameterDestination{
-				{Registry: &destination},
-			},
-		},
-	}
-}
-
-// ParametersToRegistryWithDefault returns a parameter list as specified.
-func ParametersToRegistryWithDefault(path, destination, defaultValue string, required bool) []v1.ConfigurationParameter {
-	return []v1.ConfigurationParameter{
-		{
-			Name:     "test-parameter",
-			Required: required,
-			Source: &v1.ConfigurationParameterSource{
-				Accessor: v1.Accessor{
-					Parameter: &path,
-				},
-			},
-			Default: &v1.Literal{
-				String: &defaultValue,
-			},
-			Destinations: []v1.ConfigurationParameterDestination{
-				{Registry: &destination},
-			},
-		},
-	}
-}
-
-// KeyParameterToRegistry creates a parameter that creates a key of the desired type
-// and stores it in the registry.
-func KeyParameterToRegistry(t v1.KeyType, e v1.KeyEncodingType, bits *int, destination string) []v1.ConfigurationParameter {
-	return []v1.ConfigurationParameter{
-		{
-			Name: "test-private-key",
-			Source: &v1.ConfigurationParameterSource{
-				GenerateKey: &v1.ConfigurationParameterSourceGenerateKey{
-					Type:     t,
-					Encoding: e,
-					Bits:     bits,
-				},
-			},
-			Destinations: []v1.ConfigurationParameterDestination{
-				{Registry: &destination},
-			},
-		},
-	}
-}
-
-// CertificateParameterToRegistry creates a parameter that creates a self-signed ceritificate.
-func CertificateParameterToRegistry(key *string, cn string, usage v1.CertificateUsage, destination string) []v1.ConfigurationParameter {
-	return []v1.ConfigurationParameter{
-		{
-			Name: "test-certificate",
-			Source: &v1.ConfigurationParameterSource{
-				GenerateCertificate: &v1.ConfigurationParameterSourceGenerateCertificate{
-					Key: v1.Accessor{
-						Registry: key,
-					},
-					Lifetime: metav1.Duration{
-						Duration: time.Hour,
-					},
-					Usage: usage,
-				},
-			},
-			Destinations: []v1.ConfigurationParameterDestination{
-				{Registry: &destination},
-			},
-		},
-	}
-}
-
-// SignedCertificateParameterToRegistry creates a parameter that creates a signed certificate.
-func SignedCertificateParameterToRegistry(key *string, cn string, usage v1.CertificateUsage, caKey, caCert *string, destination string) []v1.ConfigurationParameter {
-	parameters := CertificateParameterToRegistry(key, cn, usage, destination)
-	parameters[0].Source.GenerateCertificate.CA = &v1.SigningCA{
-		Key: v1.Accessor{
-			Registry: caKey,
-		},
-		Certificate: v1.Accessor{
-			Registry: caCert,
-		},
+	switch t := expression.(type) {
+	case Function:
+		str = string(t)
+	case Pipeline:
+		str = string(t)
+	case string, int, bool, nil:
+		str = argument(t)
+	default:
+		fmt.Println("fail")
 	}
 
-	return parameters
-}
-
-// SignedCertificateParameterToRegistryWithDNSSANs creates a parameter that creates a signed certificate.
-// This accepts a list of subject alternative names as a string array.  It builds defaulted parameters
-// of each and then returns this with the certificate request that consumes them appended.
-func SignedCertificateParameterToRegistryWithDNSSANs(key *string, cn string, usage v1.CertificateUsage, sans []string, caKey, caCert *string, destination string) []v1.ConfigurationParameter {
-	sanRegistryNames := make([]v1.Accessor, len(sans))
-	parameters := []v1.ConfigurationParameter{}
-
-	for index, san := range sans {
-		name := fmt.Sprintf("san-%d", index)
-		sanRegistryNames[index] = v1.Accessor{
-			Registry: &name,
-		}
-
-		parameters = append(parameters, DefaultParameterToRegistry(name, san)...)
-	}
-
-	certParameters := SignedCertificateParameterToRegistry(key, cn, usage, caKey, caCert, destination)
-	certParameters[0].Source.GenerateCertificate.AlternativeNames = &v1.SubjectAlternativeNames{
-		DNS: sanRegistryNames,
-	}
-
-	return append(parameters, certParameters...)
-}
-
-// SignedCertificateParameterToRegistryWitEmailSANs creates a parameter that creates a signed certificate.
-// This accepts a list of subject alternative names as a string array.  It builds defaulted parameters
-// of each and then returns this with the certificate request that consumes them appended.
-func SignedCertificateParameterToRegistryWithEmailSANs(key *string, cn string, usage v1.CertificateUsage, sans []string, caKey, caCert *string, destination string) []v1.ConfigurationParameter {
-	sanRegistryNames := make([]v1.Accessor, len(sans))
-	parameters := []v1.ConfigurationParameter{}
-
-	for index, san := range sans {
-		name := fmt.Sprintf("san-%d", index)
-		sanRegistryNames[index] = v1.Accessor{
-			Registry: &name,
-		}
-
-		parameters = append(parameters, DefaultParameterToRegistry(name, san)...)
-	}
-
-	certParameters := SignedCertificateParameterToRegistry(key, cn, usage, caKey, caCert, destination)
-	certParameters[0].Source.GenerateCertificate.AlternativeNames = &v1.SubjectAlternativeNames{
-		Email: sanRegistryNames,
-	}
-
-	return append(parameters, certParameters...)
-}
-
-// PasswordParameterToRegistry create a parameter that creates a password of the desired
-// length and stores it in the registry.
-func PasswordParameterToRegistry(length int, dictionary *string, destination string) []v1.ConfigurationParameter {
-	return []v1.ConfigurationParameter{
-		{
-			Name: "test-password",
-			Source: &v1.ConfigurationParameterSource{
-				GeneratePassword: &v1.ConfigurationParameterSourceGeneratePassword{
-					Length:     length,
-					Dictionary: dictionary,
-				},
-			},
-			Destinations: []v1.ConfigurationParameterDestination{
-				{Registry: &destination},
-			},
-		},
-	}
+	spec.Bindings[0].ServiceInstance.Registry = append(spec.Bindings[0].ServiceInstance.Registry, v1.RegistryValue{
+		Name:  name,
+		Value: `{{` + str + `}}`,
+	})
 }
 
 var (
@@ -760,6 +412,7 @@ var (
 	}
 )
 
+// MustSetFixtureField sets the named field in the fixture Kubernetes resource.
 func MustSetFixtureField(t *testing.T, clients client.Clients, value interface{}, path ...string) {
 	object, err := clients.Dynamic().Resource(fixtureGVR).Namespace(util.Namespace).Get("instance-"+ServiceInstanceName, metav1.GetOptions{})
 	if err != nil {
@@ -775,6 +428,8 @@ func MustSetFixtureField(t *testing.T, clients client.Clients, value interface{}
 	}
 }
 
+// AssertFixtureFieldSet asserts that the named field in the Kubernetes resource is
+// set as expected.
 func AssertFixtureFieldSet(t *testing.T, clients client.Clients, value interface{}, path ...string) {
 	object, err := clients.Dynamic().Resource(fixtureGVR).Namespace(util.Namespace).Get("instance-"+ServiceInstanceName, metav1.GetOptions{})
 	if err != nil {
@@ -791,6 +446,8 @@ func AssertFixtureFieldSet(t *testing.T, clients client.Clients, value interface
 	}
 }
 
+// AssertFixtureFieldNotSet asserts that the named field in the Kubernetes resource
+// is not set as expected.
 func AssertFixtureFieldNotSet(t *testing.T, clients client.Clients, path ...string) {
 	object, err := clients.Dynamic().Resource(fixtureGVR).Namespace(util.Namespace).Get("instance-"+ServiceInstanceName, metav1.GetOptions{})
 	if err != nil {

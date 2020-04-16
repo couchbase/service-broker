@@ -22,6 +22,6 @@ It is recommended all users read and fully understand this entire section.
 * xref:concepts/catalog.adoc[Service Catalog]
 * xref:concepts/bindings.adoc[Configuration Bindings]
 * xref:concepts/templates.adoc[Configuration Templates]
-* xref:concepts/parameters.adoc[Configuration Parameters]
+* xref:concepts/dynamic-attributes.adoc[Dynamic Attributes]
 * xref:concepts/registry.adoc[Service Instance and Binding Registries]
 * xref:concepts/security.adoc[Security Models]

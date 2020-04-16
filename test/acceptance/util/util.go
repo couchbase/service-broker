@@ -15,7 +15,6 @@
 package util
 
 import (
-	"crypto/x509/pkix"
 	"fmt"
 	"io/ioutil"
 	"path"
@@ -24,7 +23,6 @@ import (
 	"testing"
 	"time"
 
-	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/client"
 	"github.com/couchbase/service-broker/pkg/util"
 
@@ -266,36 +264,28 @@ func MustGetNamespace(t *testing.T) *unstructured.Unstructured {
 func generateServiceBrokerTLS(namespace string) ([]byte, []byte, []byte, error) {
 	bits := 2048
 
-	caKey, err := util.GenerateKey(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &bits)
+	caKey, err := util.GenerateKey(util.KeyTypeRSA, util.KeyEncodingPKCS8, &bits)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	subject := pkix.Name{
-		CommonName: "Service Broker CA",
-	}
-
-	caCertificate, err := util.GenerateCertificate(caKey, subject, time.Hour, v1.CA, nil, nil, nil, nil)
+	caCertificate, err := util.GenerateCertificate(caKey, "Service Broker CA", time.Hour, util.CA, nil, nil, nil)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	serverKey, err := util.GenerateKey(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &bits)
+	serverKey, err := util.GenerateKey(util.KeyTypeRSA, util.KeyEncodingPKCS8, &bits)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	subject = pkix.Name{
-		CommonName: "Service Broker",
+	sans := []string{
+		"DNS:couchbase-service-broker",
+		fmt.Sprintf("DNS:couchbase-service-broker.%s", namespace),
+		fmt.Sprintf("DNS:couchbase-service-broker.%s.svc", namespace),
 	}
 
-	dnsSANs := []string{
-		"couchbase-service-broker",
-		fmt.Sprintf("couchbase-service-broker.%s", namespace),
-		fmt.Sprintf("couchbase-service-broker.%s.svc", namespace),
-	}
-
-	serverCertificate, err := util.GenerateCertificate(serverKey, subject, time.Hour, v1.Server, dnsSANs, nil, caKey, caCertificate)
+	serverCertificate, err := util.GenerateCertificate(serverKey, "Service Broker", time.Hour, util.Server, sans, caKey, caCertificate)
 	if err != nil {
 		return nil, nil, nil, err
 	}

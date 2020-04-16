@@ -8,14 +8,14 @@ ifdef::env-github[]
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
-In the xref:concepts/bindings.adoc[previous section] we looked at how configuration bindings map service instances and service bindings for a service plan to a set of templates.
+In the xref:concepts/bindings.adoc[previous section] we looked at how configuration bindings map service instances and service bindings for a service plan to a set of resource templates.
 This section examines how templates are defined and are processed to result in Kubernetes resources that can be created.
 
 [#configuration-templates]
 == Configuration Templates
 
 Templates are conceptually very simple.
-They contain a resource template--that provides scaffolding to build your resource with, and parameters--that allow the resource template to be customized.
+They are a resource template--that provides scaffolding to build your resource with, with optional dynamic attributes--that allow the resource template to be customized.
 
 The Service Broker operates on abstract templates rather than concrete Kubernetes resources because of namespace conflicts.
 If, for example, your service instance created a Kubernetes `Secret` called `my-secret`, then only one service instance could ever be created in a single namespace.
@@ -31,36 +31,25 @@ name: my-secret
 template: # <1>
   apiVersion: v1
   kind: Secret
-  metadata: {} # <2>
+  metadata:
+    name: '{{ registry "instance-id" | json }}' # <2>
   stringData:
     mySecretName: TopSecret!
-parameters: # <3>
-- name: resource-name
-  source:
-    registry: instance-id # <4>
-  destination:
-    path: /metadata/name # <5>
 ----
 
 Lets look in more detail at the configuration:
 
-<1> The `template` attribute is just that, a template, it cannot be created in Kubernetes without more attributes being populated.
-    In this case we want to create a `Secret`, but cannot as the `metadata.name` is not specified.
+<1> The `template` attribute is just that, a template, it may not be able to be created by Kubernetes without more attributes being populated.
+    In this case we want to create a `Secret`, but cannot as the `metadata.name` is not explicitly specified.
+<2> The `metadata.name` attribute is an example of using dynamic attributes
+    Dynamic attributes are defined as strings--Go language templating operates on strings.
+    This particular template references a value from the registry--a simple key/value store.
+    The result from the registry lookup is then piped into a JSON converter.
+    As Go language templating is all based on strings, then all outputs will also be strings.
+    To allow the Service Broker to preserve structure and data types, all templated attributes must serialize their output into a JSON string.
+    By using JSON, the Service Broker can decode it and process it correctly based on data type.
 
-<2> The `metadata` object is specified but it is empty, ready to accept the name we will generate.
-    This is important to note--the JSON patch specification will not recursively create an attribute.
-    In order to add `metadata.name` its parent object must already exist.
-
-<3> The `parameters` attribute is a list of functions that accept inputs, process them and store the result in a destination.
-
-<4> The `registry` source is a simple key/value store.
-    This will be covered in more detail in the following sections.
-    In this instance we are accessing the unique instance ID associated with the service instance.
-    No processing is performed on the value, it is just read from the registry.
-
-<5> The `path` destination patches the result of the source processing and patches it into our template.
-
-If, for example, our instance ID was `camelot`, the resulting template would be:
+If, for example, our instance ID was `camelot`, the resulting resource would be:
 
 [source,yaml]
 ----
@@ -75,22 +64,51 @@ stringData:
 This is now a valid Kubernetes resource and can be created by the Service Broker.
 The key observation to make is that service IDs are unique, therefore if another service instance rendered this template, it would result in a different name and can be created without conflict.
 
-=== Paths and Patching
+=== Optional Attributes
 
-Paths--identifying where to put parameter values in the resource template--are defined by the https://tools.ietf.org/html/rfc6902[JSON pointer^] specification.
+Consider a template with a dynamic attribute based on an optional parameter.
+That parameter may be supplied by a service instance creation request, or it may not:
 
-When parameters are applied to the resource template, it is done as defined by the https://tools.ietf.org/html/rfc6902[JSON patch^] specification.
-Specifically the Service Broker uses the `add` operation.
-This specification should be read, and details why the <<template-example,earlier example>> required an empty object before the resource name could be added.
-The full JSON patch specification is implemented by the service broker, therefore values can overwritten and arrays can be appended to.
+[source,yaml]
+----
+template:
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: my-secret
+    namespace: '{{ parameter "my-namespace" | json }}'
+----
 
-=== Resource Templates
+If the parameter did not exist, the resulting resource would look like:
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-secret
+  namespace: null
+----
+
+There is a danger that--although the parameter itself was optional--the generated resource would not be valid with the additional `null` attribute.
+For this reason, if the Service Broker resolves a dynamic attribute to `null`, then the corresponding attribute will be removed.
+The resulting resource will now look like:
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-secret
+----
+
+=== Resource Template Constraints
 
 Resource templates must be specified and must be objects.
 They cannot be scalar values or arrays.
 Templates _referenced by configuration bindings_ must generate a valid Kubernetes object.
 
-As we will see in the next section, parameters can reference shared template snippets, that are themselves rendered as per the template processing rules.
+As we will see in the next section, dynamic attributes can reference shared template snippets, that are themselves rendered as per the template processing rules.
 As a result there is no restriction that all templates must be Kubernetes resources.
 
 === Namespaces
@@ -125,13 +143,17 @@ If singletons were allowed to be updated during service instance updates, then t
 
 == Processing Rules
 
-Template parameters are processed in-order.
-In the same way as with configuration binding parameters, template parameters can store results that are referenced by template parameters that are processed later.
+Templates are--under the hood--JSON objects.
+When the Service Broker decodes JSON objects these are stored as the Go language `map` type.
+Go language `map` types, are based on hash tables, therefore iteration order is arbitrary.
+It follows that processing of dynamic attributes is also in an arbitrary order.
+
+If ordering of dynamic attribute processing matters, consider pre-computing values in the configuration binding.
 
 == Next Steps
 
 We have seen how service instance and bindings are mapped to a set of configuration templates.
-Configuration templates map a resource template to final object by applying parameters to the configuration template.
-Next we will look at parameters, where they can source data from, what processing can be performed on the source data, and where it can be stored.
+Configuration templates map a resource template to final object by processing dynamic attributes in the configuration template.
+Next we will look at dynamic attributes, where they can source data from, and what processing can be performed on the source data.
 
-* xref:concepts/parameters.adoc[Configuration Parameters]
+* xref:concepts/dynamic-attributes.adoc[Dynamic Attributes]

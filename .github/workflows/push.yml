@@ -5,6 +5,11 @@ on:
     - '*'
     tags-ignore:
     - '*'
+  pull_request:
+    branches:
+    - '*'
+    tags-ignore:
+    - '*'
 jobs:
   license:
     name: License

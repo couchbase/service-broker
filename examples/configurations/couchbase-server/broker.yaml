@@ -264,12 +264,7 @@ spec:
       subjects:
       - kind: ServiceAccount
         name: couchbase-operator
-    parameters:
-    - name: namespace
-      source:
-        registry: namespace
-      destinations:
-      - path: /subjects/0/namespace
+        namespace: '{{ registry "namespace" | json }}'
   - name: couchbase-operator-deployment
     singleton: true
     template:
@@ -313,279 +308,117 @@ spec:
     template:
       apiVersion: v1
       kind: Secret
-      metadata: {}
+      metadata:
+        name: '{{ printf "%v-admin" (registry "instance-name") | json }}'
       stringData:
         username: Administrator
-    parameters:
-    - name: name
-      source:
-        format:
-          string: "%v-admin"
-          parameters:
-          - registry: instance-name
-      destinations:
-      - path: /metadata/name
-    - name: password
-      required: true
-      source:
-        parameter: /password
-      destinations:
-      - path: /stringData/password
+        password: '{{ parameter "/password" | json }}'
   - name: couchbase-operator-tls-secret
     template:
       apiVersion: v1
       kind: Secret
-      metadata: {}
-      stringData: {}
-    parameters:
-    - name: name
-      source:
-        format:
-          string: "%v-operator-tls"
-          parameters:
-          - registry: instance-name
-      destinations:
-      - path: /metadata/name
-    - name: ca-cert
-      source:
-        registry: ca-cert
-      destinations:
-      - path: /stringData/ca.crt
+      metadata:
+        name: '{{ printf "%v-operator-tls" (registry "instance-name") | json }}'
+      stringData:
+        ca.crt: '{{ registry "ca-cert" | json }}'
   - name: couchbase-server-tls-secret
     template:
       apiVersion: v1
       kind: Secret
-      metadata: {}
-      stringData: {}
-    parameters:
-    - name: name
-      source:
-        format:
-          string: "%v-server-tls"
-          parameters:
-          - registry: instance-name
-      destinations:
-      - path: /metadata/name
-    - name: server-key
-      source:
-        registry: server-key
-      destinations:
-      - path: /stringData/pkey.key
-    - name: server-cert
-      source:
-        registry: server-cert
-      destinations:
-      - path: /stringData/chain.pem
+      metadata:
+        name: '{{ printf "%v-server-tls" (registry "instance-name") | json }}'
+      stringData:
+        pkey.key: '{{ registry "server-key" | json }}'
+        chain.pem: '{{ registry "server-cert" | json }}'
   - name: selector-snippet
     template:
-      matchLabels: {}
-    parameters:
-    - name: instance-name
-      source:
-        registry: instance-name
-      destinations:
-      - path: /matchLabels/cluster
+      matchLabels:
+        cluster: '{{ registry "instance-name" | json }}'
   - name: couchbase-developer-private
     template:
       apiVersion: couchbase.com/v2
       kind: CouchbaseCluster
-      metadata: {}
+      metadata:
+        name: '{{ registry "instance-name" | json }}'
       spec:
+        image: '{{ parameter "/image" | default "couchbase/server:6.5.0" | json }}'
         security:
+          adminSecret: '{{ printf "%v-admin" (registry "instance-name") | json }}'
           rbac:
             managed: true
+            selector: '{{ snippet "selector-snippet" | json }}'
         networking:
           tls:
-            static: {}
+            static:
+              operatorSecret: '{{ printf "%v-operator-tls" (registry "instance-name") | json }}'
+              serverSecret: '{{ printf "%v-server-tls" (registry "instance-name") | json }}'
         buckets:
           managed: true
+          selector: '{{ snippet "selector-snippet" | json }}'
         servers:
         - name: default
           services:
           - data
           - index
           - query
-    parameters:
-    - name: name
-      source:
-        registry: instance-name
-      destinations:
-      - path: /metadata/name
-    - name: admin-secret
-      source:
-        format:
-          string: "%v-admin"
-          parameters:
-          - registry: instance-name
-      destinations:
-      - path: /spec/security/adminSecret
-    - name: operator-tls-secret
-      source:
-        format:
-          string: "%v-operator-tls"
-          parameters:
-          - registry: instance-name
-      destinations:
-      - path: /spec/networking/tls/static/operatorSecret
-    - name: server-tls-secret
-      source:
-        format:
-          string: "%v-server-tls"
-          parameters:
-          - registry: instance-name
-      destinations:
-      - path: /spec/networking/tls/static/serverSecret
-    - name: label-selector
-      source:
-        template: selector-snippet
-      destinations:
-      - path: /spec/buckets/selector
-      - path: /spec/security/rbac/selector
-    - name: image
-      source:
-        parameter: /image
-      default:
-        string: couchbase/server:6.5.0
-      destinations:
-      - path: /spec/image
-    - name: size
-      source:
-        parameter: /size
-      default:
-        int: 3
-      destinations:
-      - path: /spec/servers/0/size
+          size: '{{ parameter "/size" | default 3 | json }}'
   - name: couchbase-bucket
     template:
       apiVersion: couchbase.com/v2
       kind: CouchbaseBucket
       metadata:
-        labels: {}
-    parameters:
-    - name: name
-      source:
-        registry: binding-name
-      destinations:
-      - path: /metadata/name
-    - name: instance-name
-      source:
-        registry: instance-name
-      destinations:
-      - path: /metadata/labels/cluster
+        name: '{{ registry "binding-name" | json }}'
+        labels: '{{ snippet "selector-snippet" | json }}'
   - name: couchbase-user-secret
     template:
       apiVersion: v1
       kind: Secret
-      metadata: {}
-      data: {}
-    parameters:
-    - name: name
-      source:
-        registry: binding-name
-      destinations:
-      - path: /metadata/name
-    - name: password
-      source:
-        registry: password
-      destinations:
-      - path: /data/password
+      metadata:
+        name: '{{ registry "binding-name" | json }}'
+      data:
+        password: '{{ registry "password" | json }}'
   - name: couchbase-user
     template:
       apiVersion: couchbase.com/v2
       kind: CouchbaseUser
       metadata:
-        labels: {}
+        name: '{{ registry "binding-name" | json }}'
+        labels: '{{ snippet "selector-snippet" | json }}'
       spec:
         authDomain: local
-    parameters:
-    - name: name
-      source:
-        registry: binding-name
-      destinations:
-      - path: /metadata/name
-      - path: /spec/authSecret
-    - name: instance-name
-      source:
-        registry: instance-name
-      destinations:
-      - path: /metadata/labels/cluster
+        authSecret: '{{ registry "binding-name" | json }}'
   - name: couchbase-group
     template:
       apiVersion: couchbase.com/v2
       kind: CouchbaseGroup
       metadata:
-        labels: {}
+        name: '{{ registry "binding-name" | json }}'
+        labels: '{{ snippet "selector-snippet" | json }}'
       spec:
         roles:
         - name: bucket_admin
-    parameters:
-    - name: name
-      source:
-        registry: binding-name
-      destinations:
-      - path: /metadata/name
-      - path: /spec/roles/0/bucket
-    - name: instance-name
-      source:
-        registry: instance-name
-      destinations:
-      - path: /metadata/labels/cluster
+          bucket: '{{ registry "binding-name" | json }}'
   - name: couchbase-role-binding
     template:
       apiVersion: couchbase.com/v2
       kind: CouchbaseRoleBinding
       metadata:
-        labels: {}
+        name: '{{ registry "binding-name" | json }}'
+        labels: '{{ snippet "selector-snippet" | json }}'
       spec:
         subjects:
         - kind: CouchbaseUser
+          name: '{{ registry "binding-name" | json }}'
         roleRef:
           kind: CouchbaseGroup
-    parameters:
-    - name: name
-      source:
-        registry: binding-id
-      destinations:
-      - path: /metadata/name
-      - path: /spec/subjects/0/name
-      - path: /spec/roleRef/name
-    - name: instance-name
-      source:
-        registry: instance-name
-      destinations:
-      - path: /metadata/labels/cluster
+          name: '{{ registry "binding-name" | json }}'
   - name: credentials
-    template: {}
-    parameters:
-    - name: connection-string
-      source:
-        format:
-          string: couchbases://%v-srv.%v
-          parameters:
-          - registry: instance-name
-          - registry: namespace
-      destinations:
-      - path: /connection-string
-    - name: ca-cert
-      source:
-        registry: ca-cert
-      destinations:
-      - path: /ca.pem
-    - name: username
-      source:
-        registry: binding-name
-      destinations:
-      - path: /username
-    - name: password
-      source:
-        registry: password
-      destinations:
-      - path: /password
-    - name: bucket
-      source:
-        registry: binding-name
-      destinations:
-      - path: /bucket
+    template:
+      connection-string: '{{ printf "couchbases://%v-srv.%v" (registry "instance-name") (registry "namespace") | json }}'
+      ca.pem: '{{ registry "ca-cert" | json }}'
+      username: '{{ registry "username" | json }}'
+      password: '{{ registry "password" | json }}'
+      bucket: '{{ registry "binding-name" | json }}'
   # Bindings bind templates to service plans.  These allow the specification of
   # exactly what templates are created when a plan is instantiated or bound to.
   bindings:
@@ -593,166 +426,19 @@ spec:
     service: couchbase-developer
     plan: couchbase-developer-private
     serviceInstance:
-      # Create any shared parameters or those exposed by the broker API
-      # and commit to the registry.
-      parameters:
-      # Usually we'd generate unique resource names by prefixing the instance UUID
-      # with a string to avoid the name starting with a number, however, there is
-      # a defect with couchbase server in that it silently doesn't work if the DNS
-      # names are "too long", thus it is not standards compliant.  To this end we
-      # use a short random ID.
-      - name: short-id
-        required: true
-        source:
-          generatePassword:
-            length: 8
-            dictionary: abcdefghijklmnopqrstuvwxyz0123456789
-        destinations:
-        - registry: short-id
+      registry:
       - name: instance-name
-        required: true
-        source:
-          format:
-            string: instance-%v
-            parameters:
-            - registry: short-id
-        destinations:
-        - registry: instance-name
-      # Dashboard URL is returned to the client after service instance provisioning
-      # has completed.
+        value: '{{ printf "instance-%s" (generatePassword 8 "abcdefghijklmnopqrstuvwxyz0123456789") | json }}'
       - name: dashboard-url
-        required: true
-        source:
-          format:
-            string: http://%v.%v:8091
-            parameters:
-            - registry: instance-name
-            - registry: namespace
-        destinations:
-        - registry: dashboard-url
-      # Bootstrap a CA.
+        value: '{{ printf "https://%s.%s:18091" (registry "instance-name") (registry "namespace") | json }}'
       - name: ca-key
-        required: true
-        source:
-          generateKey:
-            type: RSA
-            encoding: PKCS8
-            bits: 2048
-        destinations:
-        - registry: ca-key
+        value: '{{ generatePrivateKey "RSA" "PKCS#8" 2048 | json}}'
       - name: ca-cert
-        required: true
-        source:
-          generateCertificate:
-            key:
-              registry: ca-key
-            subject:
-              commonName: Couchbase Server CA
-            lifetime: 87600h
-            usage: CA
-        destinations:
-        - registry: ca-cert
-      # Create the server certificate.
-      # Note this must be a pkcs#1 formatted RSA key.
+        value: '{{ generateCertificate (registry "ca-key") "Couchbase Server CA" "87600h" "CA" nil nil nil | json }}'
       - name: server-key
-        required: true
-        source:
-          generateKey:
-            type: RSA
-            encoding: PKCS1
-            bits: 2048
-        destinations:
-        - registry: server-key
-      - name: dns-short-srv
-        required: true
-        source:
-          format:
-            string: "%v-srv"
-            parameters:
-            - registry: instance-name
-        destinations:
-        - registry: dns-short-srv
-      - name: dns-namespaced-srv
-        required: true
-        source:
-          format:
-            string: "%v-srv.%v"
-            parameters:
-            - registry: instance-name
-            - registry: namespace
-        destinations:
-        - registry: dns-namespaced-srv
-      - name: dns-full-srv
-        required: true
-        source:
-          format:
-            string: "%v-srv.%v.svc"
-            parameters:
-            - registry: instance-name
-            - registry: namespace
-        destinations:
-        - registry: dns-full-srv
-      - name: dns-short-wildcard
-        required: true
-        source:
-          format:
-            string: "*.%v"
-            parameters:
-            - registry: instance-name
-        destinations:
-        - registry: dns-short-wildcard
-      - name: dns-namespaced-wildcard
-        required: true
-        source:
-          format:
-            string: "*.%v.%v"
-            parameters:
-            - registry: instance-name
-            - registry: namespace
-        destinations:
-        - registry: dns-namespaced-wildcard
-      - name: dns-full-wildcard
-        required: true
-        source:
-          format:
-            string: "*.%v.%v.svc"
-            parameters:
-            - registry: instance-name
-            - registry: namespace
-        destinations:
-        - registry: dns-full-wildcard
-      - name: dns-localhost
-        required: true
-        default:
-          string: localhost
-        destinations:
-        - registry: dns-localhost
+        value: '{{ generatePrivateKey "RSA" "PKCS#1" 2048 | json }}'
       - name: server-cert
-        required: true
-        source:
-          generateCertificate:
-            key:
-              registry: server-key
-            subject:
-              commonName: Couchbase Server
-            lifetime: 8760h
-            usage: Server
-            alternativeNames:
-              dns:
-              - registry: dns-short-srv
-              - registry: dns-namespaced-srv
-              - registry: dns-full-srv
-              - registry: dns-short-wildcard
-              - registry: dns-namespaced-wildcard
-              - registry: dns-full-wildcard
-              - registry: dns-localhost
-            ca:
-              certificate:
-                registry: ca-cert
-              key:
-                registry: ca-key
-        destinations:
-        - registry: server-cert
+        value: '{{ generateCertificate (registry "server-key") "Couchbase Server" "87600h" "Server" (list (printf "DNS:%s-srv" (registry "instance-name")) (printf "DNS:%s-srv.%s" (registry "instance-name") (registry "namespace")) (printf "DNS:%s-srv.%s.svc" (registry "instance-name") (registry "namespace")) (printf "DNS:*.%s" (registry "instance-name")) (printf "DNS:*.%s.%s" (registry "instance-name") (registry "namespace")) (printf "DNS:*.%s.%s.svc" (registry "instance-name") (registry "namespace")) "DNS:localhost") (registry "ca-key") (registry "ca-cert") | json }}'
       templates:
       - couchbase-operator-serviceaccount
       - couchbase-operator-role
@@ -774,29 +460,13 @@ spec:
           type: Available
           status: "True"
     serviceBinding:
-      parameters:
+      registry:
       - name: binding-name
-        required: true
-        source:
-          format:
-            string: binding-%v
-            parameters:
-            - registry: binding-id
-        destinations:
-        - registry: binding-name
+        value: '{{ printf "binding-%s" (registry "binding-id") | json }}'
       - name: password
-        required: true
-        source:
-          generatePassword:
-            length: 32
-        destinations:
-        - registry: password
+        value: '{{ generatePassword 32 nil | json }}'
       - name: credentials
-        required: true
-        source:
-          template: credentials
-        destinations:
-        - registry: credentials
+        value: '{{ snippet "credentials" | json }}'
       templates:
       - couchbase-bucket
       - couchbase-group

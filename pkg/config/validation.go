@@ -16,7 +16,6 @@ package config
 
 import (
 	"fmt"
-	"strings"
 
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 )
@@ -37,82 +36,6 @@ func getTemplateByName(config *v1.ServiceBrokerConfig, templateName string) *v1.
 	for index, template := range config.Spec.Templates {
 		if template.Name == templateName {
 			return &config.Spec.Templates[index]
-		}
-	}
-
-	return nil
-}
-
-// recurseDetectCycles does a depth-first search of the tree of the dependency graph
-// of templates and looks for infinite loops.  Ancestors may be pre-populated or nil
-// if the parameters don't beloing to a template.
-func recurseDetectCycles(config *v1.ServiceBrokerConfig, ancestors []string, parameters []v1.ConfigurationParameter) error {
-	for _, parameter := range parameters {
-		// Only concerned with parameter source templates
-		if parameter.Source == nil || parameter.Source.Template == nil {
-			continue
-		}
-
-		// Perform cycle detection by seeing if the referenced template is
-		// its own ancestor.
-		child := *parameter.Source.Template
-
-		for _, ancestor := range ancestors {
-			if ancestor == child {
-				chain := strings.Join(ancestors, " -> ") + " -> " + child
-				return fmt.Errorf("dependency cycle detected in template chain %s", chain)
-			}
-		}
-
-		// Look up the template ready for depth first recursion.
-		template := getTemplateByName(config, child)
-		if template == nil {
-			return fmt.Errorf("parameter %s references non existent tempate %s", parameter.Name, child)
-		}
-
-		// Push the new ancestor onto the stack and recurse.
-		ancestors = append(ancestors, child)
-		if err := recurseDetectCycles(config, ancestors, template.Parameters); err != nil {
-			return err
-		}
-
-		// Pop the new ancestor off the stack and continue.
-		popOne := 1
-		ancestors = ancestors[:len(ancestors)-popOne]
-	}
-
-	return nil
-}
-
-// detectCyclesTemplateList detects dependency cycles in a configuration binding
-// list, first for any configuration parameters containing template snippets, and
-// then for the templates themselves.
-func detectCyclesTemplateList(config *v1.ServiceBrokerConfig, templates *v1.ServiceBrokerTemplateList) error {
-	if err := recurseDetectCycles(config, nil, templates.Parameters); err != nil {
-		return err
-	}
-
-	for _, templateName := range templates.Templates {
-		template := getTemplateByName(config, templateName)
-
-		if err := recurseDetectCycles(config, []string{template.Name}, template.Parameters); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// detectCycles does a recursive lookup of templates to ensure there are no
-// infinite loops lurking in bad configuration.
-func detectCycles(config *v1.ServiceBrokerConfig, binding *v1.ConfigurationBinding) error {
-	if err := detectCyclesTemplateList(config, &binding.ServiceInstance); err != nil {
-		return err
-	}
-
-	if binding.ServiceBinding != nil {
-		if err := detectCyclesTemplateList(config, binding.ServiceBinding); err != nil {
-			return err
 		}
 	}
 
@@ -148,14 +71,14 @@ func validate(config *v1.ServiceBrokerConfig) error {
 	}
 
 	// Check that configuration bindings are properly configured.
-	for index, binding := range config.Spec.Bindings {
+	for _, binding := range config.Spec.Bindings {
 		// Bindings cannot do nothing.
-		if len(binding.ServiceInstance.Parameters) == 0 && len(binding.ServiceInstance.Templates) == 0 {
+		if len(binding.ServiceInstance.Registry) == 0 && len(binding.ServiceInstance.Templates) == 0 {
 			return fmt.Errorf("configuration binding %s does nothing for service instances", binding.Name)
 		}
 
 		if binding.ServiceBinding != nil {
-			if len(binding.ServiceBinding.Parameters) == 0 && len(binding.ServiceBinding.Templates) == 0 {
+			if len(binding.ServiceBinding.Registry) == 0 && len(binding.ServiceBinding.Templates) == 0 {
 				return fmt.Errorf("configuration binding %s does nothing for service bindings", binding.Name)
 			}
 		}
@@ -173,11 +96,6 @@ func validate(config *v1.ServiceBrokerConfig) error {
 					return fmt.Errorf("template %s referenced by configuration %s service binding must exist", template, binding.Name)
 				}
 			}
-		}
-
-		// Templates must not contain cycles.
-		if err := detectCycles(config, &config.Spec.Bindings[index]); err != nil {
-			return err
 		}
 	}
 

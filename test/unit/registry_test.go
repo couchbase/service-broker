@@ -51,7 +51,7 @@ func TestRegistryIllegalWrite(t *testing.T) {
 	illegalKey := string(registry.ServiceID)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters[0].Destinations[0].Registry = &illegalKey
+	fixtures.SetRegistry(configuration, illegalKey, fixtures.NewRegistryPipeline(key).WithDefault(defaultValue).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -65,7 +65,7 @@ func TestRegistryIllegalRead(t *testing.T) {
 	illegalKey := string(registry.Parameters)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters[0].Source.Accessor.Registry = &illegalKey
+	fixtures.SetRegistry(configuration, key, fixtures.NewRegistryPipeline(illegalKey).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -79,7 +79,7 @@ func TestRegistryMissingKey(t *testing.T) {
 	missingKey := "missing"
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters[0].Source.Accessor.Registry = &missingKey
+	fixtures.SetRegistry(configuration, fixtures.DashboardURL, fixtures.NewRegistryPipeline(missingKey).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -96,12 +96,11 @@ func TestRegistryMissingRequiredKey(t *testing.T) {
 	missingKey := "missing"
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters[0].Source.Accessor.Registry = &missingKey
-	configuration.Bindings[0].ServiceInstance.Parameters[0].Required = true
+	fixtures.SetRegistry(configuration, key, fixtures.NewRegistryPipeline(missingKey).Required().ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorParameterError)
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorConfigurationError)
 }
 
 // TestRegistryExplicitNamespace tests that the context can update the registry namespace.
@@ -144,7 +143,7 @@ func TestRegistryDefault(t *testing.T) {
 	defaultValue := "kitten"
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.RegistryParametersToRegistryWithDefault(key, key, defaultValue, false)
+	fixtures.SetRegistry(configuration, key, fixtures.NewRegistryPipeline(key).WithDefault(defaultValue).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -152,16 +151,4 @@ func TestRegistryDefault(t *testing.T) {
 
 	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
 	util.MustHaveRegistryEntryWithValue(t, entry, registry.Key(key), defaultValue)
-}
-
-// TestRegistryNoDestination test that a configuration error is raised when the destinationisn't specified.
-func TestRegistryNoDestination(t *testing.T) {
-	defer mustReset(t)
-
-	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters[0].Destinations[0].Registry = nil
-	util.MustReplaceBrokerConfig(t, clients, configuration)
-
-	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorConfigurationError)
 }

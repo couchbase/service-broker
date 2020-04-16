@@ -1,0 +1,242 @@
+= Dynamic Attribute Function Reference
+
+[abstract]
+Extensions to the Go language templating language.
+
+ifdef::env-github[]
+:relfileprefix: ../
+:imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]
+
+All functions specified by the Go language https://golang.org/pkg/text/template/[template^] specification are supported by the Service Broker.
+The service broker also defines some application specific functions as documented below.
+
+Arguments described as optional may be specified as `nil`.
+
+== `registry`
+
+The `registry` function performs a lookup of a value from the registry.
+This function will raise an error if the registry is corrupt or an attempt is made to read a protected key.
+
+[source]
+----
+{{ registry "key" }}
+----
+
+=== Arguments
+
+key::
+The key argument is required and must be a string.
+
+=== Result
+
+The result type varies based upon the type of the registry value.
+If the registry key does not exist, the result will be `nil`.
+
+== `parameter`
+
+The `parameter` function looks up a user specified parameter provided with an Open Service Broker API request.
+
+[source]
+----
+{{ parameter "/path" }}
+----
+
+=== Arguments
+
+path::
+The path argument is a https://tools.ietf.org/html/rfc6902[JSON pointer^] identifying a value within a JSON object.
+The path argument is required and must be a string.
+
+=== Result
+
+The result type varies based upon the type of the parameter value.
+If the pointer references a path that does not exist, the result will be `nil`
+
+== `snippet`
+
+The `snippet` function looks up and renders a configuration template snippet.
+This function will raise an error if the snippet does not exist or any error occurs while rendering the snippet.
+
+[source]
+----
+{{ snippet "template" }}
+----
+
+=== Arguments
+
+name::
+The name argument is required and must be a string.
+
+=== Result
+
+The result type will be an object.
+
+== `list`
+
+The `list` function accepts a variable number of arguments and converts them into a list/array.
+
+[source]
+----
+{{ list "item" "item" }}
+----
+
+=== Arguments
+
+item::
+The item argument is optional and may be any type.
+The item argument may be specified any number of times.
+
+=== Result
+
+The result type will be an array.
+
+== `default`
+
+The `default` function provides a default value if the input is `nil`.
+
+[source]
+----
+{{ parameter "/path" | default "value" }}
+----
+
+=== Arguments
+
+default::
+The default argument is required and may be any type.
+
+value::
+The value argument is required and may be any type.
+
+=== Result
+
+The result type will be any type.
+
+== `json`
+
+The `json` function serializes its input as a JSON string.
+
+[source]
+----
+{{ "value" | json }}
+----
+
+=== Arguments
+
+value::
+The value argument is required and may be any type.
+
+=== Result
+
+The result will be a string.
+
+== `required`
+
+The `required` function raises an error when its input is `nil`.
+
+[source]
+----
+{{ parameter "/path" | required }}
+----
+
+=== Arguments
+
+value::
+The value argument is required and may be any type.
+
+=== Result
+
+The result type will be any type.
+
+== `generatePassword`
+
+The `generatePassword` function generates a cryptographically secure random password.
+
+[source]
+----
+{{ generatePassword 32 "12345abcde" }}
+----
+
+=== Arguments
+
+length::
+The length argument is required and must be an integer.
+
+dictionary::
+The dictionary argument is optional and must be a string.
+This argument defaults to `abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`.
+
+=== Result
+
+The result type will be a string.
+
+== `generatePrivateKey`
+
+The `generatePrivateKey` function generates a PEM encoded, cryptographic private key.
+RSA, ECDSA and ED25519 are all fully supported.
+Password protected private keys are not currently supported.
+
+[source]
+----
+{{ generatePrivateKey "RSA" "PKCS#8" 2048 }}
+----
+
+=== Arguments
+
+type::
+This argument is required and must be one of `RSA`, `EllipticP224`, `EllipticP256`, `EllipticP384`, `EllipticP521` or `ED25519`.
+
+encoding::
+This argument is required and must be one of `PKCS1`, `PKCS8` or `SEC1`.
+PKCS#1 can only be used with RSA private keys.
+PKCS#8 can be used with any private key type.
+SEC 1 can only be used with elliptic private keys.
+
+bits::
+This argument is optional and must be an integer.
+It is required for RSA private keys and ignored for all other private key types
+
+=== Result
+
+The result will be a string.
+
+== `generateCertificate`
+
+The `generateCertificate` function generates an X.509 certificate from a PEM encoded private key.
+Only RSA and ECDSA private keys are supported.
+Certificates specified without a CA will be self-signed, rather than signed by the CA.
+
+[source]
+----
+{{ genetateCertifcate (registry "key.pem") "My CA" "30d" "CA" nil nil nil }}
+----
+
+=== Arguments
+
+key::
+This argument is required and must be a string.
+
+cn::
+This argument is required and must be a string.
+
+lifetime::
+This argument is required and must be a string.
+The format of lifetime is defined by the https://golang.org/pkg/time/#ParseDuration[golang duration specification^].
+
+usage::
+This argument is required and must be one of `CA`, `Server` or `Client`.
+
+sans::
+This argument is optional and must be an array of strings.
+Subject alternative names are defined as `type:name` where `type` is one of `DNS` or `EMAIL`.
+The `name` is a valid DNS name or E-mail address respectively.
+
+cakey::
+This argument is optional and must be a string.
+
+cacert::
+This argument is optional and must be a string.
+
+=== Result
+
+The result will be a string.

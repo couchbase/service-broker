@@ -349,7 +349,6 @@ spec:
   templates:
   - name: my-template
     template: {}
-    parameters: []
     singleton: false
 ----
 
@@ -367,17 +366,8 @@ The name is primarily used to provide debugging hints.
 This attribute defines the template to render and patch with configuration parameters.
 This must be an object.
 Templates referenced by configuration bindings must be Kubernetes resource objects.
-Templates referenced by configuration parameters can be any arbitrary object type.
 
 * This attribute is required and must be an object.
-
-==== spec.templates.parameters
-
-This attribute defines an array of configuration parameters to resolve, and potentially patch into the template.
-Configuration parameters are processed in order.
-
-* This attribute is optional and must be an array of objects.
-* This attribute is covered in more detail in the <<configuration-parameter,configuration parameter>> reference documentation.
 
 ==== spec.templates.singleton
 
@@ -437,19 +427,33 @@ Configuration binding parameters are defined as follows:
 
 [source,yaml]
 ----
-parameters: []
-templates: []
+registry:
+- name: my-key
+  value: '{{ generatePassword 32 nil | json }}'
+templates:
+- my-template
 readinessChecks: []
 ----
 
-==== parameters
+==== registry
 
-This attribute defines an array of configuration parameters to process.
-Configuration parameters are processed in order.
-Configuration parameters may only define registry destinations as configuration bindings are not associated with a JSON template.
+This attribute defines an array of registry definitions to process.
+Registry definitions are processed in order.
 
 * This attribute is optional and must be an array of objects.
-* This attribute is covered in more detail in the <<configuration-parameter,configuration parameter>> reference documentation.
+
+==== registry.name
+
+This attribute defines the registry key name to define.
+
+* This attribute is required and must be a string.
+
+==== registry.value
+
+This attribute defines the registry value to define.
+The value is defined using the same syntax as xref:concepts/dynamic-attributes.adoc[dynamic attributes].
+
+* This attribute is required and must be a string.
 
 ==== templates
 
@@ -539,359 +543,6 @@ This attribute defines the condition type to match.
 This attribute defines the condition status to match.
 
 * This attribute is required and must be a string.
-
-[#configuration-parameter]
-=== Configuration Parameter
-
-This object represents a parameter that reads data, performs a function on that data, then stores the result.
-Configuration parameters associated with configuration templates may define any path or registry destination.
-Configuration parameters associated with configuration bindings may only define registry destinations.
-Configuration parameter use is described in the xref:concepts/parameters.adoc[configuration parameters concepts documentation].
-Configuration parameters are defined as follows:
-
-[source,yaml]
-----
-name: my-parameter
-required: false
-default: {}
-source: {}
-destinations: []
-----
-
-==== name
-
-This attribute defines a human-readable name for the configuration parameter.
-The name is primarily used to provide debugging hints.
-
-* The attribute is required and must be a string.
-
-==== required
-
-This attribute defines whether the parameter is required.
-When set to `true` and if the configuration parameter source result is `nil`, then the Service Broker will raise an error.
-
-* This attribute is optional and must be a boolean.
-* This attribute defaults to `false`.
-
-==== default
-
-This attribute allows the Service Broker to provide a default value if a configuration parameter source result is `nil`.
-This attribute allows a configuration parameter to be defined if an option API parameter is not specified by the end user, or a registry value is not defined.
-Defaults are defined as follows:
-
-[source,yaml]
-----
-default:
-  string: my-string
-  bool: false
-  int: 7
-  object:
-    foo: bar
-----
-
-* This attribute is optional and must be an object.
-* One of `string`, `bool`, `int` or `object` must be specified.
-* Behavior is undefined if multiple are specified.
-
-==== default.string
-
-This attribute defines a default string value.
-
-* This attribute is optional and must be a string.
-
-==== default.bool
-
-This attribute defines a default boolean value.
-
-* This attribute is optional and must be a boolean.
-
-==== default.int
-
-This attribute defines a default integer value.
-
-* This attribute is optional and must be an integer.
-
-==== default.object
-
-This attribute defines a default object value.
-
-* This attribute is optional and must be an object.
-
-==== source
-
-This attribute defines the configuration parameter source type.
-A configuration parameter source may not be specified only when a parameter source default is specified.
-Configuration parameter sources are described in more detail in the xref:concepts/parameters.adoc#parameter-sources[configuration parameter source concepts documentation].
-Parameter sources are defined as follows:
-
-[source,yaml]
-----
-source:
-  registry: my-key
-  parameter: /path/to/my/value
-  format: {}
-  template: my-template
-  generatePassword: {}
-  generateKey: {}
-  generateCertificate: {}
-----
-
-* This attribute is optional and must be an object.
-* One of `registry`, `parameter`, `format`, `template`, `generatePassword`, `generateKey`, or `generateCertificate` may be specified.
-* Behavior is undefined if multiple are specified.
-
-==== source.registry
-
-This attribute causes the Service Broker to source a value from the registry associated with the service instance or service binding.
-If the specified registry key does not exist, the result will be `nil`.
-
-* This attribute is optional and must be a string.
-
-==== source.parameter
-
-This attribute causes the Service Broker to source a value from the user-specified service instance or service binding request parameters.
-If the specified JSON pointer does not exist, the result will be `nil`.
-
-* This attribute is optional and must be a string.
-
-==== source.format
-
-This attribute causes the Service Broker to lookup a set of parameters then apply them to a formatting string.
-If any parameter to the formatting operation is `nil`, the result will also be `nil`.
-A formatting operation is analogous to `sprintf`.
-A formatting operation contains no error checking at present e.g. passing an integer to a `%s` will have an undefined result.
-A formatting operation is defined as follows:
-
-[source,yaml]
-----
-source:
-  format:
-    string: my-format-%v
-    parameters: []
-----
-
-==== source.format.string
-
-This attribute defines a https://golang.org/pkg/fmt/[golang formatting string^].
-
-* This attribute is required and must be a string.
-
-==== source.format.parameters
-
-This attribute defines an array of accessors that provide arguments to the format string.
-
-* This attribute is required and must be an array of objects.
-* This attribute is covered in more detail in the <<accessor,accessor>> reference documentation.
-
-==== source.template
-
-This attribute causes the Service Broker to perform a recursive template processing.
-The refers to a <<spec-templates-name,configuration template name>> and the referenced configuration template must exist.
-
-* This attribute is optional and must be a string.
-
-==== source.generatePassword
-
-This attribute causes the Service Broker to generate a cryptographically secure random password.
-Password generation is defined as follows:
-
-[source,yaml]
-----
-source:
-  generatePassword:
-    length: 7
-    dictionary: abcde
-----
-
-* This attribute is optional and must be an object.
-
-==== source.generatePassword.length
-
-This attribute defines the length of the password to generate.
-
-* This attribute is required and must be an integer greater than or equal to 1.
-
-==== source.generatePassword.dictionary
-
-This attribute defines is the dictionary to use when generating a password.
-
-* This attribute is optional and must be a string.
-* This attribute defaults to `abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`.
-
-==== source.generateKey
-
-This attribute causes the Service Broker to generate a PEM encoded private key.
-RSA, ECDSA and ED25519 are all fully supported.
-Password protected private keys are not currently supported.
-Private key generation is defined as follows:
-
-[source,yaml]
-----
-source:
-  generateKey:
-    type: RSA
-    encoding: PKCS8
-    bits: 2048
-----
-
-==== source.generateKey.type
-
-This attribute defines the key type to generate.
-
-* This attribute is required and must be one of `RSA`, `EllipticP224`, `EllipticP256`, `EllipticP384`, `EllipticP521` or `ED25519`.
-
-==== source.generateKey.encoding
-
-This attribute defines the PEM and ASN.1 encoding of the private key.
-PKCS#1 can only be used with RSA private keys.
-PKCS#8 can be used with any private key type.
-SEC 1 can only be used with elliptic private keys.
-
-* This attribute is required and must be one of `PKCS1`, `PKCS8` or `SEC1`.
-
-==== source.generateKey.bits
-
-This attribute defined the private key size in bits.
-It is required for RSA private keys and ignored for all other private key types.
-
-* This attribute is optional and must be an integer greater than or equal to 1.
-
-==== source.generateCertificate
-
-This attribute causes the Service Broker to generate an X.509 certificate from a PEM encoded private key.
-Only RSA and ECDSA private keys are supported.
-Certificates specified without a CA will be self-signed, rather than signed by the CA.
-
-[source,yaml]
-----
-source:
-  generateCertificate:
-    key: {}
-    subject:
-      commonName: My Certificate
-    lifetime: "8760h"
-    usage: server
-    alternativeNames:
-      dns: []
-      email: []
-    ca:
-      key: {}
-      certificate: {}
-  template: my-template
-----
-
-* This attribute is optional and must be an object.
-
-==== source.generateCertificate.key
-
-This attribute references a PEM encoded private key with an accessor.
-
-* This attribute is required and must be an object.
-* This attribute is covered in more detail in the <<accessor,accessor>> reference documentation.
-
-==== source.generateCertificate.subject
-
-This attribute defines the certificate subject.
-
-* This attribute is required and must be an object.
-
-==== source.generateCertificate.subject.commonName
-
-This attribute defines the certificate subject common name (CN).
-This attribute is deliberately a literal string, DNS name must be defined as subject alternative addresses.
-
-* This attribute is required and must be a string.
-
-==== source.generateCertificate.lifetime
-
-This attribute defines the certificate lifetime.
-A certificate is generated with the "not valid before" attribute to the current time.
-The lifetime sets the "not valid after" attribute to the current time plus the lifetime.
-The format of lifetime is defined by the https://golang.org/pkg/time/#ParseDuration[golang duration specification^].
-
-* This attribute is required and must be a string.
-
-==== source.generateCertificate.usage
-
-This attribute defines the certificate usage.
-Specifically this controls the X.509 "is CA", "key usage" and "extended key usage" attributes.
-
-* This attribute is required and must be one of `CA`, `Server` or `Client`.
-
-==== source.generateCertificate.alternativeNames
-
-This attribute defines any subject alternative names (SANs) to add to the certificate.
-Only DNS and e-mail SANs are allowed, IP addresses in Kubernetes--for example--are unstable there for make no sense.
-
-* This attribute is optional and must be an object.
-
-==== source.generateCertificate.alternativeNames.dns
-
-This attribute defines an array of DNS SANs to add to the certificate.
-SANs are collected using accessors, any that resolve to `nil` are not added to the certificate.
-DNS SANs should only be used with certificates with the `server` usage.
-
-* This attribute is optional and must be an array.
-* This attribute is covered in more detail in the <<accessor,accessor>> reference documentation.
-
-==== source.generateCertificate.alternativeNames.email
-
-This attribute defines an array of EMAIL SANs to add to the certificate.
-SANs are collected using accessors, any that resolve to `nil` are not added to the certificate.
-EMAIL SANs should only be used with certificates with the `client` usage.
-
-* This attribute is optional and must be an array.
-* This attribute is covered in more detail in the <<accessor,accessor>> reference documentation.
-
-==== source.generateCertificate.ca
-
-This attribute defines a certificate authority (CA) certificate and private key pair to sign the certificate with.
-
-* This attribute is optional and must be an object.
-
-==== source.generateCertificate.ca.key
-
-This attribute defines the PEM encoded CA private key to use with an accessor.
-
-* This attribute is required and must be an object.
-* This attribute is covered in more detail in the <<accessor,accessor>> reference documentation.
-
-==== source.generateCertificate.ca.certificate
-
-This attribute defines the X.509 CA certificate to use with an accessor.
-
-* This attribute is required and must be an object.
-* This attribute is covered in more detail in the <<accessor,accessor>> reference documentation.
-
-==== destinations
-
-This attribute defines a list of where to store non-`nil` configuration parameter results.
-Configuration parameter destinations are described in more detail in the xref:concepts/parameters.adoc#parameter-destinations[configuration parameter destination concepts documentation].
-Configuration parameter destinations may be stored to either the registry or a path per entry, but not both, behavior is undefined in this case.
-Configuration parameter destinations are defined as follows:
-
-[source,yaml]
-----
-destinations:
-- registry: my-key
-  path: /attribute/to/add
-----
-
-* This attribute is requires and must be a non-empty array of objects.
-
-==== destinations.registry
-
-This attribute defines a registry key to store the result to.
-A registry destination may be used at any time.
-
-* This attribute is optional and must be a string.
-
-==== destinations.path
-
-This attribute defines a JSON pointer to an attribute to to store the value within a configuration template.
-Destination paths cannot be used for configuration parameters associated with configuration bindings.
-
-* This attribute is optional and must be a string.
 
 [#accessor]
 === Accessor
