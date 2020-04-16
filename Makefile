@@ -165,7 +165,7 @@ ACCEPTANCE_IMAGE = couchbase/service-broker-acceptance:latest
 
 # These phony targets do not refer to actual files and are intended to be
 # invoked by the end user.
-.PHONY: all build crd container test unit lint cover acceptance install archive archive-tgz archive-zip rpm deb docs
+.PHONY: all build crd container test unit lint cover acceptance install archive archive-tgz archive-zip rpm deb docs license
 
 # Main build target, makes the binary and CRD.
 all: build crd
@@ -229,6 +229,10 @@ deb: $(ARCHIVE_DEB)
 # Lint asciidoc files.
 docs:
 	hack/asciidoc-lint
+
+# Lint licensing requirements.
+license:
+	hack/license-lint
 
 # Clean all generated code and artifacts.
 clean:
