@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/couchbase/service-broker/pkg/api"
-	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/registry"
 	"github.com/couchbase/service-broker/test/unit/fixtures"
 	"github.com/couchbase/service-broker/test/unit/util"
@@ -77,7 +76,7 @@ func TestParameters(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.ParametersToRegistry("/animal", key, false)
+	fixtures.SetRegistry(configuration, key, fixtures.NewParameterPipeline("/animal").ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -96,7 +95,7 @@ func TestParametersMissingPath(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.ParametersToRegistry("/animal", key, false)
+	fixtures.SetRegistry(configuration, key, fixtures.NewParameterPipeline("/animal").ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -112,11 +111,11 @@ func TestParametersMissingRequiredPath(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.ParametersToRegistry("/animal", key, true)
+	fixtures.SetRegistry(configuration, key, fixtures.NewParameterPipeline("/animal").Required().ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
-	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorParameterError)
+	util.MustPutAndError(t, "/v2/service_instances/pinkiepie?accepts_incomplete=true", http.StatusBadRequest, req, api.ErrorConfigurationError)
 }
 
 // TestParametersDefault tests a parameter with a default work when not specified.
@@ -124,7 +123,7 @@ func TestParametersDefault(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.ParametersToRegistryWithDefault("/animal", key, defaultValue, false)
+	fixtures.SetRegistry(configuration, key, fixtures.NewParameterPipeline("/animal").WithDefault(defaultValue).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -139,7 +138,7 @@ func TestParameterGenerateKeyRSAPKCS1(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS1, &defaultKeyLength, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("RSA", "PKCS#1", defaultKeyLength).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -151,7 +150,7 @@ func TestParameterGenerateKeyRSAPKCS8(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("RSA", "PKCS#8", defaultKeyLength).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -163,7 +162,7 @@ func TestParameterGenerateKeyRSAECInvalid(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingSEC1, &defaultKeyLength, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("RSA", "SEC 1", defaultKeyLength).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -175,7 +174,7 @@ func TestParameterGenerateKeyRSAMissingLengthInvalid(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS1, nil, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("RSA", "PKCS#1", nil).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -187,7 +186,7 @@ func TestParameterGenerateKeyEllipticP224PKCS1Invalid(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingPKCS1, nil, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("EllipticP224", "PKCS#1", defaultKeyLength).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -199,7 +198,7 @@ func TestParameterGenerateKeyEllipticP224PKCS8(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingPKCS8, nil, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("EllipticP224", "PKCS#8", defaultKeyLength).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -211,7 +210,7 @@ func TestParameterGenerateKeyEllipticP224EC(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingSEC1, nil, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("EllipticP224", "SEC 1", defaultKeyLength).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -223,7 +222,7 @@ func TestParameterGenerateKeyEllipticP256PKCS1Invalid(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP256, v1.KeyEncodingPKCS1, nil, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("EllipticP256", "PKCS#1", defaultKeyLength).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -235,7 +234,7 @@ func TestParameterGenerateKeyEllipticP256PKCS8(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP256, v1.KeyEncodingPKCS8, nil, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("EllipticP256", "PKCS#8", defaultKeyLength).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -247,7 +246,7 @@ func TestParameterGenerateKeyEllipticP256EC(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP256, v1.KeyEncodingSEC1, nil, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("EllipticP256", "SEC 1", defaultKeyLength).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -259,7 +258,7 @@ func TestParameterGenerateKeyEllipticP384PKCS1Invalid(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP384, v1.KeyEncodingPKCS1, nil, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("EllipticP384", "PKCS#1", defaultKeyLength).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -271,7 +270,7 @@ func TestParameterGenerateKeyEllipticP384PKCS8(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP384, v1.KeyEncodingPKCS8, nil, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("EllipticP384", "PKCS#8", defaultKeyLength).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -283,7 +282,7 @@ func TestParameterGenerateKeyEllipticP384EC(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP384, v1.KeyEncodingSEC1, nil, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("EllipticP384", "SEC 1", defaultKeyLength).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -295,7 +294,7 @@ func TestParameterGenerateKeyEllipticP521PKCS1Invalid(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP521, v1.KeyEncodingPKCS1, nil, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("EllipticP521", "PKCS#1", defaultKeyLength).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -307,7 +306,7 @@ func TestParameterGenerateKeyEllipticP521PKCS8(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP521, v1.KeyEncodingPKCS8, nil, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("EllipticP521", "PKCS#8", defaultKeyLength).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -319,7 +318,7 @@ func TestParameterGenerateKeyEllipticP521EC(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP521, v1.KeyEncodingSEC1, nil, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("EllipticP521", "SEC 1", defaultKeyLength).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -331,7 +330,7 @@ func TestParameterGenerateKeyED25519PKCS1Invalid(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeED25519, v1.KeyEncodingPKCS1, nil, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("ED25519", "PKCS#1", defaultKeyLength).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -343,7 +342,7 @@ func TestParameterGenerateKeyED25519PKCS8(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeED25519, v1.KeyEncodingPKCS8, nil, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("ED25519", "PKCS#8", nil).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -355,7 +354,7 @@ func TestParameterGenerateKeyED25519ECInvalid(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.KeyParameterToRegistry(v1.KeyTypeED25519, v1.KeyEncodingSEC1, nil, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePrivateKeyPipeline("ED25519", "SEC 1", nil).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -367,11 +366,9 @@ func TestParameterGenerateKeyED25519ECInvalid(t *testing.T) {
 func TestParameterGenerateCACertificateRSAPKCS1(t *testing.T) {
 	defer mustReset(t)
 
-	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS1, &defaultKeyLength, caKeyKey)
-	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
-
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = parameters
+	fixtures.SetRegistry(configuration, caKeyKey, fixtures.NewGeneratePrivateKeyPipeline("RSA", "PKCS#1", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, caCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(caKeyKey), defaultCN, "24h", "CA", nil, nil, nil).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -386,11 +383,9 @@ func TestParameterGenerateCACertificateRSAPKCS1(t *testing.T) {
 func TestParameterGenerateCACertificateRSAPKCS8(t *testing.T) {
 	defer mustReset(t)
 
-	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, caKeyKey)
-	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
-
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = parameters
+	fixtures.SetRegistry(configuration, caKeyKey, fixtures.NewGeneratePrivateKeyPipeline("RSA", "PKCS#8", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, caCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(caKeyKey), defaultCN, "24h", "CA", nil, nil, nil).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -405,11 +400,9 @@ func TestParameterGenerateCACertificateRSAPKCS8(t *testing.T) {
 func TestParameterGenerateCACertificateEllipticP224EC(t *testing.T) {
 	defer mustReset(t)
 
-	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingSEC1, nil, caKeyKey)
-	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
-
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = parameters
+	fixtures.SetRegistry(configuration, caKeyKey, fixtures.NewGeneratePrivateKeyPipeline("EllipticP224", "SEC 1", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, caCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(caKeyKey), defaultCN, "24h", "CA", nil, nil, nil).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -424,11 +417,9 @@ func TestParameterGenerateCACertificateEllipticP224EC(t *testing.T) {
 func TestParameterGenerateCACertificateED25519PKCS8Invalid(t *testing.T) {
 	defer mustReset(t)
 
-	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeED25519, v1.KeyEncodingPKCS8, &defaultKeyLength, caKeyKey)
-	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
-
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = parameters
+	fixtures.SetRegistry(configuration, caKeyKey, fixtures.NewGeneratePrivateKeyPipeline("ED25519", "PKCS#8", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, caCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(caKeyKey), defaultCN, "24h", "CA", nil, nil, nil).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -440,13 +431,11 @@ func TestParameterGenerateCACertificateED25519PKCS8Invalid(t *testing.T) {
 func TestParameterGenerateServerCertificateRSAPKCS1(t *testing.T) {
 	defer mustReset(t)
 
-	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS1, &defaultKeyLength, caKeyKey)
-	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
-	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS1, &defaultKeyLength, childKeyKey)...)
-	parameters = append(parameters, fixtures.SignedCertificateParameterToRegistry(&childKeyKey, defaultCN, v1.Server, &caKeyKey, &caCertificateKey, childCertificateKey)...)
-
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = parameters
+	fixtures.SetRegistry(configuration, caKeyKey, fixtures.NewGeneratePrivateKeyPipeline("RSA", "PKCS#1", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, caCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(caKeyKey), defaultCN, "24h", "CA", nil, nil, nil).ToJSON())
+	fixtures.AddRegistry(configuration, childKeyKey, fixtures.NewGeneratePrivateKeyPipeline("RSA", "PKCS#1", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, childCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(childKeyKey), defaultCN, "24h", "Server", nil, fixtures.Registry(caKeyKey), fixtures.Registry(caCertificateKey)).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -461,13 +450,11 @@ func TestParameterGenerateServerCertificateRSAPKCS1(t *testing.T) {
 func TestParameterGenerateServerCertificateRSAPKCS8(t *testing.T) {
 	defer mustReset(t)
 
-	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, caKeyKey)
-	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
-	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, childKeyKey)...)
-	parameters = append(parameters, fixtures.SignedCertificateParameterToRegistry(&childKeyKey, defaultCN, v1.Server, &caKeyKey, &caCertificateKey, childCertificateKey)...)
-
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = parameters
+	fixtures.SetRegistry(configuration, caKeyKey, fixtures.NewGeneratePrivateKeyPipeline("RSA", "PKCS#8", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, caCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(caKeyKey), defaultCN, "24h", "CA", nil, nil, nil).ToJSON())
+	fixtures.AddRegistry(configuration, childKeyKey, fixtures.NewGeneratePrivateKeyPipeline("RSA", "PKCS#8", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, childCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(childKeyKey), defaultCN, "24h", "Server", nil, fixtures.Registry(caKeyKey), fixtures.Registry(caCertificateKey)).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -482,13 +469,11 @@ func TestParameterGenerateServerCertificateRSAPKCS8(t *testing.T) {
 func TestParameterGenerateServerCertificateEllipticP224EC(t *testing.T) {
 	defer mustReset(t)
 
-	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingSEC1, &defaultKeyLength, caKeyKey)
-	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
-	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingSEC1, &defaultKeyLength, childKeyKey)...)
-	parameters = append(parameters, fixtures.SignedCertificateParameterToRegistry(&childKeyKey, defaultCN, v1.Server, &caKeyKey, &caCertificateKey, childCertificateKey)...)
-
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = parameters
+	fixtures.SetRegistry(configuration, caKeyKey, fixtures.NewGeneratePrivateKeyPipeline("EllipticP224", "SEC 1", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, caCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(caKeyKey), defaultCN, "24h", "CA", nil, nil, nil).ToJSON())
+	fixtures.AddRegistry(configuration, childKeyKey, fixtures.NewGeneratePrivateKeyPipeline("EllipticP224", "SEC 1", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, childCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(childKeyKey), defaultCN, "24h", "Server", nil, fixtures.Registry(caKeyKey), fixtures.Registry(caCertificateKey)).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -503,18 +488,11 @@ func TestParameterGenerateServerCertificateEllipticP224EC(t *testing.T) {
 func TestParameterGenerateServerCertificateRSAPKCS8WithSANs(t *testing.T) {
 	defer mustReset(t)
 
-	sans := []string{
-		"localhost",
-		"bugs.looneytunes.com",
-	}
-
-	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, caKeyKey)
-	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
-	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, childKeyKey)...)
-	parameters = append(parameters, fixtures.SignedCertificateParameterToRegistryWithDNSSANs(&childKeyKey, defaultCN, v1.Server, sans, &caKeyKey, &caCertificateKey, childCertificateKey)...)
-
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = parameters
+	fixtures.SetRegistry(configuration, caKeyKey, fixtures.NewGeneratePrivateKeyPipeline("RSA", "PKCS#8", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, caCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(caKeyKey), defaultCN, "24h", "CA", nil, nil, nil).ToJSON())
+	fixtures.AddRegistry(configuration, childKeyKey, fixtures.NewGeneratePrivateKeyPipeline("RSA", "PKCS#8", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, childCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(childKeyKey), defaultCN, "24h", "Server", fixtures.NewFunction("list", "DNS:localhost", "DNS:bugs.looneytunes.com"), fixtures.Registry(caKeyKey), fixtures.Registry(caCertificateKey)).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -529,13 +507,11 @@ func TestParameterGenerateServerCertificateRSAPKCS8WithSANs(t *testing.T) {
 func TestParameterGenerateClientCertificateRSAPKCS1(t *testing.T) {
 	defer mustReset(t)
 
-	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS1, &defaultKeyLength, caKeyKey)
-	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
-	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS1, &defaultKeyLength, childKeyKey)...)
-	parameters = append(parameters, fixtures.SignedCertificateParameterToRegistry(&childKeyKey, defaultCN, v1.Client, &caKeyKey, &caCertificateKey, childCertificateKey)...)
-
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = parameters
+	fixtures.SetRegistry(configuration, caKeyKey, fixtures.NewGeneratePrivateKeyPipeline("RSA", "PKCS#1", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, caCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(caKeyKey), defaultCN, "24h", "CA", nil, nil, nil).ToJSON())
+	fixtures.AddRegistry(configuration, childKeyKey, fixtures.NewGeneratePrivateKeyPipeline("RSA", "PKCS#1", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, childCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(childKeyKey), defaultCN, "24h", "Client", nil, fixtures.Registry(caKeyKey), fixtures.Registry(caCertificateKey)).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -550,13 +526,11 @@ func TestParameterGenerateClientCertificateRSAPKCS1(t *testing.T) {
 func TestParameterGenerateClientCertificateRSAPKCS8(t *testing.T) {
 	defer mustReset(t)
 
-	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, caKeyKey)
-	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
-	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, childKeyKey)...)
-	parameters = append(parameters, fixtures.SignedCertificateParameterToRegistry(&childKeyKey, defaultCN, v1.Client, &caKeyKey, &caCertificateKey, childCertificateKey)...)
-
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = parameters
+	fixtures.SetRegistry(configuration, caKeyKey, fixtures.NewGeneratePrivateKeyPipeline("RSA", "PKCS#8", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, caCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(caKeyKey), defaultCN, "24h", "CA", nil, nil, nil).ToJSON())
+	fixtures.AddRegistry(configuration, childKeyKey, fixtures.NewGeneratePrivateKeyPipeline("RSA", "PKCS#8", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, childCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(childKeyKey), defaultCN, "24h", "Client", nil, fixtures.Registry(caKeyKey), fixtures.Registry(caCertificateKey)).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -571,13 +545,11 @@ func TestParameterGenerateClientCertificateRSAPKCS8(t *testing.T) {
 func TestParameterGenerateClientCertificateEllipticP224EC(t *testing.T) {
 	defer mustReset(t)
 
-	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingSEC1, &defaultKeyLength, caKeyKey)
-	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
-	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeEllipticP224, v1.KeyEncodingSEC1, &defaultKeyLength, childKeyKey)...)
-	parameters = append(parameters, fixtures.SignedCertificateParameterToRegistry(&childKeyKey, defaultCN, v1.Client, &caKeyKey, &caCertificateKey, childCertificateKey)...)
-
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = parameters
+	fixtures.SetRegistry(configuration, caKeyKey, fixtures.NewGeneratePrivateKeyPipeline("EllipticP224", "SEC 1", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, caCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(caKeyKey), defaultCN, "24h", "CA", nil, nil, nil).ToJSON())
+	fixtures.AddRegistry(configuration, childKeyKey, fixtures.NewGeneratePrivateKeyPipeline("EllipticP224", "SEC 1", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, childCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(childKeyKey), defaultCN, "24h", "Client", nil, fixtures.Registry(caKeyKey), fixtures.Registry(caCertificateKey)).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -592,17 +564,11 @@ func TestParameterGenerateClientCertificateEllipticP224EC(t *testing.T) {
 func TestParameterGenerateClientCertificateRSAPKCS8WithSANs(t *testing.T) {
 	defer mustReset(t)
 
-	sans := []string{
-		"bugs.bunny@looneytunes.com",
-	}
-
-	parameters := fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, caKeyKey)
-	parameters = append(parameters, fixtures.CertificateParameterToRegistry(&caKeyKey, defaultCN, v1.CA, caCertificateKey)...)
-	parameters = append(parameters, fixtures.KeyParameterToRegistry(v1.KeyTypeRSA, v1.KeyEncodingPKCS8, &defaultKeyLength, childKeyKey)...)
-	parameters = append(parameters, fixtures.SignedCertificateParameterToRegistryWithEmailSANs(&childKeyKey, defaultCN, v1.Client, sans, &caKeyKey, &caCertificateKey, childCertificateKey)...)
-
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = parameters
+	fixtures.SetRegistry(configuration, caKeyKey, fixtures.NewGeneratePrivateKeyPipeline("RSA", "PKCS#8", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, caCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(caKeyKey), defaultCN, "24h", "CA", nil, nil, nil).ToJSON())
+	fixtures.AddRegistry(configuration, childKeyKey, fixtures.NewGeneratePrivateKeyPipeline("RSA", "PKCS#8", defaultKeyLength).ToJSON())
+	fixtures.AddRegistry(configuration, childCertificateKey, fixtures.NewGenerateCertificatePipeline(fixtures.Registry(childKeyKey), defaultCN, "24h", "Client", fixtures.NewFunction("list", "EMAIL:bugs.bunny@looneytunes.com"), fixtures.Registry(caKeyKey), fixtures.Registry(caCertificateKey)).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -617,7 +583,7 @@ func TestParameterGeneratePassword(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.PasswordParameterToRegistry(defaultPasswordLength, nil, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePasswordPipeline(defaultPasswordLength, nil).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -632,7 +598,7 @@ func TestParameterGeneratePasswordWithCustomDictionary(t *testing.T) {
 	defer mustReset(t)
 
 	configuration := fixtures.BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.Parameters = fixtures.PasswordParameterToRegistry(defaultPasswordLength, &customPasswordDictionary, key)
+	fixtures.SetRegistry(configuration, key, fixtures.NewGeneratePasswordPipeline(defaultPasswordLength, customPasswordDictionary).ToJSON())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()

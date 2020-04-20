@@ -20,7 +20,6 @@ import (
 
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/config"
-	"github.com/couchbase/service-broker/pkg/errors"
 	"github.com/couchbase/service-broker/pkg/operation"
 	"github.com/couchbase/service-broker/pkg/registry"
 
@@ -220,12 +219,8 @@ func (p *Creator) Prepare(entry *registry.Entry) error {
 	// can only ever be committed to the registry.
 	glog.Infof("rendering parameters for binding")
 
-	for index := range templates.Parameters {
-		parameter := &templates.Parameters[index]
-
-		glog.Infof("rendering parameter %s", parameter.Name)
-
-		value, err := resolveTemplateParameter(parameter, entry)
+	for _, registry := range templates.Registry {
+		value, err := renderTemplateString(registry.Value, entry)
 		if err != nil {
 			return err
 		}
@@ -234,14 +229,8 @@ func (p *Creator) Prepare(entry *registry.Entry) error {
 			continue
 		}
 
-		for _, destination := range parameter.Destinations {
-			if destination.Registry == nil {
-				return errors.NewConfigurationError("parameter %s must have a registry destination", parameter.Name)
-			}
-
-			if err := entry.SetUser(*destination.Registry, value); err != nil {
-				return err
-			}
+		if err := entry.SetUser(registry.Name, value); err != nil {
+			return err
 		}
 	}
 

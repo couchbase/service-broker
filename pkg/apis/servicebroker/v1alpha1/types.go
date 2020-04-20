@@ -226,14 +226,6 @@ type ConfigurationTemplate struct {
 	// supported by client-go or couchbase.
 	Template *runtime.RawExtension `json:"template"`
 
-	// Parameters allow parameters to be sourced either from request metadata
-	// or request parameters as defined in the service catalog.  If specified
-	// they will override existing values.  If not then the existing config
-	// will be left in place.  When there is no existing configuration and no
-	// parameter is specified in the request then an optional default value is
-	// used.
-	Parameters []ConfigurationParameter `json:"parameters,omitempty"`
-
 	// Singleton alters the behaviour of resource creation.  Typically we will
 	// create a resource and use parameters to alter it's name, ensuring it
 	// doesn't already exist.  Singleton resources will first check to see
@@ -241,230 +233,13 @@ type ConfigurationTemplate struct {
 	Singleton bool `json:"singleton,omitempty"`
 }
 
-// ConfigurationParameter defines a parameter substitution
-// on a resource template.
-type ConfigurationParameter struct {
-	// Name is a textual name used to uniquely identify the parameter for
-	// the template.
-	// +kubebuilder:validation:MinLength=1
+// RegistryValue sets a registry key using a template.
+type RegistryValue struct {
+	// Name is the name of the registry key to set.
 	Name string `json:"name"`
 
-	// Required will cause an error if a parameter is not defined.
-	Required bool `json:"required,omitempty"`
-
-	// Default specifies the default value is if the parameter is not defined.
-	Default *Literal `json:"default,omitempty"`
-
-	// Source is source of the parameter.
-	Source *ConfigurationParameterSource `json:"source,omitempty"`
-
-	// Destinations is the destination of the parameter.
-	// +kubebuilder:validation:MinItems=1
-	Destinations []ConfigurationParameterDestination `json:"destinations"`
-}
-
-// ConfigurationParameterSource defines where parameters
-// are sourced from.
-type ConfigurationParameterSource struct {
-	// Accessor allows parameter sources to be extracted directly from the registry
-	// or a parameter.
-	Accessor `json:",inline"`
-
-	// Format allows the collection of an arbitrary number of parameters into
-	// a string format.
-	Format *ConfigurationParameterSourceFormat `json:"format,omitempty"`
-
-	// GeneratePassword allows the generation of a random string, useful for password
-	// generation.
-	GeneratePassword *ConfigurationParameterSourceGeneratePassword `json:"generatePassword,omitempty"`
-
-	// GenerateKey allow the generation of a private key.
-	GenerateKey *ConfigurationParameterSourceGenerateKey `json:"generateKey,omitempty"`
-
-	// GenerateCertificate allows the generation of a public certificate.
-	GenerateCertificate *ConfigurationParameterSourceGenerateCertificate `json:"generateCertificate,omitempty"`
-
-	// Template allows the recursive rendering and inclusion of a named template.
-	Template *string `json:"template,omitempty"`
-}
-
-// ConfigurationParameterSourceFormat defines a formatting
-// string and parameters.
-type ConfigurationParameterSourceFormat struct {
-	// String is the format string to use.
-	String string `json:"string"`
-
-	// Parameters is the set of parameters corresponding to the format string.
-	// All parameters must exist or the formatting operation will return nil.
-	// +kubebuilder:validation:MinItems=1
-	Parameters []Accessor `json:"parameters"`
-}
-
-// ConfigurationParameterSourceGeneratePassword defines a random string.
-type ConfigurationParameterSourceGeneratePassword struct {
-	// Length is the length of the string to generate.
-	// +kubebuilder:validation:Minimum=1
-	Length int `json:"length"`
-
-	// Dictionary is the string of symbols to use.  This defaults to [a-zA-Z0-9].
-	Dictionary *string `json:"dictionary,omitempty"`
-}
-
-// KeyType is a private key type.
-type KeyType string
-
-const (
-	// RSA is widely supported, but the key sizes are large.
-	KeyTypeRSA KeyType = "RSA"
-
-	// KeyTypeEllipticP224 generates small keys relative to encryption strength.
-	KeyTypeEllipticP224 KeyType = "EllipticP244"
-
-	// KeyTypeEllipticP256 generates small keys relative to encryption strength.
-	KeyTypeEllipticP256 KeyType = "EllipticP256"
-
-	// KeyTypeEllipticP384 generates small keys relative to encryption strength.
-	KeyTypeEllipticP384 KeyType = "EllipticP384"
-
-	// KeyTypeEllipticP521 generates small keys relative to encryption strength.
-	KeyTypeEllipticP521 KeyType = "EllipticP521"
-
-	// KeyTypeED25519 generates small keys relative to encrption strength.
-	KeyTypeED25519 KeyType = "ED25519"
-)
-
-// KeyEncodingType is a private key encoding type.
-type KeyEncodingType string
-
-const (
-	// KeyEncodingPKCS1 may only be used with the RSA key type.
-	KeyEncodingPKCS1 KeyEncodingType = "PKCS1"
-
-	// KeyEncodingPKCS8 may be used for any key type.
-	KeyEncodingPKCS8 KeyEncodingType = "PKCS8"
-
-	// KeyEncodingSEC1 may only be used with EC key types.
-	KeyEncodingSEC1 KeyEncodingType = "SEC1"
-)
-
-// ConfigurationParameterSourceGenerateKey defines a private key.
-type ConfigurationParameterSourceGenerateKey struct {
-	// Type is the type of key as defined above.
-	// +kubebuilder:validation:Enum=RSA;EllipticP244;EllipticP256;EllipticP384;EllipticP521;ED25519
-	Type KeyType `json:"type"`
-
-	// Encoding is how to package the key.
-	// +kubebuilder:validation:Enum=PKCS1;PKCS8;SEC1
-	Encoding KeyEncodingType `json:"encoding"`
-
-	// Bits is the number of bits of key to generate, only relevant for RSA.
-	// +kubebuilder:validation:Minimum=1
-	Bits *int `json:"bits,omitempty"`
-}
-
-// CertificateUsage defines the certificate use.
-type CertificateUsage string
-
-const (
-	// CA is used for signing certificates and providing a trust anchor.
-	CA CertificateUsage = "CA"
-
-	// Server is used for server certificates.
-	Server CertificateUsage = "Server"
-
-	// Client is used for client certificates.
-	Client CertificateUsage = "Client"
-)
-
-// ConfigurationParameterSourceGenerateCertificate defines a certificate.
-type ConfigurationParameterSourceGenerateCertificate struct {
-	// Key is the private key to generate the certificate from.
-	// The key may be any valid encoding of an RSA or EC key.
-	Key Accessor `json:"key"`
-
-	// Subject is the certificate subject.
-	Subject CertificateSubject `json:"subject"`
-
-	// Lifetime is how long the certificate will last.
-	Lifetime metav1.Duration `json:"lifetime"`
-
-	// Usage is what the certificate is used for.  If server or client is specified
-	// then the CA parameter must be populated.  If CA is not specified for a "ca"
-	// certificate then it will be self signed.
-	// +kubebuilder:validation:Enum=CA;Server;Client
-	Usage CertificateUsage `json:"usage"`
-
-	// AlternativeNames are only valid for "server" and "client" certificates.
-	AlternativeNames *SubjectAlternativeNames `json:"alternativeNames,omitempty"`
-
-	// CA is the CA to sign with, it will self sign otherwise.
-	CA *SigningCA `json:"ca,omitempty"`
-}
-
-// CertificateSubject defines a certificate name.
-type CertificateSubject struct {
-	// CommonName is what the certificate name is usually referred to.
-	CommonName string `json:"commonName"`
-}
-
-// SubjectAlternativeNames defines alternative names for a certificate.
-type SubjectAlternativeNames struct {
-	// DNS is only relevant for "server" certificate types.
-	DNS []Accessor `json:"dns,omitempty"`
-
-	// Email is only relevant for "client" certificate types.
-	Email []Accessor `json:"email,omitempty"`
-}
-
-// SigningCA defines a CAe
-type SigningCA struct {
-	// Key is the CA's private key.
-	Key Accessor `json:"key"`
-
-	// Certificate is the CA's certificate.
-	Certificate Accessor `json:"certificate"`
-}
-
-// Accessor is an argument that references data from either parameters or
-// the registry.
-type Accessor struct {
-	// Registry , if set, uses the corresponding registry value for the
-	// parameter source.
-	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9-]+$"
-	Registry *string `json:"registry,omitempty"`
-
-	// Parameter, if set, uses the corresponding request parameter for the
-	// parameter source.
-	Parameter *string `json:"parameter,omitempty"`
-}
-
-// Literal defines a literal value based on the internal type system (i.e. JSON).
-// Typically used for default values for a parameter source if it is not specified.
-type Literal struct {
-	// String specifies the default string value if the parameter is not defined.
-	String *string `json:"string,omitempty"`
-
-	// Bool specifies the default boolean value if the parameter is not defined.
-	Bool *bool `json:"bool,omitempty"`
-
-	// Int specifies the default int value if the parameter is not defined.
-	Int *int `json:"int,omitempty"`
-
-	// Object specifies the default value if the parameter is not defined.
-	Object *runtime.RawExtension `json:"object,omitempty"`
-}
-
-// ConfigurationParameterDestination defines where to
-// patch parameters into the resource template.
-type ConfigurationParameterDestination struct {
-	// Path is a JSON pointer in the resource template to patch
-	// the parameter.  Paths may only be set for configuration template
-	// parameters.
-	Path *string `json:"path,omitempty"`
-
-	// Registry is a key to store the value to in the registry.
-	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9-]+$"
-	Registry *string `json:"registry,omitempty"`
+	// Value is the templated string value to calculate.
+	Value string `json:"value"`
 }
 
 // ConfigurationBinding binds a service plan to a set of templates
@@ -495,9 +270,9 @@ type ConfigurationBinding struct {
 // ServiceBrokerTemplateList is an ordered list of templates to use
 // when performing a specific operation.
 type ServiceBrokerTemplateList struct {
-	// Parameters allows registry parameters to be mutated and cached when a
-	// service instance is created.  These are only executed on instance creation.
-	Parameters []ConfigurationParameter `json:"parameters,omitempty"`
+	// Registry allows the pre-calculation of dynamic configuration from
+	// request inputs i.e. registry or parameters, or generated e.g. passwords.
+	Registry []RegistryValue `json:"registry,omitempty"`
 
 	// Templates defines all the templates that will be created, in order,
 	// by the service broker for this operation.
@@ -543,6 +318,19 @@ type ConfigurationReadinessCheckCondition struct {
 
 	// Status is the status of the condition that must match e.g. "True"
 	Status string `json:"status"`
+}
+
+// Accessor is an argument that references data from either parameters or
+// the registry.
+type Accessor struct {
+	// Registry , if set, uses the corresponding registry value for the
+	// parameter source.
+	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9-]+$"
+	Registry *string `json:"registry,omitempty"`
+
+	// Parameter, if set, uses the corresponding request parameter for the
+	// parameter source.
+	Parameter *string `json:"parameter,omitempty"`
 }
 
 // String allows the specification of a string value from either a literal source

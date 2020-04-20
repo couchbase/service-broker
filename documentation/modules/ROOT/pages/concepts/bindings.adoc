@@ -33,11 +33,12 @@ In our example this would be a `ServiceAccount`, `Role` and all the other resour
 In reality, the resources the binding refers to are all templates--a base Kubernetes resource that can be modified dynamically based on request parameters.
 Templates are covered in more detail in the next section.
 
-=== Parameters
+=== Registry Definitions
 
-Configuration bindings may also contain lists of parameters.
-These are simple functions that accept inputs from a number of sources, optionally apply transformations to them, then store the output somewhere.
-These are covered in more detail in a later section, however we will mention that parameters in the configuration binding may be used to generate values that are stored, and can used as inputs to template rending later.
+Configuration bindings may also contain lists of registry definitions.
+These are simple functions--based on Go language templates--that accept inputs from a number of sources, optionally apply transformations to them, then store the output to a named registry key.
+
+These are covered in more detail in a xref:concepts/dynamic-attributes.adoc[later section], however we will mention that registry entries defined in the configuration binding may be used to generate values that can used as inputs to template rending later.
 Such values can be shared resource names, passwords and even TLS configuration.
 
 === Readiness Checks
@@ -57,22 +58,22 @@ Service instances and service bindings have their own separate lists of template
 
 When configuration bindings are processed, the Service Broker guarantees some ordering constraints:
 
-. Configuration binding parameters are processed, in-order, first.
+. Configuration binding registry definitions are processed, in-order, first.
 . Configuration binding templates are processed, in-order, last.
 
 Given processing is ordered, outputs from an earlier parameter can be used as inputs into a later one.
 
-Both templates and parameters are optional.
+Both templates and registry definitions are optional.
 Take, for example, a service plan that has calculated its credentials while creating a service instance.
 When creating a service binding, in order to communicate these credentials back to an end user, the use of templates is not required.
-Credentials can be communicated back with only parameters.
+Credentials can be communicated back with only registry definitions.
 
 Readiness checks are performed during asynchronous operation polling.
 This allows the client to control the duration it should poll for, rather than have the asynchronous provisioning operation poll for an arbitrary amount of time.
 
 == Next Steps
 
-We have seen how a service plan is mapped to lists of templates and parameters for both service instances and bindings.
+We have seen how a service plan is mapped to lists of templates and registry definitions for both service instances and bindings.
 Next we will look in detail at how templates are rendered into Kubernetes resources.
 
 * xref:concepts/templates.adoc[Configuration Templates]

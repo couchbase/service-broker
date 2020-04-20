@@ -104,12 +104,6 @@ func (u *Updater) Prepare(entry *registry.Entry) error {
 			continue
 		}
 
-		// No parameters, nothing can change.
-		if len(template.Parameters) == 0 {
-			glog.Info("template not paramterized, ignoring update")
-			continue
-		}
-
 		t, err := renderTemplate(template, entry)
 		if err != nil {
 			return err

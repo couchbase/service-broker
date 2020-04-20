@@ -19,6 +19,12 @@ These reference topics describe Kubernetes custom resource types defined by the 
 
 * xref:reference/servicebrokerconfigs.adoc[ServiceBrokerConfig Resource Reference]
 
+.Dynamic Attributes
+
+These reference topics describe dynamic attribute functions available to Service Broker configuration.
+
+* xref:reference/template-functions.adoc[Dynamic Attribute Function Reference]
+
 .Docker and Container Images
 
 These reference topics describe the use of Service Broker container images.

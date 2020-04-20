@@ -1,0 +1,261 @@
+= Dynamic Attributes
+
+[abstract]
+This page describes how dynamic attributes in templates are processed by the Service Broker.
+
+ifdef::env-github[]
+:relfileprefix: ../
+:imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]
+
+In the xref:concepts/templates.adoc[last section] we described configuration templates and how they are used to generate valid Kubernetes resources.
+In this section we will look in detail at dynamic attributes, how they work, what they can do and how they can make your service instances truly dynamic.
+
+While this section focuses on dynamic attributes of resource templates, the same language syntax is used to process configuration binding registry definitions.
+
+== Dynamic Attributes
+
+Dynamic attributes are best thought of as functions: they accept input arguments and return a single result.
+Dynamic attributes do not have any side effects.
+
+In general, dynamic attributes use the Go language https://golang.org/pkg/text/template/[template^] library with a few specializations.
+All actions, pipelines and functions are fully supported, providing control flow and function chaining out of the box.
+Arguments are confined to scalar values only (typically `int`, `string` and `bool`) and undefined values (`nil`).
+
+=== Dynamic Attribute Typing
+
+The key thing to note is that Go language templating operates on text.
+Text has no concept of type (other than being a string) therefore all dynamic attributes must be serialized to JSON in order to preserve type information and allow the Service Broker to make the correct decisions.
+All dynamic attributes are initially defined as strings, however the attribute itself takes on the type of the value returned by attribute template processing.
+
+Internally, the templating engine treats all data as abstract values.
+Functions, however, may require a parameter to be of a specific type.
+The templating engine will attempt to cast from an abstract value to a concrete data type where required by a function argument.
+If this conversion fails, an error is raised.
+
+==== Optional Attributes
+
+All attribute templates are optional by default.
+This supports such use cases where parameters supplied by the end user--as defined by the xref:concepts/catalog.adoc#json-schemas[service catalog schemas]--are optional.
+If a user defined parameter is not specified, but referred to by an attribute template, the parameter argument lookup fails and the result will be internally set to `nil`.
+If a configuration parameter value is `nil`, then the attribute is unset.
+
+By exploiting optional parameters and how they are handled by the Service Broker, you can create basic conditional elements to your templates.
+
+==== Mandatory Attributes
+
+As we have seen in our xref:concepts/templates.adoc#template-example[earlier template example], resource templates will not generate valid Kubernetes resources without certain attributes being populated.
+This will manifest itself as a Kubernetes creation error, which may be difficult to debug.
+You can catch these types of errors earlier, and with more context, by specifying that the parameter is required.
+
+[source]
+----
+{{ parameter "/optional-parameter" | required | json }}
+----
+
+Unlike optional parameters, required parameters will raise an error if the result resolves to `nil`.
+This will indicate the error as related to the specific named parameter in the named template.
+
+== Service Broker Defined Functions
+
+Service Broker defined functions are divided into categories based on their behavior.  These are:
+
+* Accessors--these lookup data items.
+* Mutators--these transform existing data items.
+* Generators--these generate data items.
+* Assertions--these perform error checking.
+
+[#accessors]
+=== Accessors
+
+Accessors do a simple lookup of a value from available data sources.
+
+==== Registry
+
+The registry is described in detail in the next section.
+It is a typed key/value store.
+A registry source for name `foo` will return any value associated with the registry key `foo` as in the following example:
+
+[source]
+----
+{{ registry "fool" | json }}
+----
+
+==== Parameter
+
+A parameter refers to a user specified parameter supplied with a create or update operation.
+Parameters are a supplied as a free-form JSON object to the API.
+The parameter function access to a string, number, array or object in the supplied JSON object.
+Parameters are accessed with the https://tools.ietf.org/html/rfc6902[JSON pointer^] specification.
+For example, given the parameters passed to the API:
+
+[source,json]
+----
+{
+  "size": 16,
+  "resources": {
+    "requests": {
+      "cpu": "4",
+      "memory": "16Gi"
+    }
+  }
+}
+----
+
+A dynamic attribute of:
+
+[source]
+----
+{{ parameter "/size" | json }}
+----
+
+would resolve to `"4"`.
+
+A dynamic attribute of:
+
+[source]
+----
+{{ parameter "/resources/requests" | json }}
+----
+
+would resolve to `{"cpu":"4","memory":"16Gi"}`.
+
+==== Template Snippet
+
+The snippet function enables generation of complex results, and recursive template generation.
+A specific example could involve Kubernetes label selectors.
+Resources are labeled with a set of values, label selectors then filter resources based on the same labels.
+In both cases the labels are the same, and can be generated by a common template snippet, rather than duplicated.
+Template snippets are the one case where a configuration template need not generate a Kubernetes resource.
+
+To demonstrate consider the following configuration template snippet definition:
+
+[source,yaml]
+----
+name: label-snippet
+template:
+  app: '{{ registry "my-app-name" | json }}' # <1>
+----
+
+<1> The `app` attribute is dynamically set to the value defined by the `my-app-name` registry key.
+
+Therefore if the registry key `my-app-name` contained the value `merlin`, then the snippet would generate the result `{"app":"merlin"}`.
+
+To use the snippet, the following configuration template shows how:
+
+[source,yaml]
+----
+template:
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: my-secret
+    labels: '{{ snippet "label-snippet" | json }}'
+----
+
+This would generate the following Kubernetes resource:
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-secret
+  labels:
+    app: merlin
+----
+
+=== Mutators
+
+Mutators build upon accessors and allow data to be modified.
+
+==== Default
+
+The default function allows a dynamic attribute to have a value set when an optional input argument is not specified:
+
+[source]
+----
+{{ parameter "/size" | default 3 | json }}
+----
+
+=== Generators
+
+Generators create new values.
+They may accept arguments that allow the generation functions to be dynamically configured.
+Any cryptographic generators use cryptographically secure random number generators.
+
+[#generate-password]
+==== Generate Password
+
+The password generator generates ephemeral passwords of a specific length and results in a string.
+The dictionary of characters used to generate passwords defaults to `[a-zA-Z0-9]`, however this can be explicitly defined.
+To generate a 32 character password:
+
+[source]
+----
+{{ generatePassword 32 nil | json }}
+----
+
+==== Generate Key
+
+The key generator creates a private key and results in a string containing a PEM encoded private key.
+Supported key types are RSA, ECDSA and ED25519.
+Supported encoding types are PKCS#1, PKCS#8 and SEC 1.
+
+For example, to generate a PKCS#8 encoded P256 elliptic curve private key:
+
+[source]
+----
+{{ generatePrivateKey "EllipticP256" "PKCS#8" nil | json }}
+----
+
+==== Generate Certificate
+
+The certificate generator generates X.509 certificates and results in a string containing a PEM encoded certificate.
+This generator optionally accepts a CA certificate and key pair with which to sign the resulting certificate.
+If no CA is specified then the resulting certificate is self-signed.
+
+The certificate generator supports CA, server and client certificate types.
+Server and client certificates may be specified with DNS and e-mail subject alternative names respectively.
+
+For example, to generate a signed X.509 certificate:
+
+[source]
+----
+{{ generateCertificate (registry "my-key") "My Certificate" "24h" "Server" (list "localhost") (registry "my-ca-key") (registry "my-ca-cert") | json }}
+----
+
+.Recursive Template Processing
+[TIP]
+====
+This example demonstrates the use of dynamic function arguments.
+The private key associated with the certificate is provided as a PEM encoded string.
+In this example we recursively lookup the certificate from the registry with `(registry "my-key")`.
+====
+
+.Automatic Certificate Rotation
+[TIP]
+====
+The Service Broker is reactive--it responds to API calls--therefore will never support certificate rotation directly.
+You should deploy a certificate manager with your service instances if this functionality is required by your security policy.
+====
+
+=== Assertions
+
+Assertions allow error checking to be performed earlier in the pipeline to raise errors in a more constrained manner.
+
+==== Required
+
+The required function will raise an error if the input argument is `nil`.
+
+[source]
+----
+{{ parameter "/password" | required | json }}
+----
+
+== Next Steps
+
+The final step to explain the Service Broker configuration is to look at the registry.
+This is the last fundamental component of the Service Broker that must be understood in order to use and configure it effectively.
+
+* xref:concepts/registry.adoc[Service Instance and Binding Registries]
