@@ -453,10 +453,8 @@ spec:
         condition:
           apiVersion: couchbase.com/v2
           kind: CouchbaseCluster
-          namespace:
-            registry: namespace
-          name:
-            registry: instance-name
+          namespace: '{{ registry "namespace" | json }}'
+          name: '{{ registry "instance-name" | json }}'
           type: Available
           status: "True"
     serviceBinding:

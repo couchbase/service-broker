@@ -65,7 +65,6 @@ Service Broker defined functions are divided into categories based on their beha
 * Generators--these generate data items.
 * Assertions--these perform error checking.
 
-[#accessors]
 === Accessors
 
 Accessors do a simple lookup of a value from available data sources.
@@ -167,7 +166,7 @@ metadata:
 
 === Mutators
 
-Mutators build upon accessors and allow data to be modified.
+Mutators allow data to be modified.
 
 ==== Default
 

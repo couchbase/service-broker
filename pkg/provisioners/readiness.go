@@ -19,6 +19,7 @@ import (
 
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/config"
+	"github.com/couchbase/service-broker/pkg/errors"
 	"github.com/couchbase/service-broker/pkg/operation"
 	"github.com/couchbase/service-broker/pkg/registry"
 
@@ -55,14 +56,24 @@ func (e *conditionUnreadyError) Error() string {
 // conditionReady waits for a condition on a resource to report as ready.  Returns nil on success and
 // an error otherwise.
 func conditionReady(entry *registry.Entry, condition *v1.ConfigurationReadinessCheckCondition) error {
-	namespace, err := resolveString(&condition.Namespace, entry)
+	namespaceRaw, err := renderTemplateString(condition.Namespace, entry)
 	if err != nil {
 		return err
 	}
 
-	name, err := resolveString(&condition.Name, entry)
+	namespace, ok := namespaceRaw.(string)
+	if !ok {
+		return errors.NewConfigurationError("condition resource namespace not a string %v", namespaceRaw)
+	}
+
+	nameRaw, err := renderTemplateString(condition.Name, entry)
 	if err != nil {
 		return err
+	}
+
+	name, ok := nameRaw.(string)
+	if !ok {
+		return errors.NewConfigurationError("condition resource name not a string %v", nameRaw)
 	}
 
 	gv, err := schema.ParseGroupVersion(condition.APIVersion)

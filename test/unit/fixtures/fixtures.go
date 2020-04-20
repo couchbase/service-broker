@@ -69,12 +69,6 @@ var (
 	// instanceIDRegistryEntry is the metadata key for accessing the instance ID from a template parameter.
 	instanceIDRegistryEntry = string(registry.InstanceID)
 
-	// namespaceRegistryKey is used to lookup the service instance namespace.
-	namespaceRegistryKey = "namespace"
-
-	// instanceNameRegistryEntry is the unique instance name to store in the registry.
-	instanceNameRegistryEntry = "instance-name"
-
 	// credentialsSnippetName is the name of a credentials snippet.
 	credentialsSnippetName = "credentials-snippet"
 
@@ -200,18 +194,10 @@ var (
 			Condition: &v1.ConfigurationReadinessCheckCondition{
 				APIVersion: "v1",
 				Kind:       "Pod",
-				Namespace: v1.String{
-					Accessor: v1.Accessor{
-						Registry: &namespaceRegistryKey,
-					},
-				},
-				Name: v1.String{
-					Accessor: v1.Accessor{
-						Registry: &instanceNameRegistryEntry,
-					},
-				},
-				Type:   "Ready",
-				Status: "True",
+				Namespace:  `{{ registry "namespace" | json }}`,
+				Name:       `{{ registry "instance-name" | json }}`,
+				Type:       "Ready",
+				Status:     "True",
 			},
 		},
 	}

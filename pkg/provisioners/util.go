@@ -24,7 +24,6 @@ import (
 	"github.com/couchbase/service-broker/pkg/log"
 	"github.com/couchbase/service-broker/pkg/registry"
 
-	"github.com/go-openapi/jsonpointer"
 	"github.com/golang/glog"
 )
 
@@ -96,89 +95,6 @@ func getTemplate(name string) (*v1.ConfigurationTemplate, error) {
 	}
 
 	return nil, errors.NewConfigurationError("unable to locate template for %s", name)
-}
-
-// resolveParameter attempts to find the parameter path in the provided JSON.
-func resolveParameter(path string, entry *registry.Entry) (interface{}, bool, error) {
-	var parameters interface{}
-
-	ok, err := entry.Get(registry.Parameters, &parameters)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !ok {
-		return nil, false, fmt.Errorf("unable to lookup parameters")
-	}
-
-	pointer, err := jsonpointer.New(path)
-	if err != nil {
-		glog.Infof("failed to parse JSON pointer: %v", err)
-		return nil, false, err
-	}
-
-	value, _, err := pointer.Get(parameters)
-	if err != nil {
-		return nil, false, nil
-	}
-
-	return value, true, nil
-}
-
-// resolveAccessor looks up a registry or parameter.
-func resolveAccessor(accessor *v1.Accessor, entry *registry.Entry) (interface{}, error) {
-	var value interface{}
-
-	switch {
-	case accessor.Registry != nil:
-		v, ok, err := entry.GetUser(*accessor.Registry)
-		if err != nil {
-			return nil, err
-		}
-
-		if !ok {
-			return nil, nil
-		}
-
-		value = v
-
-	case accessor.Parameter != nil:
-		v, ok, err := resolveParameter(*accessor.Parameter, entry)
-		if err != nil {
-			return nil, err
-		}
-
-		if !ok {
-			return nil, nil
-		}
-
-		value = v
-	default:
-		return nil, fmt.Errorf("accessor must have one method defined")
-	}
-
-	glog.Infof("resolved parameter value %v", value)
-
-	return value, nil
-}
-
-// resolveString looks up a string value.
-func resolveString(str *v1.String, entry *registry.Entry) (string, error) {
-	if str.String != nil {
-		return *str.String, nil
-	}
-
-	value, err := resolveAccessor(&str.Accessor, entry)
-	if err != nil {
-		return "", err
-	}
-
-	stringValue, ok := value.(string)
-	if !ok {
-		return "", fmt.Errorf("value %v is not a string", value)
-	}
-
-	return stringValue, nil
 }
 
 // renderTemplate accepts a template defined in the configuration and applies any
