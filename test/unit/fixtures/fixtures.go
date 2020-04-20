@@ -37,6 +37,9 @@ const (
 	// ServiceInstanceName is a name to use for a service instance.
 	ServiceInstanceName = "pinkiepie"
 
+	// AlternateServiceInstanceName is a name to use for another service instance.
+	AlternateServiceInstanceName = "rainbowdash"
+
 	// ServiceBindingName is a name to use for a service binding.
 	ServiceBindingName = "spike"
 
@@ -128,9 +131,13 @@ var (
 				},
 			},
 			{
-				Name: "test-template",
-				// Populated by the configuration function.
+				Name:     "test-template",
 				Template: &runtime.RawExtension{Raw: []byte(`{"apiVersion":"v1","kind":"Pod","metadata":{"name":"{{registry \"instance-name\" | json}}"},"spec":{"containers":[{"name":"image","image":"name/image:tag"}],"automountServiceAccountToken":"{{true | json}}","priority":"{{0 | json}}","dnsConfig":"{{snippet \"dns-snippet\" | json}}","hostname":"{{parameter \"/hostname\" | json}}"}}`)},
+			},
+			{
+				Name:      "test-singleton",
+				Singleton: true,
+				Template:  &runtime.RawExtension{Raw: []byte(`{"apiVersion":"v1","kind":"Pod","metadata":{"name":"singleton"}}`)},
 			},
 		},
 		Bindings: []v1.ConfigurationBinding{
@@ -151,6 +158,7 @@ var (
 					},
 					Templates: []string{
 						"test-template",
+						"test-singleton",
 					},
 				},
 				ServiceBinding: &v1.ServiceBrokerTemplateList{
