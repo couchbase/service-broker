@@ -224,7 +224,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		parameters = request.Parameters
 	}
 
-	namespace, err := provisioners.GetNamespace(request.Context)
+	namespace, err := getNamespace(request.Context)
 	if err != nil {
 		jsonError(w, err)
 		return

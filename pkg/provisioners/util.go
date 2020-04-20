@@ -26,43 +26,7 @@ import (
 
 	"github.com/go-openapi/jsonpointer"
 	"github.com/golang/glog"
-
-	"k8s.io/apimachinery/pkg/runtime"
 )
-
-// GetNamespace returns the namespace to provision resources in.  This is the namespace
-// the broker lives in by default, however when operating as a kubernetes cluster service
-// broker then this information is passed as request context.
-func GetNamespace(context *runtime.RawExtension) (string, error) {
-	if context != nil {
-		var ctx interface{}
-
-		if err := json.Unmarshal(context.Raw, &ctx); err != nil {
-			glog.Infof("unmarshal of client context failed: %v", err)
-			return "", err
-		}
-
-		pointer, err := jsonpointer.New("/namespace")
-		if err != nil {
-			glog.Infof("failed to parse JSON pointer: %v", err)
-			return "", err
-		}
-
-		v, _, err := pointer.Get(ctx)
-		if err == nil {
-			namespace, ok := v.(string)
-			if ok {
-				return namespace, nil
-			}
-
-			glog.Infof("request context namespace not a string")
-
-			return "", errors.NewParameterError("request context namespace not a string")
-		}
-	}
-
-	return config.Namespace(), nil
-}
 
 // getServiceAndPlanNames translates from GUIDs to human readable names used in configuration.
 func getServiceAndPlanNames(serviceID, planID string) (string, string, error) {

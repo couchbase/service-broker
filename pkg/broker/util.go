@@ -23,8 +23,11 @@ import (
 
 	"github.com/couchbase/service-broker/pkg/api"
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
+	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/pkg/errors"
 	"github.com/couchbase/service-broker/pkg/log"
+
+	"github.com/go-openapi/jsonpointer"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
@@ -340,4 +343,38 @@ func verifyBindable(config *v1.ServiceBrokerConfig, serviceID, planID string) er
 	}
 
 	return nil
+}
+
+// getNamespace returns the namespace to provision resources in.  This is the namespace
+// the broker lives in by default, however when operating as a kubernetes cluster service
+// broker then this information is passed as request context.
+func getNamespace(context *runtime.RawExtension) (string, error) {
+	if context != nil {
+		var ctx interface{}
+
+		if err := json.Unmarshal(context.Raw, &ctx); err != nil {
+			glog.Infof("unmarshal of client context failed: %v", err)
+			return "", err
+		}
+
+		pointer, err := jsonpointer.New("/namespace")
+		if err != nil {
+			glog.Infof("failed to parse JSON pointer: %v", err)
+			return "", err
+		}
+
+		v, _, err := pointer.Get(ctx)
+		if err == nil {
+			namespace, ok := v.(string)
+			if ok {
+				return namespace, nil
+			}
+
+			glog.Infof("request context namespace not a string")
+
+			return "", errors.NewParameterError("request context namespace not a string")
+		}
+	}
+
+	return config.Namespace(), nil
 }
