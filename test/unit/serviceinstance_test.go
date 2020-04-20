@@ -37,6 +37,20 @@ func TestServiceInstanceCreate(t *testing.T) {
 	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
 }
 
+// TestServiceInstanceCreateSingleton tests that the service broker accepts a
+// minimal service instance creation and allows multiple instances sharing  a
+// singleton resource.
+func TestServiceInstanceCreateSingleton(t *testing.T) {
+	defer mustReset(t)
+
+	configuration := fixtures.BasicConfiguration()
+	util.MustReplaceBrokerConfig(t, clients, configuration)
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.AlternateServiceInstanceName, req)
+}
+
 // TestServiceInstanceCreateNotAynchronous tests that the service broker rejects service
 // instance creation that isn't asynchronous.
 func TestServiceInstanceCreateNotAynchronous(t *testing.T) {
