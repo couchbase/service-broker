@@ -499,8 +499,8 @@ readinessChecks:
 - condition:
     apiVersion: apps/v1
     kind: Deployment
-    namespace: {}
-    name: {}
+    namespace: '{{ registry "namespace" | json }}'
+    name: '{{ registry "instance-name" | json }}'
     type: Available
     status: "True"
 ----
@@ -521,16 +521,16 @@ This attribute defines the resource kind of the desired resource.
 ==== readinessChecks.condition.namespace
 
 This attribute defines the namespace the desired resource exists in.
+This attribute may be templated as per dynamic attributes.
 
-* This attribute is required and must be an object.
-* This attribute is described in more detail in the <<string,string>> reference.
+* This attribute is required and must be a string.
 
 ==== readinessChecks.condition.name
 
 This attribute defines the name the desired resource has.
+This attribute may be templated as per dynamic attributes.
 
-* This attribute is required and must be an object.
-* This attribute is described in more detail in the <<string,string>> reference.
+* This attribute is required and must be a string.
 
 ==== readinessChecks.condition.type
 
@@ -543,59 +543,3 @@ This attribute defines the condition type to match.
 This attribute defines the condition status to match.
 
 * This attribute is required and must be a string.
-
-[#accessor]
-=== Accessor
-
-This object is used by parameter sources to read configuration data dynamically from one of the available data sources.
-Only one of `registry` or `parameter` should be specified, the result is undefined otherwise.
-
-[source,yaml]
-----
-registry: my-key
-parameter: /path/to/my/value
-----
-
-==== registry
-
-This attribute causes the Service Broker to source a value from the registry associated with the service instance or service binding.
-
-* This attribute is optional and must be a string.
-
-==== parameter
-
-This attribute causes the Service Broker to source a value from the user-specified service instance or service binding request parameters.
-
-* This attribute is optional and must be a string.
-
-[#string]
-=== String
-
-This object is a specialization of the <<accessor,accessor>> type that enforces type.
-It also allows a literal string value to be specified.
-Only one of `registry`, `parameter` or `string` can be specified, the result is undefined otherwise.
-
-[source,yaml]
-----
-registry: my-key
-parameter: /path/to/my/value
-string: my-string
-----
-
-==== registry
-
-This attribute causes the Service Broker to source a value from the registry associated with the service instance or service binding.
-
-* This attribute is optional and must be a string.
-
-==== parameter
-
-This attribute causes the Service Broker to source a value from the user-specified service instance or service binding request parameters.
-
-* This attribute is optional and must be a string.
-
-==== string
-
-This attribute provides a literal string value.
-
-* This attribute is optional and must be a string.

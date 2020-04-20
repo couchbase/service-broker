@@ -308,39 +308,16 @@ type ConfigurationReadinessCheckCondition struct {
 	Kind string `json:"kind"`
 
 	// Namespace is the namespace the resource resides in.
-	Namespace String `json:"namespace"`
+	Namespace string `json:"namespace"`
 
 	// Name is the resource name to poll.
-	Name String `json:"name"`
+	Name string `json:"name"`
 
 	// Type is the type of the condition to look for e.g. "Available"
 	Type string `json:"type"`
 
 	// Status is the status of the condition that must match e.g. "True"
 	Status string `json:"status"`
-}
-
-// Accessor is an argument that references data from either parameters or
-// the registry.
-type Accessor struct {
-	// Registry , if set, uses the corresponding registry value for the
-	// parameter source.
-	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9-]+$"
-	Registry *string `json:"registry,omitempty"`
-
-	// Parameter, if set, uses the corresponding request parameter for the
-	// parameter source.
-	Parameter *string `json:"parameter,omitempty"`
-}
-
-// String allows the specification of a string value from either a literal source
-// or an accessor.
-type String struct {
-	// Accessor allows the string to be read from the registry or parameters.
-	Accessor `json:",inline"`
-
-	// String is a literal string value.
-	String *string `json:"string,omitempty"`
 }
 
 // ServiceBrokerConfigStatus records status information about a configuration

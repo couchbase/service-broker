@@ -83,37 +83,11 @@ spec:
                                   type: string
                                 name:
                                   description: Name is the resource name to poll.
-                                  properties:
-                                    parameter:
-                                      description: Parameter, if set, uses the corresponding
-                                        request parameter for the parameter source.
-                                      type: string
-                                    registry:
-                                      description: Registry , if set, uses the corresponding
-                                        registry value for the parameter source.
-                                      pattern: ^[a-zA-Z0-9-]+$
-                                      type: string
-                                    string:
-                                      description: String is a literal string value.
-                                      type: string
-                                  type: object
+                                  type: string
                                 namespace:
                                   description: Namespace is the namespace the resource
                                     resides in.
-                                  properties:
-                                    parameter:
-                                      description: Parameter, if set, uses the corresponding
-                                        request parameter for the parameter source.
-                                      type: string
-                                    registry:
-                                      description: Registry , if set, uses the corresponding
-                                        registry value for the parameter source.
-                                      pattern: ^[a-zA-Z0-9-]+$
-                                      type: string
-                                    string:
-                                      description: String is a literal string value.
-                                      type: string
-                                  type: object
+                                  type: string
                                 status:
                                   description: Status is the status of the condition
                                     that must match e.g. "True"
@@ -193,37 +167,11 @@ spec:
                                   type: string
                                 name:
                                   description: Name is the resource name to poll.
-                                  properties:
-                                    parameter:
-                                      description: Parameter, if set, uses the corresponding
-                                        request parameter for the parameter source.
-                                      type: string
-                                    registry:
-                                      description: Registry , if set, uses the corresponding
-                                        registry value for the parameter source.
-                                      pattern: ^[a-zA-Z0-9-]+$
-                                      type: string
-                                    string:
-                                      description: String is a literal string value.
-                                      type: string
-                                  type: object
+                                  type: string
                                 namespace:
                                   description: Namespace is the namespace the resource
                                     resides in.
-                                  properties:
-                                    parameter:
-                                      description: Parameter, if set, uses the corresponding
-                                        request parameter for the parameter source.
-                                      type: string
-                                    registry:
-                                      description: Registry , if set, uses the corresponding
-                                        registry value for the parameter source.
-                                      pattern: ^[a-zA-Z0-9-]+$
-                                      type: string
-                                    string:
-                                      description: String is a literal string value.
-                                      type: string
-                                  type: object
+                                  type: string
                                 status:
                                   description: Status is the status of the condition
                                     that must match e.g. "True"
