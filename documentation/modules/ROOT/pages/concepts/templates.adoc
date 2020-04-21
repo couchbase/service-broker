@@ -32,7 +32,7 @@ template: # <1>
   apiVersion: v1
   kind: Secret
   metadata:
-    name: '{{ registry "instance-id" | json }}' # <2>
+    name: '{{ registry "instance-id" }}' # <2>
   stringData:
     mySecretName: TopSecret!
 ----
@@ -44,10 +44,6 @@ Lets look in more detail at the configuration:
 <2> The `metadata.name` attribute is an example of using dynamic attributes
     Dynamic attributes are defined as strings--Go language templating operates on strings.
     This particular template references a value from the registry--a simple key/value store.
-    The result from the registry lookup is then piped into a JSON converter.
-    As Go language templating is all based on strings, then all outputs will also be strings.
-    To allow the Service Broker to preserve structure and data types, all templated attributes must serialize their output into a JSON string.
-    By using JSON, the Service Broker can decode it and process it correctly based on data type.
 
 If, for example, our instance ID was `camelot`, the resulting resource would be:
 
@@ -76,7 +72,7 @@ template:
   kind: Secret
   metadata:
     name: my-secret
-    namespace: '{{ parameter "my-namespace" | json }}'
+    namespace: '{{ parameter "my-namespace" }}'
 ----
 
 If the parameter did not exist, the resulting resource would look like:

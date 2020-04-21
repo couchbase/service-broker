@@ -287,15 +287,30 @@ func templateFunctionGenerateJSON(object interface{}) (string, error) {
 	return value, nil
 }
 
+const (
+	// templatePrefix denotes the start of a Go template.
+	templatePrefix = "{{"
+
+	// templateSuffix denotes the end of a Go template.
+	templateSuffix = "}}"
+)
+
 // renderTemplateString takes a string and returns either the literal value if it's
 // not a template or the object returned after template rendering.
 func renderTemplateString(str string, entry *registry.Entry) (interface{}, error) {
 	// Template expansion must occur in a string, and it must be all one template.
-	if !strings.HasPrefix(str, "{{") {
+	if !strings.HasPrefix(str, templatePrefix) {
 		return str, nil
 	}
 
-	glog.V(log.LevelDebug).Infof("resolving templated attribute %s", str)
+	if !strings.HasSuffix(str, templateSuffix) {
+		return nil, errors.NewConfigurationError("dynamic attribute '%s' malformed", str)
+	}
+
+	glog.V(log.LevelDebug).Infof("resolving dynamic attribute %s", str)
+
+	// Implictly add in a JSON transformation to preserve type and structure.
+	str = fmt.Sprintf("%s| json }}", str[:len(str)-len(templateSuffix)])
 
 	funcs := map[string]interface{}{
 		"registry":            templateFunctionRegistry(entry),
@@ -317,7 +332,7 @@ func renderTemplateString(str string, entry *registry.Entry) (interface{}, error
 
 	buf := &bytes.Buffer{}
 	if err := tmpl.Execute(buf, nil); err != nil {
-		return nil, errors.NewConfigurationError("template resolution failed: %v", err)
+		return nil, errors.NewConfigurationError("dynamic attribute resolution failed: %v", err)
 	}
 
 	var value interface{}

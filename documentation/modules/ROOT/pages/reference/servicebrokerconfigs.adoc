@@ -429,7 +429,7 @@ Configuration binding parameters are defined as follows:
 ----
 registry:
 - name: my-key
-  value: '{{ generatePassword 32 nil | json }}'
+  value: '{{ generatePassword 32 nil }}'
 templates:
 - my-template
 readinessChecks: []
@@ -499,8 +499,8 @@ readinessChecks:
 - condition:
     apiVersion: apps/v1
     kind: Deployment
-    namespace: '{{ registry "namespace" | json }}'
-    name: '{{ registry "instance-name" | json }}'
+    namespace: '{{ registry "namespace" }}'
+    name: '{{ registry "instance-name" }}'
     type: Available
     status: "True"
 ----

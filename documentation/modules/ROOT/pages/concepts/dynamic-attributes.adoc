@@ -19,13 +19,15 @@ Dynamic attributes are best thought of as functions: they accept input arguments
 Dynamic attributes do not have any side effects.
 
 In general, dynamic attributes use the Go language https://golang.org/pkg/text/template/[template^] library with a few specializations.
-All actions, pipelines and functions are fully supported, providing control flow and function chaining out of the box.
+All pipelines and functions are fully supported.
+Actions involving control flow (e.g. `if` and `range`) are not supported at present.
 Arguments are confined to scalar values only (typically `int`, `string` and `bool`) and undefined values (`nil`).
 
 === Dynamic Attribute Typing
 
 The key thing to note is that Go language templating operates on text.
 Text has no concept of type (other than being a string) therefore all dynamic attributes must be serialized to JSON in order to preserve type information and allow the Service Broker to make the correct decisions.
+The JSON serialization function is added implicitly, by the Service Broker, to all pipelines.
 All dynamic attributes are initially defined as strings, however the attribute itself takes on the type of the value returned by attribute template processing.
 
 Internally, the templating engine treats all data as abstract values.
@@ -50,7 +52,7 @@ You can catch these types of errors earlier, and with more context, by specifyin
 
 [source]
 ----
-{{ parameter "/optional-parameter" | required | json }}
+{{ parameter "/optional-parameter" | required }}
 ----
 
 Unlike optional parameters, required parameters will raise an error if the result resolves to `nil`.
@@ -77,7 +79,7 @@ A registry source for name `foo` will return any value associated with the regis
 
 [source]
 ----
-{{ registry "fool" | json }}
+{{ registry "fool" }}
 ----
 
 ==== Parameter
@@ -105,7 +107,7 @@ A dynamic attribute of:
 
 [source]
 ----
-{{ parameter "/size" | json }}
+{{ parameter "/size" }}
 ----
 
 would resolve to `"4"`.
@@ -114,7 +116,7 @@ A dynamic attribute of:
 
 [source]
 ----
-{{ parameter "/resources/requests" | json }}
+{{ parameter "/resources/requests" }}
 ----
 
 would resolve to `{"cpu":"4","memory":"16Gi"}`.
@@ -133,7 +135,7 @@ To demonstrate consider the following configuration template snippet definition:
 ----
 name: label-snippet
 template:
-  app: '{{ registry "my-app-name" | json }}' # <1>
+  app: '{{ registry "my-app-name" }}' # <1>
 ----
 
 <1> The `app` attribute is dynamically set to the value defined by the `my-app-name` registry key.
@@ -149,7 +151,7 @@ template:
   kind: Secret
   metadata:
     name: my-secret
-    labels: '{{ snippet "label-snippet" | json }}'
+    labels: '{{ snippet "label-snippet" }}'
 ----
 
 This would generate the following Kubernetes resource:
@@ -174,7 +176,7 @@ The default function allows a dynamic attribute to have a value set when an opti
 
 [source]
 ----
-{{ parameter "/size" | default 3 | json }}
+{{ parameter "/size" | default 3 }}
 ----
 
 === Generators
@@ -192,7 +194,7 @@ To generate a 32 character password:
 
 [source]
 ----
-{{ generatePassword 32 nil | json }}
+{{ generatePassword 32 nil }}
 ----
 
 ==== Generate Key
@@ -205,7 +207,7 @@ For example, to generate a PKCS#8 encoded P256 elliptic curve private key:
 
 [source]
 ----
-{{ generatePrivateKey "EllipticP256" "PKCS#8" nil | json }}
+{{ generatePrivateKey "EllipticP256" "PKCS#8" nil }}
 ----
 
 ==== Generate Certificate
@@ -221,7 +223,7 @@ For example, to generate a signed X.509 certificate:
 
 [source]
 ----
-{{ generateCertificate (registry "my-key") "My Certificate" "24h" "Server" (list "localhost") (registry "my-ca-key") (registry "my-ca-cert") | json }}
+{{ generateCertificate (registry "my-key") "My Certificate" "24h" "Server" (list "localhost") (registry "my-ca-key") (registry "my-ca-cert") }}
 ----
 
 .Recursive Template Processing
@@ -249,7 +251,7 @@ The required function will raise an error if the input argument is `nil`.
 
 [source]
 ----
-{{ parameter "/password" | required | json }}
+{{ parameter "/password" | required }}
 ----
 
 == Next Steps

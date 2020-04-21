@@ -115,6 +115,8 @@ The result type will be any type.
 == `json`
 
 The `json` function serializes its input as a JSON string.
+All templates implicitly append the JSON function to their pipelines as this is required by the Service Broker for all operations.
+This is only performed for simple, single pipeline actions, therefore complex action involving control flow are not supported at present.
 
 [source]
 ----

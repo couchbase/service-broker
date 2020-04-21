@@ -51,7 +51,7 @@ func TestRegistryIllegalWrite(t *testing.T) {
 	illegalKey := string(registry.ServiceID)
 
 	configuration := fixtures.BasicConfiguration()
-	fixtures.SetRegistry(configuration, illegalKey, fixtures.NewRegistryPipeline(key).WithDefault(defaultValue).ToJSON())
+	fixtures.SetRegistry(configuration, illegalKey, fixtures.NewRegistryPipeline(key).WithDefault(defaultValue))
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -65,7 +65,7 @@ func TestRegistryIllegalRead(t *testing.T) {
 	illegalKey := string(registry.Parameters)
 
 	configuration := fixtures.BasicConfiguration()
-	fixtures.SetRegistry(configuration, key, fixtures.NewRegistryPipeline(illegalKey).ToJSON())
+	fixtures.SetRegistry(configuration, key, fixtures.NewRegistryPipeline(illegalKey))
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -79,7 +79,7 @@ func TestRegistryMissingKey(t *testing.T) {
 	missingKey := "missing"
 
 	configuration := fixtures.BasicConfiguration()
-	fixtures.SetRegistry(configuration, fixtures.DashboardURL, fixtures.NewRegistryPipeline(missingKey).ToJSON())
+	fixtures.SetRegistry(configuration, fixtures.DashboardURL, fixtures.NewRegistryPipeline(missingKey))
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -96,7 +96,7 @@ func TestRegistryMissingRequiredKey(t *testing.T) {
 	missingKey := "missing"
 
 	configuration := fixtures.BasicConfiguration()
-	fixtures.SetRegistry(configuration, key, fixtures.NewRegistryPipeline(missingKey).Required().ToJSON())
+	fixtures.SetRegistry(configuration, key, fixtures.NewRegistryPipeline(missingKey).Required())
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()
@@ -143,7 +143,7 @@ func TestRegistryDefault(t *testing.T) {
 	defaultValue := "kitten"
 
 	configuration := fixtures.BasicConfiguration()
-	fixtures.SetRegistry(configuration, key, fixtures.NewRegistryPipeline(key).WithDefault(defaultValue).ToJSON())
+	fixtures.SetRegistry(configuration, key, fixtures.NewRegistryPipeline(key).WithDefault(defaultValue))
 	util.MustReplaceBrokerConfig(t, clients, configuration)
 
 	req := fixtures.BasicServiceInstanceCreateRequest()

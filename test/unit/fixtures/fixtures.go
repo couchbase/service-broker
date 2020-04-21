@@ -121,7 +121,7 @@ var (
 			{
 				Name: dnsSnippetName,
 				Template: &runtime.RawExtension{
-					Raw: []byte(`{"nameservers":["{{default \"` + dnsDefault + `\" nil | json}}"]}`),
+					Raw: []byte(`{"nameservers":["{{ default \"` + dnsDefault + `\" nil }}"]}`),
 				},
 			},
 			{
@@ -132,7 +132,7 @@ var (
 			},
 			{
 				Name:     "test-template",
-				Template: &runtime.RawExtension{Raw: []byte(`{"apiVersion":"v1","kind":"Pod","metadata":{"name":"{{registry \"instance-name\" | json}}"},"spec":{"containers":[{"name":"image","image":"name/image:tag"}],"automountServiceAccountToken":"{{true | json}}","priority":"{{0 | json}}","dnsConfig":"{{snippet \"dns-snippet\" | json}}","hostname":"{{parameter \"/hostname\" | json}}"}}`)},
+				Template: &runtime.RawExtension{Raw: []byte(`{"apiVersion":"v1","kind":"Pod","metadata":{"name":"{{ registry \"instance-name\" }}"},"spec":{"containers":[{"name":"image","image":"name/image:tag"}],"automountServiceAccountToken":"{{ true }}","priority":"{{ 0 }}","dnsConfig":"{{ snippet \"dns-snippet\" }}","hostname":"{{ parameter \"/hostname\" }}"}}`)},
 			},
 			{
 				Name:      "test-singleton",
@@ -149,11 +149,11 @@ var (
 					Registry: []v1.RegistryValue{
 						{
 							Name:  "instance-name",
-							Value: "{{printf \"instance-%s\" (registry \"instance-id\") | json}}",
+							Value: "{{ printf \"instance-%s\" (registry \"instance-id\") }}",
 						},
 						{
 							Name:  "dashboard-url",
-							Value: "{{printf \"http://%v.%v.svc\" (registry \"instance-name\") (registry \"namespace\") | json}}",
+							Value: "{{ printf \"http://%v.%v.svc\" (registry \"instance-name\") (registry \"namespace\") }}",
 						},
 					},
 					Templates: []string{
@@ -165,7 +165,7 @@ var (
 					Registry: []v1.RegistryValue{
 						{
 							Name:  "credentials",
-							Value: "{{snippet \"" + credentialsSnippetName + "\" | json}}",
+							Value: "{{ snippet \"" + credentialsSnippetName + "\" }}",
 						},
 					},
 				},
@@ -178,7 +178,7 @@ var (
 					Registry: []v1.RegistryValue{
 						{
 							Name:  "instance-name",
-							Value: "{{registry \"" + instanceIDRegistryEntry + "\" | json}}",
+							Value: "{{ registry \"" + instanceIDRegistryEntry + "\" }}",
 						},
 					},
 				},
@@ -186,7 +186,7 @@ var (
 					Registry: []v1.RegistryValue{
 						{
 							Name:  "credentials",
-							Value: "{{snippet \"" + credentialsSnippetName + "\" | json}}",
+							Value: "{{ snippet \"" + credentialsSnippetName + "\" }}",
 						},
 					},
 				},
@@ -202,8 +202,8 @@ var (
 			Condition: &v1.ConfigurationReadinessCheckCondition{
 				APIVersion: "v1",
 				Kind:       "Pod",
-				Namespace:  `{{ registry "namespace" | json }}`,
-				Name:       `{{ registry "instance-name" | json }}`,
+				Namespace:  `{{ registry "namespace" }}`,
+				Name:       `{{ registry "instance-name" }}`,
 				Type:       "Ready",
 				Status:     "True",
 			},
