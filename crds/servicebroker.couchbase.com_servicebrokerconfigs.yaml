@@ -8,6 +8,14 @@ metadata:
   creationTimestamp: null
   name: servicebrokerconfigs.servicebroker.couchbase.com
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.conditions[?(@.type=="ConfigurationValid")].status
+    description: whether the configuration is valid
+    name: valid
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: age
+    type: date
   group: servicebroker.couchbase.com
   names:
     kind: ServiceBrokerConfig
@@ -15,6 +23,7 @@ spec:
     plural: servicebrokerconfigs
     singular: servicebrokerconfig
   scope: Namespaced
+  subresources: {}
   validation:
     openAPIV3Schema:
       properties:

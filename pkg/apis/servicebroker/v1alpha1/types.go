@@ -34,6 +34,8 @@ const (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:categories=all;couchbase
 // +kubebuilder:resource:scope=Namespaced
+// +kubebuilder:printcolumn:name="valid",type="string",JSONPath=".status.conditions[?(@.type==\"ConfigurationValid\")].status",description="whether the configuration is valid"
+// +kubebuilder:printcolumn:name="age",type="date",JSONPath=".metadata.creationTimestamp"
 type ServiceBrokerConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

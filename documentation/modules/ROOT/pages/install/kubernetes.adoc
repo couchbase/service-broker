@@ -104,14 +104,17 @@ deployment.extensions/couchbase-service-broker condition met
 ====
 The Service Broker does not use a dynamic admission controller to validate the configuration at present.
 It does, however, perform validation internally and report this back to the user through a status in the configuration resource.
-If for any reason the deployment does not become ready, first check the logs for information:
+If you have made a configuration error, the Service Broker `Deployment` will not become ready.
+You can see the validation status directly through the CLI:
 
 [source,console]
 ----
-$ kubectl logs -f deployment/couchbase-service-broker
+$ kubectl get servicebrokerconfigs
+NAME                       VALID   AGE
+couchbase-service-broker   True    9m
 ----
 
-If the logs indicate you have a configuration error you can examine this in more detail with the following command:
+If you have a configuration error, you can examine this in more detail with the following command:
 
 [source,console]
 ----
@@ -119,7 +122,7 @@ $ kubectl describe servicebrokerconfigs
 Status:
   Conditions:
     Last Transition Time:  2020-04-06T15:51:17Z
-    Message:               template couchbase-operator-rolebinding referenced by configuration couchbase-developer-private service instance must exist
+    Message:               template 'couchbase-operator-rolebinding', referenced by binding 'couchbase-developer-private' service instance, must exist
     Reason:                ValidationFailed
     Status:                False
     Type:                  ConfigurationValid
