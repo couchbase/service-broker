@@ -95,12 +95,6 @@ func (p Pipeline) WithDefault(arg interface{}) Pipeline {
 	return p.With(Default(arg))
 }
 
-// ToJSON appends a function to a pipeline that serializes the input to
-// a JSON string.
-func (p Pipeline) ToJSON() Pipeline {
-	return p.With(JSON())
-}
-
 // Required appends a function to a pipeline that sets a default if the
 // input is nil.
 func (p Pipeline) Required() Pipeline {
@@ -163,9 +157,4 @@ func Default(arg interface{}) Function {
 // Required returns a function that raises an error if the input is nil.
 func Required() Function {
 	return NewFunction(`required`)
-}
-
-// JSON returns a function that serializes the input to a JSON string.
-func JSON() Function {
-	return NewFunction(`json`)
 }

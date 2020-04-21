@@ -264,7 +264,7 @@ spec:
       subjects:
       - kind: ServiceAccount
         name: couchbase-operator
-        namespace: '{{ registry "namespace" | json }}'
+        namespace: '{{ registry "namespace" }}'
   - name: couchbase-operator-deployment
     singleton: true
     template:
@@ -309,116 +309,116 @@ spec:
       apiVersion: v1
       kind: Secret
       metadata:
-        name: '{{ printf "%v-admin" (registry "instance-name") | json }}'
+        name: '{{ printf "%v-admin" (registry "instance-name") }}'
       stringData:
         username: Administrator
-        password: '{{ parameter "/password" | json }}'
+        password: '{{ parameter "/password" }}'
   - name: couchbase-operator-tls-secret
     template:
       apiVersion: v1
       kind: Secret
       metadata:
-        name: '{{ printf "%v-operator-tls" (registry "instance-name") | json }}'
+        name: '{{ printf "%v-operator-tls" (registry "instance-name") }}'
       stringData:
-        ca.crt: '{{ registry "ca-cert" | json }}'
+        ca.crt: '{{ registry "ca-cert" }}'
   - name: couchbase-server-tls-secret
     template:
       apiVersion: v1
       kind: Secret
       metadata:
-        name: '{{ printf "%v-server-tls" (registry "instance-name") | json }}'
+        name: '{{ printf "%v-server-tls" (registry "instance-name") }}'
       stringData:
-        pkey.key: '{{ registry "server-key" | json }}'
-        chain.pem: '{{ registry "server-cert" | json }}'
+        pkey.key: '{{ registry "server-key" }}'
+        chain.pem: '{{ registry "server-cert" }}'
   - name: selector-snippet
     template:
       matchLabels:
-        cluster: '{{ registry "instance-name" | json }}'
+        cluster: '{{ registry "instance-name" }}'
   - name: couchbase-developer-private
     template:
       apiVersion: couchbase.com/v2
       kind: CouchbaseCluster
       metadata:
-        name: '{{ registry "instance-name" | json }}'
+        name: '{{ registry "instance-name" }}'
       spec:
-        image: '{{ parameter "/image" | default "couchbase/server:6.5.0" | json }}'
+        image: '{{ parameter "/image" | default "couchbase/server:6.5.0" }}'
         security:
-          adminSecret: '{{ printf "%v-admin" (registry "instance-name") | json }}'
+          adminSecret: '{{ printf "%v-admin" (registry "instance-name") }}'
           rbac:
             managed: true
-            selector: '{{ snippet "selector-snippet" | json }}'
+            selector: '{{ snippet "selector-snippet" }}'
         networking:
           tls:
             static:
-              operatorSecret: '{{ printf "%v-operator-tls" (registry "instance-name") | json }}'
-              serverSecret: '{{ printf "%v-server-tls" (registry "instance-name") | json }}'
+              operatorSecret: '{{ printf "%v-operator-tls" (registry "instance-name") }}'
+              serverSecret: '{{ printf "%v-server-tls" (registry "instance-name") }}'
         buckets:
           managed: true
-          selector: '{{ snippet "selector-snippet" | json }}'
+          selector: '{{ snippet "selector-snippet" }}'
         servers:
         - name: default
           services:
           - data
           - index
           - query
-          size: '{{ parameter "/size" | default 3 | json }}'
+          size: '{{ parameter "/size" | default 3 }}'
   - name: couchbase-bucket
     template:
       apiVersion: couchbase.com/v2
       kind: CouchbaseBucket
       metadata:
-        name: '{{ registry "binding-name" | json }}'
-        labels: '{{ snippet "selector-snippet" | json }}'
+        name: '{{ registry "binding-name" }}'
+        labels: '{{ snippet "selector-snippet" }}'
   - name: couchbase-user-secret
     template:
       apiVersion: v1
       kind: Secret
       metadata:
-        name: '{{ registry "binding-name" | json }}'
+        name: '{{ registry "binding-name" }}'
       data:
-        password: '{{ registry "password" | json }}'
+        password: '{{ registry "password" }}'
   - name: couchbase-user
     template:
       apiVersion: couchbase.com/v2
       kind: CouchbaseUser
       metadata:
-        name: '{{ registry "binding-name" | json }}'
-        labels: '{{ snippet "selector-snippet" | json }}'
+        name: '{{ registry "binding-name" }}'
+        labels: '{{ snippet "selector-snippet" }}'
       spec:
         authDomain: local
-        authSecret: '{{ registry "binding-name" | json }}'
+        authSecret: '{{ registry "binding-name" }}'
   - name: couchbase-group
     template:
       apiVersion: couchbase.com/v2
       kind: CouchbaseGroup
       metadata:
-        name: '{{ registry "binding-name" | json }}'
-        labels: '{{ snippet "selector-snippet" | json }}'
+        name: '{{ registry "binding-name" }}'
+        labels: '{{ snippet "selector-snippet" }}'
       spec:
         roles:
         - name: bucket_admin
-          bucket: '{{ registry "binding-name" | json }}'
+          bucket: '{{ registry "binding-name" }}'
   - name: couchbase-role-binding
     template:
       apiVersion: couchbase.com/v2
       kind: CouchbaseRoleBinding
       metadata:
-        name: '{{ registry "binding-name" | json }}'
-        labels: '{{ snippet "selector-snippet" | json }}'
+        name: '{{ registry "binding-name" }}'
+        labels: '{{ snippet "selector-snippet" }}'
       spec:
         subjects:
         - kind: CouchbaseUser
-          name: '{{ registry "binding-name" | json }}'
+          name: '{{ registry "binding-name" }}'
         roleRef:
           kind: CouchbaseGroup
-          name: '{{ registry "binding-name" | json }}'
+          name: '{{ registry "binding-name" }}'
   - name: credentials
     template:
-      connection-string: '{{ printf "couchbases://%v-srv.%v" (registry "instance-name") (registry "namespace") | json }}'
-      ca.pem: '{{ registry "ca-cert" | json }}'
-      username: '{{ registry "username" | json }}'
-      password: '{{ registry "password" | json }}'
-      bucket: '{{ registry "binding-name" | json }}'
+      connection-string: '{{ printf "couchbases://%v-srv.%v" (registry "instance-name") (registry "namespace") }}'
+      ca.pem: '{{ registry "ca-cert" }}'
+      username: '{{ registry "username" }}'
+      password: '{{ registry "password" }}'
+      bucket: '{{ registry "binding-name" }}'
   # Bindings bind templates to service plans.  These allow the specification of
   # exactly what templates are created when a plan is instantiated or bound to.
   bindings:
@@ -428,17 +428,17 @@ spec:
     serviceInstance:
       registry:
       - name: instance-name
-        value: '{{ printf "instance-%s" (generatePassword 8 "abcdefghijklmnopqrstuvwxyz0123456789") | json }}'
+        value: '{{ printf "instance-%s" (generatePassword 8 "abcdefghijklmnopqrstuvwxyz0123456789") }}'
       - name: dashboard-url
-        value: '{{ printf "https://%s.%s:18091" (registry "instance-name") (registry "namespace") | json }}'
+        value: '{{ printf "https://%s.%s:18091" (registry "instance-name") (registry "namespace") }}'
       - name: ca-key
-        value: '{{ generatePrivateKey "RSA" "PKCS#8" 2048 | json}}'
+        value: '{{ generatePrivateKey "RSA" "PKCS#8" 2048 }}'
       - name: ca-cert
-        value: '{{ generateCertificate (registry "ca-key") "Couchbase Server CA" "87600h" "CA" nil nil nil | json }}'
+        value: '{{ generateCertificate (registry "ca-key") "Couchbase Server CA" "87600h" "CA" nil nil nil }}'
       - name: server-key
-        value: '{{ generatePrivateKey "RSA" "PKCS#1" 2048 | json }}'
+        value: '{{ generatePrivateKey "RSA" "PKCS#1" 2048 }}'
       - name: server-cert
-        value: '{{ generateCertificate (registry "server-key") "Couchbase Server" "87600h" "Server" (list (printf "DNS:%s-srv" (registry "instance-name")) (printf "DNS:%s-srv.%s" (registry "instance-name") (registry "namespace")) (printf "DNS:%s-srv.%s.svc" (registry "instance-name") (registry "namespace")) (printf "DNS:*.%s" (registry "instance-name")) (printf "DNS:*.%s.%s" (registry "instance-name") (registry "namespace")) (printf "DNS:*.%s.%s.svc" (registry "instance-name") (registry "namespace")) "DNS:localhost") (registry "ca-key") (registry "ca-cert") | json }}'
+        value: '{{ generateCertificate (registry "server-key") "Couchbase Server" "87600h" "Server" (list (printf "DNS:%s-srv" (registry "instance-name")) (printf "DNS:%s-srv.%s" (registry "instance-name") (registry "namespace")) (printf "DNS:%s-srv.%s.svc" (registry "instance-name") (registry "namespace")) (printf "DNS:*.%s" (registry "instance-name")) (printf "DNS:*.%s.%s" (registry "instance-name") (registry "namespace")) (printf "DNS:*.%s.%s.svc" (registry "instance-name") (registry "namespace")) "DNS:localhost") (registry "ca-key") (registry "ca-cert") }}'
       templates:
       - couchbase-operator-serviceaccount
       - couchbase-operator-role
@@ -453,18 +453,18 @@ spec:
         condition:
           apiVersion: couchbase.com/v2
           kind: CouchbaseCluster
-          namespace: '{{ registry "namespace" | json }}'
-          name: '{{ registry "instance-name" | json }}'
+          namespace: '{{ registry "namespace" }}'
+          name: '{{ registry "instance-name" }}'
           type: Available
           status: "True"
     serviceBinding:
       registry:
       - name: binding-name
-        value: '{{ printf "binding-%s" (registry "binding-id") | json }}'
+        value: '{{ printf "binding-%s" (registry "binding-id") }}'
       - name: password
-        value: '{{ generatePassword 32 nil | json }}'
+        value: '{{ generatePassword 32 nil }}'
       - name: credentials
-        value: '{{ snippet "credentials" | json }}'
+        value: '{{ snippet "credentials" }}'
       templates:
       - couchbase-bucket
       - couchbase-group
