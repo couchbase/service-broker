@@ -51,7 +51,7 @@ func validate(config *v1.ServiceBrokerConfig) error {
 			// Each service plan must have a service binding.
 			binding := getBindingForServicePlan(config, service.Name, plan.Name)
 			if binding == nil {
-				return fmt.Errorf("service plan %s for offering %s does not have a configuration binding", plan.Name, service.Name)
+				return fmt.Errorf("service plan '%s' for offering '%s' does not have a binding", plan.Name, service.Name)
 			}
 
 			// Only bindable service plans may have templates for bindings.
@@ -61,11 +61,11 @@ func validate(config *v1.ServiceBrokerConfig) error {
 			}
 
 			if !bindable && binding.ServiceBinding != nil {
-				return fmt.Errorf("service plan %s for offering %s not bindable, but configuration binding %s defines service binding configuarion", plan.Name, service.Name, binding.Name)
+				return fmt.Errorf("service plan '%s' for offering '%s' not bindable, but binding '%s' defines service binding configuarion", plan.Name, service.Name, binding.Name)
 			}
 
 			if bindable && binding.ServiceBinding == nil {
-				return fmt.Errorf("service plan %s for offering %s bindable, but configuration binding %s does not define service binding configuarion", plan.Name, service.Name, binding.Name)
+				return fmt.Errorf("service plan '%s' for offering '%s' bindable, but binding '%s' does not define service binding configuarion", plan.Name, service.Name, binding.Name)
 			}
 		}
 	}
@@ -74,26 +74,26 @@ func validate(config *v1.ServiceBrokerConfig) error {
 	for _, binding := range config.Spec.Bindings {
 		// Bindings cannot do nothing.
 		if len(binding.ServiceInstance.Registry) == 0 && len(binding.ServiceInstance.Templates) == 0 {
-			return fmt.Errorf("configuration binding %s does nothing for service instances", binding.Name)
+			return fmt.Errorf("binding '%s' does nothing for service instances", binding.Name)
 		}
 
 		if binding.ServiceBinding != nil {
 			if len(binding.ServiceBinding.Registry) == 0 && len(binding.ServiceBinding.Templates) == 0 {
-				return fmt.Errorf("configuration binding %s does nothing for service bindings", binding.Name)
+				return fmt.Errorf("binding '%s' does nothing for service bindings", binding.Name)
 			}
 		}
 
 		// Binding templates must exist.
 		for _, template := range binding.ServiceInstance.Templates {
 			if getTemplateByName(config, template) == nil {
-				return fmt.Errorf("template %s referenced by configuration %s service instance must exist", template, binding.Name)
+				return fmt.Errorf("template '%s', referenced by binding '%s' service instance, must exist", template, binding.Name)
 			}
 		}
 
 		if binding.ServiceBinding != nil {
 			for _, template := range binding.ServiceBinding.Templates {
 				if getTemplateByName(config, template) == nil {
-					return fmt.Errorf("template %s referenced by configuration %s service binding must exist", template, binding.Name)
+					return fmt.Errorf("template '%s', referenced by binding '%s' service binding, must exist", template, binding.Name)
 				}
 			}
 		}
