@@ -19,21 +19,16 @@ Dynamic attributes are best thought of as functions: they accept input arguments
 Dynamic attributes do not have any side effects.
 
 In general, dynamic attributes use the Go language https://golang.org/pkg/text/template/[template^] library with a few specializations.
-All pipelines and functions are fully supported.
-Actions involving control flow (e.g. `if` and `range`) are not supported at present.
-Arguments are confined to scalar values only (typically `int`, `string` and `bool`) and undefined values (`nil`).
+Control flow is allowed, however, each dynamic attribute should execute at one action in order to generate a value.
+Dot is not defined initially, all data must be accessed though accessor functions.
+Iteration is not supported.
 
 === Dynamic Attribute Typing
 
 The key thing to note is that Go language templating operates on text.
 Text has no concept of type (other than being a string) therefore all dynamic attributes must be serialized to JSON in order to preserve type information and allow the Service Broker to make the correct decisions.
-The JSON serialization function is added implicitly, by the Service Broker, to all pipelines.
+The JSON serialization function is added implicitly, by the Service Broker, to all action pipelines that would usually generate template output.
 All dynamic attributes are initially defined as strings, however the attribute itself takes on the type of the value returned by attribute template processing.
-
-Internally, the templating engine treats all data as abstract values.
-Functions, however, may require a parameter to be of a specific type.
-The templating engine will attempt to cast from an abstract value to a concrete data type where required by a function argument.
-If this conversion fails, an error is raised.
 
 ==== Optional Attributes
 

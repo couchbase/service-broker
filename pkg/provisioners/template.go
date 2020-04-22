@@ -22,6 +22,7 @@ import (
 	"math/big"
 	"strings"
 	"text/template"
+	"text/template/parse"
 	"time"
 
 	"github.com/couchbase/service-broker/pkg/errors"
@@ -295,6 +296,50 @@ const (
 	templateSuffix = "}}"
 )
 
+// jsonify is a command to be appended to actions in the template
+// parse tree.
+var jsonify = &parse.CommandNode{
+	NodeType: parse.NodeCommand,
+	Args: []parse.Node{
+		parse.NewIdentifier("json"),
+	},
+}
+
+// transformActionsToJSON walks the parse tree and finds any actions that
+// would usually generate text output.  These are appened with a JSON function
+// that turns the abstract type into a JSON string, preserving type for later
+// decoding and patching into the resource structure.
+func transformActionsToJSON(n parse.Node) {
+	if n == nil {
+		return
+	}
+
+	switch node := n.(type) {
+	case *parse.ActionNode:
+		if node.Pipe != nil && len(node.Pipe.Decl) == 0 {
+			node.Pipe.Cmds = append(node.Pipe.Cmds, jsonify)
+		}
+	case *parse.BranchNode:
+		transformActionsToJSON(node.List)
+		transformActionsToJSON(node.ElseList)
+	case *parse.CommandNode:
+		for _, arg := range node.Args {
+			transformActionsToJSON(arg)
+		}
+	case *parse.IfNode:
+		transformActionsToJSON(node.BranchNode.List)
+		transformActionsToJSON(node.BranchNode.ElseList)
+	case *parse.ListNode:
+		for _, item := range node.Nodes {
+			transformActionsToJSON(item)
+		}
+	case *parse.PipeNode:
+		for _, cmd := range node.Cmds {
+			transformActionsToJSON(cmd)
+		}
+	}
+}
+
 // renderTemplateString takes a string and returns either the literal value if it's
 // not a template or the object returned after template rendering.
 func renderTemplateString(str string, entry *registry.Entry) (interface{}, error) {
@@ -308,9 +353,6 @@ func renderTemplateString(str string, entry *registry.Entry) (interface{}, error
 	}
 
 	glog.V(log.LevelDebug).Infof("resolving dynamic attribute %s", str)
-
-	// Implictly add in a JSON transformation to preserve type and structure.
-	str = fmt.Sprintf("%s| json }}", str[:len(str)-len(templateSuffix)])
 
 	funcs := map[string]interface{}{
 		"registry":            templateFunctionRegistry(entry),
@@ -329,6 +371,9 @@ func renderTemplateString(str string, entry *registry.Entry) (interface{}, error
 	if err != nil {
 		return nil, err
 	}
+
+	// Implictly add in a JSON transformation to preserve type and structure.
+	transformActionsToJSON(tmpl.Root)
 
 	buf := &bytes.Buffer{}
 	if err := tmpl.Execute(buf, nil); err != nil {
