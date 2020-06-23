@@ -1020,6 +1020,29 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 
 	provisioner.Run(entry)
 
+	operationStatus, ok, err := entry.GetString(registry.OperationStatus)
+	if err != nil {
+		jsonError(w, err)
+		return
+	}
+
+	if !ok {
+		jsonError(w, fmt.Errorf("expected operation status not found"))
+		return
+	}
+
+	// Stop the operation to allow other things to happen now.
+	if err := operation.End(entry); err != nil {
+		jsonError(w, err)
+		return
+	}
+
+	if operationStatus != "" {
+		// Work needed: properly propagate the error type.
+		jsonError(w, errors.NewConfigurationError(operationStatus))
+		return
+	}
+
 	credentials := &runtime.RawExtension{}
 
 	if _, err := frozenEntry.Get(registry.Credentials, credentials); err != nil {

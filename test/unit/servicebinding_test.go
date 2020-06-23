@@ -210,6 +210,22 @@ func TestServiceBindingCreateWithRequiredSchemaNoParameters(t *testing.T) {
 	util.MustPutAndError(t, util.ServiceBindingURI(fixtures.ServiceInstanceName, fixtures.ServiceBindingName, nil), http.StatusBadRequest, binding, api.ErrorValidationError)
 }
 
+// TestServiceBindingIllegalResource tests that the error handling for a failed service
+// instance creation happens gracefully.
+func TestServiceBindingIllegalResource(t *testing.T) {
+	defer mustReset(t)
+
+	configuration := fixtures.BasicConfiguration()
+	configuration.Bindings[0].ServiceBinding.Templates = []string{fixtures.IllegalTemplateName}
+	util.MustReplaceBrokerConfig(t, clients, configuration)
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	binding := fixtures.BasicServiceBindingCreateRequest()
+	util.MustPutAndError(t, util.ServiceBindingURI(fixtures.ServiceInstanceName, fixtures.ServiceBindingName, nil), http.StatusBadRequest, binding, api.ErrorConfigurationError)
+}
+
 // TestServiceBindingRereateAfterCreation tests service binding recreation executes successfully when
 // a service binding already exists.
 func TestServiceBindingRecreateAfterCreation(t *testing.T) {

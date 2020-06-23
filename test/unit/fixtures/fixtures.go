@@ -92,6 +92,10 @@ var (
 		},
 	}
 
+	// IllegalTemplateName refers to a template for a non-existent resource
+	// type that can be used to simulate Kubernetes errors.
+	IllegalTemplateName = "illegal"
+
 	// basicConfiguration is the absolute minimum valid configuration allowed by the
 	// service broker configuration schema.
 	basicConfiguration = &v1.ServiceBrokerConfigSpec{
@@ -138,6 +142,12 @@ var (
 				Name:      "test-singleton",
 				Singleton: true,
 				Template:  &runtime.RawExtension{Raw: []byte(`{"apiVersion":"v1","kind":"Pod","metadata":{"name":"singleton"}}`)},
+			},
+			{
+				Name: IllegalTemplateName,
+				Template: &runtime.RawExtension{
+					Raw: []byte(`{"apiVersion":"acme.corp/v1","kind":"RoadRunner","metadata":{"name":"meep-meep"}}`),
+				},
 			},
 		},
 		Bindings: []v1.ConfigurationBinding{
