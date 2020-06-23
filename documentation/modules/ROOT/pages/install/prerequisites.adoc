@@ -25,7 +25,7 @@ In general, any Kubernetes distribution based on a supported version should work
 
 The Service Broker is recommended for use with the https://kubernetes.io/docs/concepts/extend-kubernetes/service-catalog/[Kubernetes Service Catalog^].
 
-Installation instructions can be found in the https://svc-cat.io/docs/install/[official documentation].
+Installation instructions can be found in the https://kubernetes.io/docs/tasks/service-catalog/[official documentation].
 
 As the Service Broker is standards based, any version of the Service Catalog supporting the Open Service Broker API version 2.13 is supported.
 
