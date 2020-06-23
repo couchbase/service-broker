@@ -60,8 +60,6 @@ spec:
         - /var/run/secrets/couchbase-service-broker/tls-certificate
         - -tls-private-key
         - /var/run/secrets/couchbase-service-broker/tls-private-key
-        command:
-        - /usr/local/bin/broker
         env:
         - name: NAMESPACE
           valueFrom:
