@@ -8,6 +8,7 @@ relfileprefix
 png
 Kubernetes
 kubernetes
+CRD
 CRDs
 adoc
 api

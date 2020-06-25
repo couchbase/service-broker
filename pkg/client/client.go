@@ -15,7 +15,12 @@
 package client
 
 import (
+	"sync"
+	"time"
+
 	"github.com/couchbase/service-broker/generated/clientset/servicebroker"
+
+	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
@@ -47,6 +52,10 @@ type clientsImpl struct {
 	broker     servicebroker.Interface
 	dynamic    dynamic.Interface
 	mapper     meta.RESTMapper
+
+	// lock is used to avoid race warnings.
+	// A read will still be racy, but not in a bad way.
+	lock sync.Mutex
 }
 
 // New returns a new set of clients for use in-cluster.
@@ -72,12 +81,10 @@ func New() (Clients, error) {
 		return nil, err
 	}
 
-	groupresources, err := restmapper.GetAPIGroupResources(kubernetes.Discovery())
+	mapper, err := getRESTMapper(kubernetes)
 	if err != nil {
 		return nil, err
 	}
-
-	mapper := restmapper.NewDiscoveryRESTMapper(groupresources)
 
 	clients := &clientsImpl{
 		config:     config,
@@ -86,6 +93,8 @@ func New() (Clients, error) {
 		dynamic:    dynamic,
 		mapper:     mapper,
 	}
+
+	go refresh(clients)
 
 	return clients, nil
 }
@@ -108,5 +117,43 @@ func (c *clientsImpl) Dynamic() dynamic.Interface {
 // RESTMapper returns a REST mapps for Kubernetes resources, able to translate
 // a resource type into a API endpoint.
 func (c *clientsImpl) RESTMapper() meta.RESTMapper {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	return c.mapper
+}
+
+// getRESTMapper is a shared function to poll the discovery API.  This is a
+// very expensive call so should be used with caution.
+func getRESTMapper(client kubernetes.Interface) (meta.RESTMapper, error) {
+	groupresources, err := restmapper.GetAPIGroupResources(client.Discovery())
+	if err != nil {
+		return nil, err
+	}
+
+	return restmapper.NewDiscoveryRESTMapper(groupresources), nil
+}
+
+// refresh is used to refresh the REST mapper periodically.  This allows the
+// service broker to pick up, and forget about, CRDs as they are added and
+// removed from the platform.  While we could just use a watch, CRDs being
+// cluster scoped resources will introduce an unnecessary privilege escallation.
+// The broker should be able to run as a "userspace" application.
+func refresh(c *clientsImpl) {
+	for {
+		// Poll once a minute.  We should make this configurable.
+		<-time.After(time.Minute)
+
+		mapper, err := getRESTMapper(c.kubernetes)
+		if err != nil {
+			glog.Warningf("failed to refersh REST mapper: %v", err)
+			continue
+		}
+
+		glog.Info("refreshed REST mapper")
+
+		c.lock.Lock()
+		c.mapper = mapper
+		c.lock.Unlock()
+	}
 }

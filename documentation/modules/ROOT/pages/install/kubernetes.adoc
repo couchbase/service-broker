@@ -56,6 +56,9 @@ Use of the Couchbase Autonomous Operator is governed by the https://www.couchbas
 The Couchbase Server configuration requires the installation of custom resource definitions, and a dynamic admission controller to provide defaults to custom resource attributes.
 The Service Broker examples use a namespace-scoped role and cannot create the cluster-scoped resources required.
 You will need to manually https://docs.couchbase.com/operator/2.0/install-kubernetes.html[install the CRDs and dynamic admission controller^] before proceeding.
+
+CRDs should be installed before the Service Broker is started in order to correctly cache any required resource types from the Kubernetes discovery API.
+The Kubernetes discovery API will, however, be polled on a regular basis to refresh this cache and register CRD addition, update or deletion during the Service Broker lifetime.
 ====
 
 == Install the Service Broker Service
