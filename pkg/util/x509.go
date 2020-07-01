@@ -26,6 +26,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
+	goerrors "errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -33,6 +34,12 @@ import (
 
 	"github.com/couchbase/service-broker/pkg/errors"
 )
+
+// ErrInvalidPublicKey is raised when the public key type is unknown/unsupported.
+var ErrInvalidPublicKey = goerrors.New("invalid public key")
+
+// ErrInvalidSubjectAltName is raised when an unsupported SAN is specified.
+var ErrInvalidSubjectAltName = goerrors.New("invalid subject alt name")
 
 const (
 	// pemTypeRSAPrivateKey is used with PKCS#1 RSA keys.
@@ -179,7 +186,7 @@ func GenerateKey(keyType KeyType, encoding KeyEncodingType, bits *int) ([]byte, 
 }
 
 // generateSerial creates a unique certificate serial number as defined
-// in RFC 3280.  It is upto 20 octets in length and non-negative
+// in RFC 3280.  It is upto 20 octets in length and non-negative.
 func generateSerial() (*big.Int, error) {
 	one := 1
 	shift := 128
@@ -194,7 +201,7 @@ func generateSerial() (*big.Int, error) {
 }
 
 // generateSubjectKeyIdentifier creates a hash of the public key as defined in
-// RFC3280 used to create certificate paths from a leaf to a CA
+// RFC3280 used to create certificate paths from a leaf to a CA.
 func generateSubjectKeyIdentifier(pub interface{}) ([]byte, error) {
 	var subjectPublicKey []byte
 
@@ -206,7 +213,7 @@ func generateSubjectKeyIdentifier(pub interface{}) ([]byte, error) {
 	case *ecdsa.PublicKey:
 		subjectPublicKey = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
 	default:
-		return nil, fmt.Errorf("invalid public key type")
+		return nil, ErrInvalidPublicKey
 	}
 
 	if err != nil {
@@ -341,7 +348,7 @@ func GenerateCertificate(keyPEM []byte, cn string, lifetime time.Duration, usage
 
 		fields := strings.Split(san, ":")
 		if len(fields) != requiredFields {
-			return nil, fmt.Errorf("malformed SAN %s", san)
+			return nil, fmt.Errorf("%w: malformed SAN %s", ErrInvalidSubjectAltName, san)
 		}
 
 		switch fields[0] {
@@ -350,7 +357,7 @@ func GenerateCertificate(keyPEM []byte, cn string, lifetime time.Duration, usage
 		case "EMAIL":
 			certificate.EmailAddresses = append(certificate.EmailAddresses, fields[1])
 		default:
-			return nil, fmt.Errorf("illegal SAN type %s", fields[0])
+			return nil, fmt.Errorf("%w unsupported SAN type %s", ErrInvalidSubjectAltName, fields[0])
 		}
 	}
 

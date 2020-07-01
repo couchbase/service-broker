@@ -16,6 +16,7 @@ package util
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -25,6 +26,9 @@ const (
 	// retryPeriod is how often to poll a WaitFunc.
 	retryPeriod = 10 * time.Millisecond
 )
+
+// ErrTimeout is raised when a wait doesn't terminate in time.
+var ErrTimeout = errors.New("process timed out")
 
 // WaitFunc is a callback that stops a wait when nil.
 type WaitFunc func() error
@@ -41,7 +45,7 @@ func WaitFor(f WaitFunc, timeout time.Duration) error {
 		select {
 		case <-tick.C:
 		case <-ctx.Done():
-			return fmt.Errorf("failed to wait for condition: %v", err)
+			return fmt.Errorf("%w: failed to wait for condition: %v", ErrTimeout, err)
 		}
 	}
 

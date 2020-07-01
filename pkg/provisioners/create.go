@@ -125,7 +125,7 @@ func (p *Creator) createResource(template *v1.ConfigurationTemplate, entry *regi
 		}
 
 		if !ok {
-			return fmt.Errorf("unable to lookup namespace")
+			return fmt.Errorf("%w: unable to lookup namespace", ErrRegistryEntryMissing)
 		}
 
 		namespace = n
@@ -157,7 +157,7 @@ func (p *Creator) createResource(template *v1.ConfigurationTemplate, entry *regi
 
 			if !found {
 				glog.Infof("owner references unexpectedly missing")
-				return fmt.Errorf("owner references unexpectedly missing")
+				return fmt.Errorf("%w: owner references unexpectedly missing", ErrResourceAttributeMissing)
 			}
 
 			unstructuredOwnerReference, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&ownerReference)
@@ -195,7 +195,7 @@ func (p *Creator) Prepare(entry *registry.Entry) error {
 	}
 
 	if !ok {
-		return fmt.Errorf("unable to lookup service ID")
+		return fmt.Errorf("%w: unable to lookup service ID", ErrResourceReferenceMissing)
 	}
 
 	planID, ok, err := entry.GetString(registry.PlanID)
@@ -204,7 +204,7 @@ func (p *Creator) Prepare(entry *registry.Entry) error {
 	}
 
 	if !ok {
-		return fmt.Errorf("unable to lookup plan ID")
+		return fmt.Errorf("%w: unable to lookup plan ID", ErrResourceReferenceMissing)
 	}
 
 	glog.Infof("looking up bindings for service %s, plan %s", serviceID, planID)

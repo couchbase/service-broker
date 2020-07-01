@@ -143,7 +143,7 @@ func Ready(t ResourceType, entry *registry.Entry, serviceID, planID string) erro
 	}
 
 	if !ok {
-		return fmt.Errorf("service instance missing operation")
+		return fmt.Errorf("%w: service instance missing operation", ErrRegistryEntryMissing)
 	}
 
 	if operation.Type(op) != operation.TypeProvision {
@@ -164,7 +164,7 @@ func Ready(t ResourceType, entry *registry.Entry, serviceID, planID string) erro
 			}
 
 		default:
-			return fmt.Errorf("readiness check %s check type undefined", readinessCheck.Name)
+			return fmt.Errorf("%w: readiness check %s check type undefined", ErrResourceAttributeMissing, readinessCheck.Name)
 		}
 	}
 

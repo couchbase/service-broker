@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package test
+package unit_test
 
 import (
 	"net/http"
@@ -122,7 +122,7 @@ func TestRegistryExplicitNamespace(t *testing.T) {
 }
 
 // TestRegistryExplicitIllegaNamespace tests that a faulty context raises a parameter
-// error
+// error.
 func TestRegistryExplicitIllegaNamespace(t *testing.T) {
 	defer mustReset(t)
 

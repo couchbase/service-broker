@@ -25,6 +25,7 @@ linters:
   # Disable interface checks, this suggests stupid things.
   # Disable long line length checks (todo in the future).
   # Disable misaligned datastructures, space is not a concern.
+  # Disable deeply nested logic.
   disable:
   - funlen
   - gochecknoglobals
@@ -35,9 +36,16 @@ linters:
   - interfacer
   - lll
   - maligned
+  - nestif
 
 linters-settings:
   # Code duplication filter catches a lot of duplication in test
   # this needs refactoring at some point.
   dupl:
     threshold: 300
+
+issues:
+  exclude-rules:
+  - path: test/*
+    linters:
+    - goerr113

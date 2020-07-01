@@ -15,12 +15,19 @@
 package operation
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/couchbase/service-broker/pkg/registry"
 
 	"github.com/google/uuid"
 )
+
+// ErrOperatorExists is raised when an operation exists and it shouldn't.
+var ErrOperatorExists = errors.New("operation exists")
+
+// ErrOperationDoesNotExist is raised when an operation doesn't exist and it should.
+var ErrOperationDoesNotExist = errors.New("operation doesn't exist")
 
 // Type is the type of operation being performed.
 type Type string
@@ -44,7 +51,7 @@ func Start(entry *registry.Entry, t Type) error {
 	}
 
 	if ok {
-		return fmt.Errorf("%s operation already exists for instance", op)
+		return fmt.Errorf("%w: %s operation already exists for instance", ErrOperatorExists, op)
 	}
 
 	id := uuid.New().String()
@@ -72,7 +79,7 @@ func Complete(entry *registry.Entry, status error) error {
 	}
 
 	if !ok {
-		return fmt.Errorf("%s operation does not exist for instance", op)
+		return fmt.Errorf("%w: %s operation does not exist for instance", ErrOperationDoesNotExist, op)
 	}
 
 	errString := ""
@@ -99,7 +106,7 @@ func End(entry *registry.Entry) error {
 	}
 
 	if !ok {
-		return fmt.Errorf("%s operation does not exist for instance", op)
+		return fmt.Errorf("%w: %s operation does not exist for instance", ErrOperationDoesNotExist, op)
 	}
 
 	entry.Unset(registry.Operation)

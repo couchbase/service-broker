@@ -37,11 +37,11 @@ func getServiceAndPlanNames(serviceID, planID string) (string, string, error) {
 				}
 			}
 
-			return "", "", fmt.Errorf("unable to locate plan for ID %s", planID)
+			return "", "", fmt.Errorf("%w: unable to locate plan for ID %s", ErrResourceReferenceMissing, planID)
 		}
 	}
 
-	return "", "", fmt.Errorf("unable to locate service for ID %s", serviceID)
+	return "", "", fmt.Errorf("%w: unable to locate service for ID %s", ErrResourceReferenceMissing, serviceID)
 }
 
 // getTemplateBindings returns the template bindings associated with a creation request's
@@ -58,7 +58,7 @@ func getTemplateBindings(serviceID, planID string) (*v1.ConfigurationBinding, er
 		}
 	}
 
-	return nil, fmt.Errorf("unable to locate template bindings for service plan %s/%s", service, plan)
+	return nil, fmt.Errorf("%w: unable to locate template bindings for service plan %s/%s", ErrResourceReferenceMissing, service, plan)
 }
 
 // getTemplateBinding returns the binding associated with a specific resource type.
@@ -76,7 +76,7 @@ func getTemplateBinding(t ResourceType, serviceID, planID string) (*v1.ServiceBr
 	case ResourceTypeServiceBinding:
 		templates = bindings.ServiceBinding
 	default:
-		return nil, fmt.Errorf("illegal binding type %s", string(t))
+		return nil, fmt.Errorf("%w: illegal binding type %s", ErrUndefinedType, string(t))
 	}
 
 	if templates == nil {

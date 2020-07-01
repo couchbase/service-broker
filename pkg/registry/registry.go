@@ -17,6 +17,7 @@ package registry
 
 import (
 	"encoding/json"
+	goerrors "errors"
 	"fmt"
 
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
@@ -72,6 +73,9 @@ const (
 	// Credentials is the set of credentials that may be generated for a service binding.
 	Credentials Key = "credentials"
 )
+
+// ErrPermsission is raised when you don't have permission to read/write a registry key.
+var ErrPermsission = goerrors.New("permission error")
 
 // keyPolicy defines managed keys and how they can be accessed by users.
 type keyPolicy struct {
@@ -280,7 +284,7 @@ func (e *Entry) Exists() bool {
 // Commit persists the entry transaction to Kubernetes.
 func (e *Entry) Commit() error {
 	if e.readOnly {
-		return fmt.Errorf("registry entry is read only")
+		return fmt.Errorf("%w: registry entry is read only", ErrPermsission)
 	}
 
 	if e.exists {
@@ -308,7 +312,7 @@ func (e *Entry) Commit() error {
 // Delete removes the entry from Kubernetes.
 func (e *Entry) Delete() error {
 	if e.readOnly {
-		return fmt.Errorf("registry entry is read only")
+		return fmt.Errorf("%w: registry entry is read only", ErrPermsission)
 	}
 
 	if !e.exists {

@@ -63,7 +63,7 @@ func (u *Updater) Prepare(entry *registry.Entry) error {
 	}
 
 	if !ok {
-		return fmt.Errorf("unable to lookup service instance service ID")
+		return fmt.Errorf("%w: unable to lookup service instance service ID", ErrResourceReferenceMissing)
 	}
 
 	planID, ok, err := entry.GetString(registry.PlanID)
@@ -72,7 +72,7 @@ func (u *Updater) Prepare(entry *registry.Entry) error {
 	}
 
 	if !ok {
-		return fmt.Errorf("unable to lookup service instance plan ID")
+		return fmt.Errorf("%w: unable to lookup service instance plan ID", ErrResourceReferenceMissing)
 	}
 
 	// Collate and render our templates.
@@ -135,7 +135,7 @@ func (u *Updater) Prepare(entry *registry.Entry) error {
 			}
 
 			if !ok {
-				return fmt.Errorf("unable to lookup namespace")
+				return fmt.Errorf("%w: unable to lookup namespace", ErrRegistryEntryMissing)
 			}
 
 			namespace = n
@@ -159,7 +159,7 @@ func (u *Updater) Prepare(entry *registry.Entry) error {
 
 		originalJSONString, ok, _ := unstructured.NestedString(currentObject.Object, "metadata", "annotations", v1.ResourceAnnotation)
 		if !ok {
-			return fmt.Errorf("failed to lookup original resource")
+			return fmt.Errorf("%w: failed to lookup original resource", ErrResourceAttributeMissing)
 		}
 
 		originalJSON := []byte(originalJSONString)

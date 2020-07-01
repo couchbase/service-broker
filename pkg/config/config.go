@@ -16,6 +16,7 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -41,6 +42,9 @@ var (
 	// This has a default for the benfit of testing, it is overidden
 	// by flags for the main binary.
 	ConfigurationName = ConfigurationNameDefault
+
+	// ErrCacheSync is raised when a shared informer failed to synchronize.
+	ErrCacheSync = errors.New("cache synchronization error")
 )
 
 type configuration struct {
@@ -197,7 +201,7 @@ func Configure(clients client.Clients, namespace, token string) error {
 	go informer.Run(stop)
 
 	if !cache.WaitForCacheSync(stop, informer.HasSynced) {
-		return fmt.Errorf("service broker config shared informer failed to syncronize")
+		return fmt.Errorf("%w: service broker config shared informer failed to syncronize", ErrCacheSync)
 	}
 
 	return nil
