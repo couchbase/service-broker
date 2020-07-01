@@ -45,6 +45,7 @@ func handleReadCatalog(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 	if err != nil {
 		glog.Infof("failed to snake case catalog body: %v", err)
 		JSONError(w)
+
 		return
 	}
 
