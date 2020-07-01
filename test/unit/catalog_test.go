@@ -110,8 +110,8 @@ func TestSnakeCaseCatalogKeys(t *testing.T) {
 	}
 }
 
-// SnakeCaseCatalog test conversion of keys to snake case for catalog struct
-func SnakeCaseCatalog(t *testing.T) {
+// TestSnakeCaseCatalog test conversion of keys to snake case for catalog struct
+func TestSnakeCaseCatalog(t *testing.T) {
 	catalog := fixtures.BasicConfiguration().Catalog
 	catalog.Services[0].PlanUpdatable = true
 
