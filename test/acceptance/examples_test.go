@@ -18,6 +18,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path"
 	"testing"
 	"time"
@@ -63,7 +64,11 @@ const (
 
 	// exampleConfigurationServiceBinding contains the configuration service
 	// binding definition.
-	//exampleConfigurationServiceBinding = "servicebinding.yaml"
+	exampleConfigurationServiceBinding = "servicebinding.yaml"
+
+	// exampleDefaultServiceBindingName is the name an example service binding
+	// must be called.
+	exampleDefaultServiceBindingName = "test-binding"
 )
 
 // TestExamples works through examples provided as part of the repository.
@@ -172,6 +177,22 @@ func TestExamples(t *testing.T) {
 			util.MustCreateResources(t, clients, namespace.GetName(), objects)
 
 			util.MustWaitFor(t, util.ResourceCondition(clients, namespace.GetName(), serviceInstance, "Ready", "True"), 5*time.Minute)
+
+			// Create the service binding if one exists.
+			// * Tests the configuration provisions.
+			serviceBindingPath := path.Join(exampleConfigurationDir, name, exampleConfigurationServiceBinding)
+			if _, err := os.Stat(serviceBindingPath); err == nil {
+				objects = util.MustReadYAMLObjects(t, serviceBindingPath)
+				serviceBinding := util.MustFindResource(t, objects, "servicecatalog.k8s.io/v1beta1", "ServiceBinding", exampleDefaultServiceBindingName)
+
+				util.MustCreateResources(t, clients, namespace.GetName(), objects)
+
+				util.MustWaitFor(t, util.ResourceCondition(clients, namespace.GetName(), serviceBinding, "Ready", "True"), 5*time.Minute)
+
+				// Delete the service binding.
+				// * Tests the service binding is deprovisioned cleanly.
+				util.DeleteResource(clients, namespace.GetName(), serviceBinding)
+			}
 
 			// Delete the service instance.
 			// * Tests the service instance is deprovisioned cleanly.
