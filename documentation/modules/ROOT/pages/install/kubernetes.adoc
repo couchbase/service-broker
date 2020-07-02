@@ -63,7 +63,12 @@ The Kubernetes discovery API will, however, be polled on a regular basis to refr
 
 == Install the Service Broker Service
 
-The Service Broker is installed with a single configuration file:
+The Service Broker is installed with a single configuration file.
+By default, this will use the `latest` official Docker Hub image.
+If you want to use a specific version, first download the file then edit the image tag in the `Deployment` resource.
+Likewise, if you are using a non-standard container image name you will have to perform the same modifications.
+
+To install the Service Broker run the following:
 
 [source,console]
 ----
@@ -78,12 +83,6 @@ service/couchbase-service-broker created
 The `ServiceAccount` the Service Broker runs as is bound to the `Role` we created in the previous step.
 A `Secret` contains the TLS configuration and bearer token for authentication as the Service Broker is secure by default.
 The `Deployment` creates the Service Broker and ensures it is highly available and a `Service` makes it discoverable by the Kubernetes Service Catalog in the next step.
-
-.Using Non-Standard Container Image Names
-[NOTE]
-====
-Is you are using a non-standard container image name or container registry, you will need to download and edit the `Deployment` to reference your image before creating in Kubernetes.
-====
 
 As it is a regular deployment with a readiness probe, you can check that the Service Broker is up and running with the following command:
 

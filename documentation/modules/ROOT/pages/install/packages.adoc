@@ -8,6 +8,15 @@ ifdef::env-github[]
 :imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
 endif::[]
 
+== Official Images
+
+Official Docker images are built automatically per-release.
+Images can be found on https://hub.docker.com/r/couchbase/service-broker[Docker Hub^].
+Take a note of the Docker tag you wish to use--we recommend the latest as it contains all the latest bug fixes and features.
+
+If you want to download the official packages and build your own container images, keep reading.
+Otherwise, skip ahead to xref:install/kubernetes.adoc[Creating the Service Broker Service].
+
 == Official Packages
 
 Official packages are automatically built by the Continuous Integration system.

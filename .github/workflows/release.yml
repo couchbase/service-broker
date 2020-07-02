@@ -42,6 +42,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: couchbase/service-broker
         tag_with_ref: true
+        tags: latest
     # Install debhelper as it's not there by default, rpm is.
     - name: Install Packages
       run: |
