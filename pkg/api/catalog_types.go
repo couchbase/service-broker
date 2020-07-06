@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package util
+package api
 
 // ServiceCatalog is returned from /v2/catalog.
 type ServiceCatalog struct {
@@ -21,19 +21,16 @@ type ServiceCatalog struct {
 
 // ServiceOffering must be provided by a service catalog.
 type ServiceOffering struct {
-	Name                 string           `json:"name"`
-	ID                   string           `json:"id"`
-	Description          string           `json:"description"`
-	Tags                 []string         `json:"tags,omitempty"`
-	Requires             []string         `json:"requires,omitempty"`
-	Bindable             bool             `json:"bindable"`
-	InstancesRetrievable bool             `json:"instances_retrievable,omitempty"`
-	BindingsRetrievable  bool             `json:"bindings_retrievable,omitempty"`
-	AllowContextUpdates  bool             `json:"allow_context_updates,omitempty"`
-	Metadata             interface{}      `json:"metadata,omitempty"`
-	DashboardClient      *DashboardClient `json:"dashboard_client,omitempty"`
-	PlanUpdatable        bool             `json:"plan_updatable,omitempty"`
-	Plans                []ServicePlan    `json:"plans"`
+	Name            string           `json:"name"`
+	ID              string           `json:"id"`
+	Description     string           `json:"description"`
+	Tags            []string         `json:"tags,omitempty"`
+	Requires        []string         `json:"requires,omitempty"`
+	Bindable        bool             `json:"bindable"`
+	Metadata        interface{}      `json:"metadata,omitempty"`
+	DashboardClient *DashboardClient `json:"dashboard_client,omitempty"`
+	PlanUpdatable   bool             `json:"plan_updatable,omitempty"`
+	Plans           []ServicePlan    `json:"plans"`
 }
 
 // DashboardClient may be provided by a service offering.
@@ -45,16 +42,13 @@ type DashboardClient struct {
 
 // ServicePlan must be provided by a service offering.
 type ServicePlan struct {
-	ID                     string           `json:"id"`
-	Name                   string           `json:"name"`
-	Description            string           `json:"description"`
-	Metadata               interface{}      `json:"metadata,omitempty"`
-	Free                   bool             `json:"free,omitempty"`
-	Bindable               *bool            `json:"bindable,omitempty"`
-	PlanUpdatable          *bool            `json:"plan_updatable,omitempty"`
-	Schemas                *Schemas         `json:"schemas,omitempty"`
-	MaximumPollingDuration int              `json:"maximum_polling_duration,omitempty"`
-	MaintenanceInfo        *MaintenanceInfo `json:"maintentance_info,omitempty"`
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	Metadata    interface{} `json:"metadata,omitempty"`
+	Free        bool        `json:"free,omitempty"`
+	Bindable    *bool       `json:"bindable,omitempty"`
+	Schemas     *Schemas    `json:"schemas,omitempty"`
 }
 
 // Schemas may be provided for a service plan.
@@ -77,9 +71,4 @@ type ServiceBindingSchema struct {
 // InputParamtersSchema may be provided for a service plan.
 type InputParamtersSchema struct {
 	Parameters interface{} `json:"parameters,omitempty"`
-}
-
-// MaintenanceInfo may be provided for a service plan.
-type MaintenanceInfo struct {
-	Version string `json:"version,omitempty"`
 }

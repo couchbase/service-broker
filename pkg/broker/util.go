@@ -20,9 +20,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"reflect"
-	"regexp"
-	"strings"
 
 	"github.com/couchbase/service-broker/pkg/api"
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
@@ -62,18 +59,13 @@ func jsonRequest(r *http.Request, data interface{}) error {
 	return nil
 }
 
-// JSONError sends generic 500 error to the client.
-func JSONError(w http.ResponseWriter) {
-	httpResponse(w, http.StatusInternalServerError)
-}
-
 // JSONResponse sends generic JSON data back to the client and replies
 // with a HTTP status code.
 func JSONResponse(w http.ResponseWriter, status int, data interface{}) {
 	resp, err := json.Marshal(data)
 	if err != nil {
 		glog.Infof("failed to marshal body: %v", err)
-		JSONError(w)
+		httpResponse(w, http.StatusInternalServerError)
 	}
 
 	glog.V(log.LevelDebug).Infof("JSON rsp: %s", string(resp))
@@ -385,90 +377,4 @@ func getNamespace(context *runtime.RawExtension) (string, error) {
 	}
 
 	return config.Namespace(), nil
-}
-
-// matchFirstCap match first capital letter in a word sequence.
-var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
-
-// matchAllCap match a sequence of multiple capital letters.
-var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
-
-// ToSnakeCase converts a camel case string into a snake case string
-// Taken from: https://gist.github.com/stoewer/fbe273b711e6a06315d19552dd4d33e6
-func ToSnakeCase(str string) string {
-	snake := matchFirstCap.ReplaceAllString(str, "${1}_${2}")
-	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
-
-	return strings.ToLower(snake)
-}
-
-// SnakeCaseCatalogKeysMap converts all keys of a map recursively to snake case
-// the recursion stops once the last key was 'schemas'.
-func SnakeCaseCatalogKeysMap(val reflect.Value, skipNestedLevels bool) {
-	if val.Kind() != reflect.Map {
-		return
-	}
-
-	for _, k := range val.MapKeys() {
-		if k.Kind() == reflect.String {
-			key := k.Interface().(string)
-			snakeCaseKey := ToSnakeCase(key)
-			v := val.MapIndex(k)
-
-			if snakeCaseKey != key {
-				val.SetMapIndex(reflect.ValueOf(snakeCaseKey), v)
-				val.SetMapIndex(k, reflect.Value{})
-			}
-
-			if !skipNestedLevels {
-				SnakeCaseCatalogKeys(v.Interface(), key == "schemas")
-			}
-		}
-	}
-}
-
-// SnakeCaseCatalogKeysSlice converts all keys of a slice recursively to snake case
-// the recursion stops once the last key was 'schemas'.
-func SnakeCaseCatalogKeysSlice(val reflect.Value, skipNestedLevels bool) {
-	if val.Kind() != reflect.Slice {
-		return
-	}
-
-	for i := 0; i < val.Len(); i++ {
-		SnakeCaseCatalogKeys(val.Index(i).Interface(), false)
-	}
-}
-
-// SnakeCaseCatalogKeys converts all keys of a map or slice recursively to snake case
-// the recursion stops once the last key was 'schemas'.
-func SnakeCaseCatalogKeys(i interface{}, skipNestedLevels bool) {
-	val := reflect.ValueOf(i)
-
-	if val.Kind() == reflect.Slice {
-		SnakeCaseCatalogKeysSlice(val, skipNestedLevels)
-	} else if val.Kind() == reflect.Map {
-		SnakeCaseCatalogKeysMap(val, skipNestedLevels)
-	}
-}
-
-// SnakeCaseCatalog converts all keys of a catalog spec into snake case
-// except for the schemas for each plan
-// required to convert camel case configuration options of the catalog spec to
-// required snake case output of the OSB API.
-func SnakeCaseCatalog(s interface{}) (interface{}, error) {
-	jsonData, err := json.Marshal(s)
-	if err != nil {
-		return nil, err
-	}
-
-	var i interface{}
-
-	err = json.Unmarshal(jsonData, &i)
-	if err != nil {
-		return nil, err
-	}
-
-	SnakeCaseCatalogKeys(i, false)
-
-	return i, nil
 }

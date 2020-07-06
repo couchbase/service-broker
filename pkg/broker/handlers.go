@@ -41,15 +41,7 @@ func handleReadyz(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 // handleReadCatalog advertises the classes of service we offer, and specifc plans to
 // implement those classes.
 func handleReadCatalog(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	catalogData, err := SnakeCaseCatalog(config.Config().Spec.Catalog)
-	if err != nil {
-		glog.Infof("failed to snake case catalog body: %v", err)
-		JSONError(w)
-
-		return
-	}
-
-	JSONResponse(w, http.StatusOK, catalogData)
+	JSONResponse(w, http.StatusOK, config.Config().Spec.Catalog.Convert())
 }
 
 // handleCreateServiceInstance creates a service instance of a plan.
