@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/couchbase/service-broker/pkg/api"
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/test/unit/util"
 )
@@ -46,7 +47,7 @@ func TestCatalogUpdate(t *testing.T) {
 	util.MustUpdateBrokerConfig(t, clients, callback)
 
 	validator := func() error {
-		catalog := &util.ServiceCatalog{}
+		catalog := &api.ServiceCatalog{}
 		if err := util.Get("/v2/catalog", http.StatusOK, catalog); err != nil {
 			return err
 		}

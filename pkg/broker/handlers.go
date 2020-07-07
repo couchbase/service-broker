@@ -45,7 +45,7 @@ func handleReadyz(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 // handleReadCatalog advertises the classes of service we offer, and specifc plans to
 // implement those classes.
 func handleReadCatalog(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	JSONResponse(w, http.StatusOK, config.Config().Spec.Catalog)
+	JSONResponse(w, http.StatusOK, config.Config().Spec.Catalog.Convert())
 }
 
 // handleCreateServiceInstance creates a service instance of a plan.
