@@ -154,3 +154,7 @@ Next you should read our learning resources that describe the key concepts of th
 From there you can begin to configure your own service instances and bindings for any service you desire.
 
 * xref:concepts/index.adoc[Concepts]
+
+Additionally you may wish to expose your Service Broker instance on the internet to integrate with services other than the Kubernetes Service Catalog.
+
+* xref:install/ingress.adoc[Exposing Your Service Broker to the Wider World]
