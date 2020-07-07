@@ -1,0 +1,59 @@
+= Exposing Your Service Broker to the Wider World
+
+[abstract]
+How to expose your Service Brokers to the wider world.
+
+ifdef::env-github[]
+:relfileprefix: ../
+:imagesdir: https://github.com/couchbase/service-broker/raw/master/documentation/modules/ROOT/assets/images
+endif::[]
+
+While the Service broker is designed for use with the Kubernetes Service Catalog, it can be used for wider applications.
+This guide documents why you may wish to expose your service and how it can be achieved.
+
+== Why Expose Your Service Brokers?
+
+By default, and as documented, when using the Service Broker with the Kubernetes Service Catalog it is only available within the same Kubernetes cluster.
+The Open Service Broker design is inherently flexible, meaning this is not the only deployment method you can use.
+
+The key thing to remember is the Service Broker is just a Web service.
+It has an address and works over HTTP like any other Web server e.g. Apache or Nginx.
+
+When integrating with the Kubernetes Service Catalog, in previous steps, hopefully you looked at the `ClusterServiceBroker` configuration.
+It contains a URL, TLS CA certificate and the bearer token for authorization.
+
+There is no reason why this URL cannot be a publicly available address.
+Once you realize this, then it's a logical next step to realize that the Kubernetes Service Catalog acts as an aggregation of all Service Brokers it's told about.
+These Service Brokers can be in different Cloud regions, or even different Clouds to potentially provide Multi-Cloud deployments from a single control plane.
+
+You may also integrate with control planes, other than the Kubernetes Service Catalog, such as https://docs.cloudfoundry.org/services/managing-service-brokers.html[Cloud Foundry^].
+
+== Exposing Your Service with an Ingress
+
+The Service Broker example installation configurations provide a Kubernetes `Service` resource in order to provide highly-available addressing.
+It uses the standard HTTPS port, 443.
+
+For here it is trivial to connect this service to a Kubernetes https://kubernetes.io/docs/concepts/services-networking/ingress/[`Ingress`^] resource.
+
+Please remember that the Service Broker takes security seriously, and the connection between the `Ingress` and the Service Broker _must_ be over TLS.
+Back-end TLS connectivity is not generic and is specific to the Cloud platform.
+For this reason, we do not provide specific instructions, consult your platform's documentation.
+
+== Exposing Your Service with a Load Balancer Service
+
+Where `Ingress` configuration is platform specific, load balancer services are generic.
+These provide TCP connection forwarding to the Service Broker.
+Simply modify the provided Service Broker `Service` to use `LoadBalancer` networking, rather than `ClusterIP`.
+This will allocate a public IP address for the Service Broker service.
+
+The only additional step that needs to be taken is for either the IP address or DNS address of the public endpoint to be encoded in the Service Broker's TLS certificate as a subject alternative name.
+
+== Next Steps
+
+If your are reading this you should now have a publicly addressable Service Broker, accessible from anywhere on the planet.
+It can reside in any Kubernetes cluster on any Cloud platform.
+Multiple Service Brokers can be aggregated together with a control plane to provide a Multi-Cloud service provisioning experience.
+
+Next steps are to take a deeper look at, and understand, the Service Broker architecture.
+
+* xref:concepts/index.adoc[Concepts]
