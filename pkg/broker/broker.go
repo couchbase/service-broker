@@ -16,6 +16,7 @@ package broker
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -33,6 +34,18 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 )
 
+// ErrRequestMalformed is returned when the request is not as we expect.
+var ErrRequestMalformed = errors.New("request malformed")
+
+// ErrRequestUnsupported is raised when something about the request is not supported.
+var ErrRequestUnsupported = errors.New("request unsupported")
+
+// ErrServiceUnready is raised when the service is not ready to run.
+var ErrServiceUnready = errors.New("service not ready")
+
+// ErrUnauthorized is raised when a user is not permitted to perform the request.
+var ErrUnauthorized = errors.New("request is unauthorized")
+
 // getHeader returns the header value for a header name.
 func getHeader(r *http.Request, name string) ([]string, error) {
 	for headerName := range r.Header {
@@ -41,7 +54,7 @@ func getHeader(r *http.Request, name string) ([]string, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("no header found for %s", name)
+	return nil, fmt.Errorf("%w: no header found for %s", ErrRequestMalformed, name)
 }
 
 // getHeaderSingle returns the header value for a name.
@@ -54,7 +67,7 @@ func getHeaderSingle(r *http.Request, name string) (string, error) {
 
 	requiredHeaders := 1
 	if len(headers) != requiredHeaders {
-		return "", fmt.Errorf("multiple headers found for %s", name)
+		return "", fmt.Errorf("%w: multiple headers found for %s", ErrRequestMalformed, name)
 	}
 
 	return headers[0], nil
@@ -64,7 +77,7 @@ func getHeaderSingle(r *http.Request, name string) (string, error) {
 func handleReadiness(w http.ResponseWriter) error {
 	if config.Config() == nil {
 		httpResponse(w, http.StatusServiceUnavailable)
-		return fmt.Errorf("service not ready")
+		return ErrServiceUnready
 	}
 
 	return nil
@@ -80,7 +93,7 @@ func handleBrokerBearerToken(w http.ResponseWriter, r *http.Request) error {
 
 	if header != "Bearer "+config.Token() {
 		httpResponse(w, http.StatusUnauthorized)
-		return fmt.Errorf("authorization failed")
+		return fmt.Errorf("%w: authorization failed", ErrUnauthorized)
 	}
 
 	return nil
@@ -97,12 +110,12 @@ func handleBrokerAPIHeader(w http.ResponseWriter, r *http.Request) error {
 	apiVersion, err := strconv.ParseFloat(header, 64)
 	if err != nil {
 		httpResponse(w, http.StatusBadRequest)
-		return fmt.Errorf("malformed X-Broker-Api-Version header: %v", err)
+		return fmt.Errorf("%w: malformed X-Broker-Api-Version header: %v", ErrRequestMalformed, err)
 	}
 
 	if apiVersion < minBrokerAPIVersion {
 		httpResponse(w, http.StatusPreconditionFailed)
-		return fmt.Errorf("unsupported X-Broker-Api-Version header %v, requires at least %.2f", header, minBrokerAPIVersion)
+		return fmt.Errorf("%w: unsupported X-Broker-Api-Version header %v, requires at least %.2f", ErrRequestUnsupported, header, minBrokerAPIVersion)
 	}
 
 	return nil
@@ -123,7 +136,7 @@ func handleContentTypeHeader(w http.ResponseWriter, r *http.Request) error {
 
 	if header != "application/json" {
 		httpResponse(w, http.StatusBadRequest)
-		return fmt.Errorf("invalid Content-Type header")
+		return fmt.Errorf("%w: invalid Content-Type header: %s", ErrRequestMalformed, header)
 	}
 
 	return nil
@@ -242,7 +255,7 @@ func (handler *openServiceBrokerHandler) ServeHTTP(w http.ResponseWriter, r *htt
 	handler.Handler.ServeHTTP(writer, r)
 }
 
-// ConfigureServer is the main entry point for both the container and test
+// ConfigureServer is the main entry point for both the container and test.
 func ConfigureServer(clients client.Clients, namespace, token string) error {
 	// Static configuration.
 	if err := apis.AddToScheme(scheme.Scheme); err != nil {

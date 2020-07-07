@@ -47,7 +47,7 @@ func jsonRequest(r *http.Request, data interface{}) error {
 	// Parse the creation request.
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return fmt.Errorf("unable to read body: %v", err)
+		return fmt.Errorf("unable to read body: %w", err)
 	}
 
 	glog.V(log.LevelDebug).Infof("JSON req: %s", string(body))
@@ -255,7 +255,7 @@ func getSchema(config *v1.ServiceBrokerConfig, serviceID, planID string, t schem
 		case schemaOperationUpdate:
 			return plan.Schemas.ServiceInstance.Update, nil
 		default:
-			return nil, fmt.Errorf("unexpected schema operation: %v", o)
+			return nil, fmt.Errorf("%w: unexpected schema operation: %v", ErrUnexpected, o)
 		}
 	case schemaTypeServiceBinding:
 		if plan.Schemas.ServiceBinding == nil {
@@ -266,10 +266,10 @@ func getSchema(config *v1.ServiceBrokerConfig, serviceID, planID string, t schem
 		case schemaOperationCreate:
 			return plan.Schemas.ServiceBinding.Create, nil
 		default:
-			return nil, fmt.Errorf("unexpected schema operation: %v", o)
+			return nil, fmt.Errorf("%w: unexpected schema operation: %v", ErrUnexpected, o)
 		}
 	default:
-		return nil, fmt.Errorf("unexpected schema type: %v", t)
+		return nil, fmt.Errorf("%w: unexpected schema type: %v", ErrUnexpected, t)
 	}
 }
 

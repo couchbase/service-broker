@@ -16,6 +16,7 @@ package main
 
 import (
 	"crypto/tls"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -33,6 +34,9 @@ const (
 	// errorCode is what to return on application error.
 	errorCode = 1
 )
+
+// ErrFatal is raised when the broker is unable to start.
+var ErrFatal = errors.New("fatal error")
 
 func main() {
 	// tokenPath is the location of the file containing the bearer token for authentication.
@@ -56,7 +60,7 @@ func main() {
 	// Parse implicit configuration.
 	namespace, ok := os.LookupEnv("NAMESPACE")
 	if !ok {
-		glog.Fatal(fmt.Errorf("NAMESPACE environment variable must be set"))
+		glog.Fatal(fmt.Errorf("%w: NAMESPACE environment variable must be set", ErrFatal))
 		os.Exit(errorCode)
 	}
 

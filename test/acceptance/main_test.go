@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package acceptance
+package acceptance_test
 
 import (
 	"flag"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/couchbase/service-broker/pkg/apis"
 	"github.com/couchbase/service-broker/pkg/client"
@@ -59,6 +60,10 @@ func TestMain(m *testing.M) {
 		glog.Fatal(err)
 		os.Exit(0)
 	}
+
+	// A quick pause will ensure... help the CRDs register with the
+	// Kubernetes API before we start provisioning resources.
+	time.Sleep(5 * time.Second)
 
 	// Run the tests.
 	os.Exit(m.Run())

@@ -15,6 +15,7 @@
 package broker
 
 import (
+	goerrors "errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -31,6 +32,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 )
+
+// ErrUnexpected is highly unlikely to happen...
+var ErrUnexpected = goerrors.New("unexpected error")
 
 // handleReadyz is a handler for Kubernetes readiness checks.  It is less verbose than the
 // other API calls as it's called significantly more often.
@@ -62,7 +66,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	// Check parameters.
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		jsonError(w, fmt.Errorf("request missing instance_id parameter"))
+		jsonError(w, fmt.Errorf("%w: request missing instance_id parameter", ErrUnexpected))
 		return
 	}
 
@@ -94,7 +98,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		}
 
 		if !ok {
-			jsonError(w, fmt.Errorf("unable to lookup existing service ID"))
+			jsonError(w, fmt.Errorf("%w: unable to lookup existing service ID", ErrUnexpected))
 			return
 		}
 
@@ -110,7 +114,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		}
 
 		if !ok {
-			jsonError(w, fmt.Errorf("unable to lookup existing plan ID"))
+			jsonError(w, fmt.Errorf("%w: unable to lookup existing plan ID", ErrUnexpected))
 			return
 		}
 
@@ -128,7 +132,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		}
 
 		if !ok {
-			jsonError(w, fmt.Errorf("unable to lookup existing context"))
+			jsonError(w, fmt.Errorf("%w: unable to lookup existing context", ErrUnexpected))
 			return
 		}
 
@@ -151,7 +155,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 		}
 
 		if !ok {
-			jsonError(w, fmt.Errorf("unable to lookup existing parameters"))
+			jsonError(w, fmt.Errorf("%w: unable to lookup existing parameters", ErrUnexpected))
 			return
 		}
 
@@ -191,7 +195,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 			}
 
 			if !ok {
-				jsonError(w, fmt.Errorf("service instance missing operation ID"))
+				jsonError(w, fmt.Errorf("%w: service instance missing operation ID", ErrUnexpected))
 				return
 			}
 
@@ -296,7 +300,7 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	if !ok {
-		jsonError(w, fmt.Errorf("service instance missing operation ID"))
+		jsonError(w, fmt.Errorf("%w: service instance missing operation ID", ErrUnexpected))
 		return
 	}
 
@@ -318,11 +322,11 @@ func handleCreateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	JSONResponse(w, http.StatusAccepted, response)
 }
 
-// handleReadServiceInstance
+// handleReadServiceInstance allows a service instance to be read.
 func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		jsonError(w, fmt.Errorf("request missing instance_id parameter"))
+		jsonError(w, fmt.Errorf("%w: request missing instance_id parameter", ErrUnexpected))
 		return
 	}
 
@@ -360,7 +364,7 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 	}
 
 	if !ok {
-		jsonError(w, fmt.Errorf("unable to lookup existing service ID"))
+		jsonError(w, fmt.Errorf("%w: unable to lookup existing service ID", ErrUnexpected))
 		return
 	}
 
@@ -371,7 +375,7 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 	}
 
 	if !ok {
-		jsonError(w, fmt.Errorf("unable to lookup existing plan ID"))
+		jsonError(w, fmt.Errorf("%w: unable to lookup existing plan ID", ErrUnexpected))
 		return
 	}
 
@@ -394,7 +398,7 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 	}
 
 	if !ok {
-		jsonError(w, fmt.Errorf("unable to lookup existing parameters"))
+		jsonError(w, fmt.Errorf("%w: unable to lookup existing parameters", ErrUnexpected))
 		return
 	}
 
@@ -419,7 +423,7 @@ func handleReadServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 	JSONResponse(w, http.StatusOK, response)
 }
 
-// handleUpdateServiceInstance
+// handleUpdateServiceInstance allows a service instance to be modified.
 func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	// Ensure the client supports async operation.
 	if err := asyncRequired(r); err != nil {
@@ -429,7 +433,7 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		jsonErrorUsable(w, fmt.Errorf("request missing instance_id parameter"))
+		jsonErrorUsable(w, fmt.Errorf("%w: request missing instance_id parameter", ErrUnexpected))
 		return
 	}
 
@@ -463,7 +467,7 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	if !ok {
-		jsonError(w, fmt.Errorf("unable to lookup existing plan ID"))
+		jsonError(w, fmt.Errorf("%w: unable to lookup existing plan ID", ErrUnexpected))
 		return
 	}
 
@@ -525,7 +529,7 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	if !ok {
-		jsonError(w, fmt.Errorf("service instance missing operation ID"))
+		jsonError(w, fmt.Errorf("%w: service instance missing operation ID", ErrUnexpected))
 	}
 
 	// Return a response to the client.
@@ -536,7 +540,7 @@ func handleUpdateServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	JSONResponse(w, http.StatusAccepted, response)
 }
 
-// handleDeleteServiceInstance
+// handleDeleteServiceInstance deletes a service instance.
 func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	// Ensure the client supports async operation.
 	if err := asyncRequired(r); err != nil {
@@ -547,7 +551,7 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	// Check parameters.
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		jsonError(w, fmt.Errorf("request missing instance_id parameter"))
+		jsonError(w, fmt.Errorf("%w: request missing instance_id parameter", ErrUnexpected))
 		return
 	}
 
@@ -581,7 +585,7 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	if !ok {
-		jsonError(w, fmt.Errorf("unable to lookup existing service ID"))
+		jsonError(w, fmt.Errorf("%w: unable to lookup existing service ID", ErrUnexpected))
 		return
 	}
 
@@ -592,7 +596,7 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	if !ok {
-		jsonError(w, fmt.Errorf("unable to lookup existing plan ID"))
+		jsonError(w, fmt.Errorf("%w: unable to lookup existing plan ID", ErrUnexpected))
 		return
 	}
 
@@ -623,7 +627,7 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	if !ok {
-		jsonError(w, fmt.Errorf("service instance missing operation ID"))
+		jsonError(w, fmt.Errorf("%w: service instance missing operation ID", ErrUnexpected))
 	}
 
 	response := &api.CreateServiceInstanceResponse{
@@ -632,11 +636,11 @@ func handleDeleteServiceInstance(w http.ResponseWriter, r *http.Request, params 
 	JSONResponse(w, http.StatusAccepted, response)
 }
 
-// handlePollServiceInstance
+// handlePollServiceInstance polls a service instance operation for status.
 func handlePollServiceInstance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		jsonError(w, fmt.Errorf("request missing instance_id parameter"))
+		jsonError(w, fmt.Errorf("%w: request missing instance_id parameter", ErrUnexpected))
 		return
 	}
 
@@ -680,7 +684,7 @@ func handlePollServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 	}
 
 	if !ok {
-		jsonError(w, fmt.Errorf("service instance missing operation ID"))
+		jsonError(w, fmt.Errorf("%w: service instance missing operation ID", ErrUnexpected))
 	}
 
 	instancePlanID, ok, err := entry.GetString(registry.PlanID)
@@ -690,7 +694,7 @@ func handlePollServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 	}
 
 	if !ok {
-		jsonError(w, fmt.Errorf("service instance missing operation ID"))
+		jsonError(w, fmt.Errorf("%w: service instance missing operation ID", ErrUnexpected))
 	}
 
 	instanceOperationID, ok, err := entry.GetString(registry.OperationID)
@@ -700,7 +704,7 @@ func handlePollServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 	}
 
 	if !ok {
-		jsonError(w, fmt.Errorf("service instance missing operation ID"))
+		jsonError(w, fmt.Errorf("%w: service instance missing operation ID", ErrUnexpected))
 	}
 
 	// While not specified, we check that the provided service ID matches the one
@@ -797,13 +801,13 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 	// Check parameters.
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		jsonError(w, fmt.Errorf("request missing instance_id parameter"))
+		jsonError(w, fmt.Errorf("%w: request missing instance_id parameter", ErrUnexpected))
 		return
 	}
 
 	bindingID := params.ByName("binding_id")
 	if bindingID == "" {
-		jsonError(w, fmt.Errorf("request missing binding_id parameter"))
+		jsonError(w, fmt.Errorf("%w: request missing binding_id parameter", ErrUnexpected))
 		return
 	}
 
@@ -852,7 +856,7 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 		}
 
 		if !ok {
-			jsonError(w, fmt.Errorf("unable to lookup existing service ID"))
+			jsonError(w, fmt.Errorf("%w: unable to lookup existing service ID", ErrUnexpected))
 			return
 		}
 
@@ -868,7 +872,7 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 		}
 
 		if !ok {
-			jsonError(w, fmt.Errorf("unable to lookup existing plan ID"))
+			jsonError(w, fmt.Errorf("%w: unable to lookup existing plan ID", ErrUnexpected))
 			return
 		}
 
@@ -886,7 +890,7 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 		}
 
 		if !ok {
-			jsonError(w, fmt.Errorf("unable to lookup existing context"))
+			jsonError(w, fmt.Errorf("%w: unable to lookup existing context", ErrUnexpected))
 			return
 		}
 
@@ -909,7 +913,7 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 		}
 
 		if !ok {
-			jsonError(w, fmt.Errorf("unable to lookup existing parameters"))
+			jsonError(w, fmt.Errorf("%w: unable to lookup existing parameters", ErrUnexpected))
 			return
 		}
 
@@ -949,7 +953,7 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 			}
 
 			if !ok {
-				jsonError(w, fmt.Errorf("service instance missing operation ID"))
+				jsonError(w, fmt.Errorf("%w: service instance missing operation ID", ErrUnexpected))
 				return
 			}
 
@@ -1027,7 +1031,7 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 	}
 
 	if !ok {
-		jsonError(w, fmt.Errorf("expected operation status not found"))
+		jsonError(w, fmt.Errorf("%w: expected operation status not found", ErrUnexpected))
 		return
 	}
 
@@ -1056,11 +1060,11 @@ func handleCreateServiceBinding(w http.ResponseWriter, r *http.Request, params h
 	JSONResponse(w, http.StatusCreated, response)
 }
 
-// handleDeleteServiceBinding
+// handleDeleteServiceBinding deletes a service binding.
 func handleDeleteServiceBinding(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	instanceID := params.ByName("instance_id")
 	if instanceID == "" {
-		jsonError(w, fmt.Errorf("request missing instance_id parameter"))
+		jsonError(w, fmt.Errorf("%w: request missing instance_id parameter", ErrUnexpected))
 		return
 	}
 
@@ -1078,7 +1082,7 @@ func handleDeleteServiceBinding(w http.ResponseWriter, r *http.Request, params h
 	// Check parameters.
 	bindingID := params.ByName("binding_id")
 	if bindingID == "" {
-		jsonError(w, fmt.Errorf("request missing binding_id parameter"))
+		jsonError(w, fmt.Errorf("%w: request missing binding_id parameter", ErrUnexpected))
 		return
 	}
 
@@ -1112,7 +1116,7 @@ func handleDeleteServiceBinding(w http.ResponseWriter, r *http.Request, params h
 	}
 
 	if !ok {
-		jsonError(w, fmt.Errorf("unable to lookup existing service ID"))
+		jsonError(w, fmt.Errorf("%w: unable to lookup existing service ID", ErrUnexpected))
 		return
 	}
 
@@ -1123,7 +1127,7 @@ func handleDeleteServiceBinding(w http.ResponseWriter, r *http.Request, params h
 	}
 
 	if !ok {
-		jsonError(w, fmt.Errorf("unable to lookup existing plan ID"))
+		jsonError(w, fmt.Errorf("%w: unable to lookup existing plan ID", ErrUnexpected))
 		return
 	}
 

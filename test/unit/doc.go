@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package test provides end-to-end testing of the service broker.
+// Package unit_test provides end-to-end testing of the service broker.
 //
 // Testing uses the native go testing framework.  When any test is run a good
 // configuration is used to start the service broker (see TestMain for default
@@ -27,4 +27,4 @@
 //
 // api_test - Global API related functionality e.g. security and content type
 //            processing.
-package test
+package unit

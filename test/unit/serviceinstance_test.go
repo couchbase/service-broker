@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package test
+package unit_test
 
 import (
 	"net/http"
@@ -176,7 +176,7 @@ func TestServiceInstanceCreateWithRequiredSchemaNoParameters(t *testing.T) {
 }
 
 // TestServiceInstancePoll tests polling a completed service instance creation
-// is ok
+// is ok.
 func TestServiceInstancePoll(t *testing.T) {
 	defer mustReset(t)
 
@@ -793,7 +793,7 @@ func TestServiceInstanceUpdateWithSchemaNoParameters(t *testing.T) {
 }
 
 // TestServiceInstanceUpdateWithSchemaInvalid tests that schema validation rejects
-// invalid parameters,
+// invalid parameters.
 func TestServiceInstanceUpdateWithSchemaInvalid(t *testing.T) {
 	defer mustReset(t)
 

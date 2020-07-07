@@ -12,5 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package acceptance does acceptance testing against a Kubernetes instance.
+// Package acceptance_test does acceptance testing against a Kubernetes instance.
 package acceptance

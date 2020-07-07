@@ -330,10 +330,12 @@ spec:
       stringData:
         pkey.key: '{{ registry "server-key" }}'
         chain.pem: '{{ registry "server-cert" }}'
-  - name: selector-snippet
+  - name: cluster-labels
     template:
-      matchLabels:
-        cluster: '{{ registry "instance-name" }}'
+      cluster: '{{ registry "instance-name" }}'
+  - name: cluster-selector
+    template:
+      matchLabels: '{{ snippet "cluster-labels" }}'
   - name: couchbase-developer-private
     template:
       apiVersion: couchbase.com/v2
@@ -346,7 +348,7 @@ spec:
           adminSecret: '{{ printf "%v-admin" (registry "instance-name") }}'
           rbac:
             managed: true
-            selector: '{{ snippet "selector-snippet" }}'
+            selector: '{{ snippet "cluster-selector" }}'
         networking:
           tls:
             static:
@@ -354,7 +356,7 @@ spec:
               serverSecret: '{{ printf "%v-server-tls" (registry "instance-name") }}'
         buckets:
           managed: true
-          selector: '{{ snippet "selector-snippet" }}'
+          selector: '{{ snippet "cluster-selector" }}'
         servers:
         - name: default
           services:
@@ -368,7 +370,7 @@ spec:
       kind: CouchbaseBucket
       metadata:
         name: '{{ registry "binding-name" }}'
-        labels: '{{ snippet "selector-snippet" }}'
+        labels: '{{ snippet "cluster-labels" }}'
   - name: couchbase-user-secret
     template:
       apiVersion: v1
@@ -383,7 +385,7 @@ spec:
       kind: CouchbaseUser
       metadata:
         name: '{{ registry "binding-name" }}'
-        labels: '{{ snippet "selector-snippet" }}'
+        labels: '{{ snippet "cluster-labels" }}'
       spec:
         authDomain: local
         authSecret: '{{ registry "binding-name" }}'
@@ -393,7 +395,7 @@ spec:
       kind: CouchbaseGroup
       metadata:
         name: '{{ registry "binding-name" }}'
-        labels: '{{ snippet "selector-snippet" }}'
+        labels: '{{ snippet "cluster-labels" }}'
       spec:
         roles:
         - name: bucket_admin
@@ -404,7 +406,7 @@ spec:
       kind: CouchbaseRoleBinding
       metadata:
         name: '{{ registry "binding-name" }}'
-        labels: '{{ snippet "selector-snippet" }}'
+        labels: '{{ snippet "cluster-labels" }}'
       spec:
         subjects:
         - kind: CouchbaseUser

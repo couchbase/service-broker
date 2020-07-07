@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package test
+package unit_test
 
 import (
 	"crypto/tls"
@@ -55,7 +55,7 @@ func mustReset(t *testing.T) {
 }
 
 // TestMain creates, initializes and starts the service broker locally.
-// Tests are then run against the
+// Tests are then run against them.
 func TestMain(m *testing.M) {
 	flag.Parse()
 
