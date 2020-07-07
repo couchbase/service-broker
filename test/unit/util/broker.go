@@ -19,6 +19,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"reflect"
 	"testing"
 	"time"
@@ -134,6 +135,10 @@ func MustReplaceBrokerConfig(t *testing.T, clients client.Clients, spec *v1.Serv
 	if err := util.WaitFor(callback, configUpdateTimeout); err != nil {
 		t.Fatal(err)
 	}
+
+	// Every catalog used in testing should be validated at the API level to
+	// ensure all permutations are valid.
+	mustValidateCatalog(t)
 }
 
 // MustReplaceBrokerConfigWithInvalidCondition will updata the configuration and
@@ -312,5 +317,166 @@ func MustHaveRegistryEntriesTLSAndVerify(t *testing.T, entry *corev1.Secret, caC
 func MustNotHaveRegistryEntry(t *testing.T, entry *corev1.Secret, key registry.Key) {
 	if _, ok := entry.Data[string(key)]; ok {
 		t.Fatalf("registry has key %s", key)
+	}
+}
+
+// keyInSlice looks for a key in the provided slice.
+func keyInSlice(key string, slice []string) bool {
+	for _, item := range slice {
+		if item == key {
+			return true
+		}
+	}
+
+	return false
+}
+
+// mustValidateObject validates an API object.  The required attributes must exist, the optional
+// ones may exist, anything not in these slices is illegal and a bug.
+func mustValidateObject(t *testing.T, object map[string]interface{}, required, optional []string) {
+	for _, requiredAttribute := range required {
+		if _, ok := object[requiredAttribute]; !ok {
+			t.Fatalf("required attribute %s not in object", requiredAttribute)
+		}
+	}
+
+	for attribute := range object {
+		if !keyInSlice(attribute, required) && !keyInSlice(attribute, optional) {
+			t.Fatalf("attribute %s unexpectedly in object", attribute)
+		}
+	}
+}
+
+// mustValidateCatalog ensures the catalog has the correct attributes.
+// This should be done with schema validation, provided it rejects rogue attributes.
+func mustValidateCatalog(t *testing.T) {
+	var object interface{}
+
+	if err := Get("/v2/catalog", http.StatusOK, &object); err != nil {
+		t.Fatal(err)
+	}
+
+	catalog, ok := object.(map[string]interface{})
+	if !ok {
+		t.Fatalf("object not correctly formatted")
+	}
+
+	required := []string{
+		"services",
+	}
+
+	mustValidateObject(t, catalog, required, nil)
+
+	services, ok := catalog["services"].([]interface{})
+	if !ok {
+		t.Fatalf("object not correctly formatted")
+	}
+
+	for _, object := range services {
+		service, ok := object.(map[string]interface{})
+		if !ok {
+			t.Fatalf("object not correctly formatted")
+		}
+
+		required := []string{
+			"name",
+			"id",
+			"description",
+			"bindable",
+			"plans",
+		}
+
+		optional := []string{
+			"tags",
+			"requires",
+			"metadata",
+			"dashboard_client",
+			"plan_updatable",
+		}
+
+		mustValidateObject(t, service, required, optional)
+
+		if object, ok := service["dashboard_client"]; ok {
+			dashboardClient, ok := object.(map[string]interface{})
+			if !ok {
+				t.Fatalf("object not correctly formatted")
+			}
+
+			optional = []string{
+				"id",
+				"secret",
+				"redirect_uri",
+			}
+
+			mustValidateObject(t, dashboardClient, nil, optional)
+		}
+
+		plans, ok := service["plans"].([]interface{})
+		if !ok {
+			t.Fatalf("object not correctly formatted")
+		}
+
+		for _, object := range plans {
+			plan, ok := object.(map[string]interface{})
+			if !ok {
+				t.Fatalf("object not correctly formatted")
+			}
+
+			required = []string{
+				"id",
+				"name",
+				"description",
+			}
+
+			optional = []string{
+				"metadata",
+				"free",
+				"bindable",
+				"schemas",
+			}
+
+			mustValidateObject(t, plan, required, optional)
+
+			if object, ok := plan["schemas"]; ok {
+				schemas, ok := object.(map[string]interface{})
+				if !ok {
+					t.Fatalf("object not correctly formatted")
+				}
+
+				optional = []string{
+					"service_instance",
+					"service_binding",
+				}
+
+				mustValidateObject(t, schemas, nil, optional)
+
+				if object, ok := schemas["service_instance"]; ok {
+					serviceInstanceSchema, ok := object.(map[string]interface{})
+					if !ok {
+						t.Fatalf("object not correctly formatted")
+					}
+
+					optional = []string{
+						"create",
+						"update",
+					}
+
+					mustValidateObject(t, serviceInstanceSchema, nil, optional)
+				}
+
+				if object, ok := schemas["service_binding"]; ok {
+					serviceBindingSchema, ok := object.(map[string]interface{})
+					if !ok {
+						t.Fatalf("object not correctly formatted")
+					}
+
+					optional = []string{
+						"create",
+					}
+
+					mustValidateObject(t, serviceBindingSchema, nil, optional)
+				}
+			}
+		}
 	}
 }

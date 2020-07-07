@@ -14,8 +14,11 @@
 
 package v1alpha1
 
-import "github.com/couchbase/service-broker/pkg/api"
+import (
+	"github.com/couchbase/service-broker/pkg/api"
+)
 
+// Convert reformats a Kubernetes catalog object as an Open Service Broker object.
 func (in ServiceCatalog) Convert() api.ServiceCatalog {
 	out := api.ServiceCatalog{}
 
@@ -27,6 +30,7 @@ func (in ServiceCatalog) Convert() api.ServiceCatalog {
 	return out
 }
 
+// Convert reformats a Kubernetes catalog object as an Open Service Broker object.
 func (in ServiceOffering) Convert() api.ServiceOffering {
 	out := api.ServiceOffering{
 		Name:          in.Name,
@@ -36,7 +40,8 @@ func (in ServiceOffering) Convert() api.ServiceOffering {
 		Requires:      in.Requires,
 		Bindable:      in.Bindable,
 		Metadata:      in.Metadata,
-		PlanUpdatable: in.PlanUpdatable}
+		PlanUpdatable: in.PlanUpdatable,
+	}
 
 	if in.DashboardClient != nil {
 		dashboardClient := in.DashboardClient.Convert()
@@ -51,10 +56,16 @@ func (in ServiceOffering) Convert() api.ServiceOffering {
 	return out
 }
 
+// Convert reformats a Kubernetes catalog object as an Open Service Broker object.
 func (in DashboardClient) Convert() api.DashboardClient {
-	return api.DashboardClient{ID: in.ID, Secret: in.Secret, RedirectedURI: in.RedirectedURI}
+	return api.DashboardClient{
+		ID:            in.ID,
+		Secret:        in.Secret,
+		RedirectedURI: in.RedirectedURI,
+	}
 }
 
+// Convert reformats a Kubernetes catalog object as an Open Service Broker object.
 func (in ServicePlan) Convert() api.ServicePlan {
 	out := api.ServicePlan{
 		ID:          in.ID,
@@ -62,7 +73,8 @@ func (in ServicePlan) Convert() api.ServicePlan {
 		Description: in.Description,
 		Metadata:    in.Metadata,
 		Free:        in.Free,
-		Bindable:    in.Bindable}
+		Bindable:    in.Bindable,
+	}
 
 	if in.Schemas != nil {
 		schemas := in.Schemas.Convert()
@@ -72,6 +84,7 @@ func (in ServicePlan) Convert() api.ServicePlan {
 	return out
 }
 
+// Convert reformats a Kubernetes catalog object as an Open Service Broker object.
 func (in Schemas) Convert() api.Schemas {
 	out := api.Schemas{}
 
@@ -88,6 +101,7 @@ func (in Schemas) Convert() api.Schemas {
 	return out
 }
 
+// Convert reformats a Kubernetes catalog object as an Open Service Broker object.
 func (in ServiceInstanceSchema) Convert() api.ServiceInstanceSchema {
 	out := api.ServiceInstanceSchema{}
 
@@ -104,6 +118,7 @@ func (in ServiceInstanceSchema) Convert() api.ServiceInstanceSchema {
 	return out
 }
 
+// Convert reformats a Kubernetes catalog object as an Open Service Broker object.
 func (in ServiceBindingSchema) Convert() api.ServiceBindingSchema {
 	out := api.ServiceBindingSchema{}
 
@@ -115,6 +130,7 @@ func (in ServiceBindingSchema) Convert() api.ServiceBindingSchema {
 	return out
 }
 
+// Convert reformats a Kubernetes catalog object as an Open Service Broker object.
 func (in InputParamtersSchema) Convert() api.InputParamtersSchema {
 	return api.InputParamtersSchema{Parameters: in.Parameters}
 }
