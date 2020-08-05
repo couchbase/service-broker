@@ -209,7 +209,7 @@ Certificates specified without a CA will be self-signed, rather than signed by t
 
 [source]
 ----
-{{ genetateCertifcate (registry "key.pem") "My CA" "30d" "CA" nil nil nil }}
+{{ generateCertificate (registry "key.pem") "My CA" "720h" "CA" nil nil nil }}
 ----
 
 === Arguments
