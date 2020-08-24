@@ -50,6 +50,11 @@ const (
 	// exampleConfigurationDir contains any application specific examples.
 	exampleConfigurationDir = exampleDir + "/" + "configurations"
 
+	// exampleConfigurationPrerequisites contains things that are required
+	// for an acceptance tests to run correctly.  These include things like
+	// cluster resources that the service broker doesn't handle.
+	exampleConfigurationPrerequisites = "prerequisites.yaml"
+
 	// exampleConfigurationSpecification contains the main configuration
 	// files for an example configuration.
 	exampleConfigurationSpecification = "broker.yaml"
@@ -85,6 +90,28 @@ func TestExamples(t *testing.T) {
 		name := configuration.Name()
 
 		test := func(t *testing.T) {
+			// Install any prerequisites.
+			prerequisitesPath := path.Join(exampleConfigurationDir, name, exampleConfigurationPrerequisites)
+
+			if _, err := os.Stat(prerequisitesPath); err == nil {
+				objects := util.MustReadYAMLObjects(t, prerequisitesPath)
+
+				util.MustCreateResources(t, clients, "default", objects)
+
+				for i := range objects {
+					object := objects[i]
+
+					defer util.DeleteResource(clients, "default", object)
+				}
+
+				// Hack, we need a better way of synchronizing the readiness of
+				// resources such as these.  For example, a dynamic admission controller
+				// installed in this phase may not have started e.g. still pulling
+				// the image, when the service instance is created.  The service
+				// instance then misses all its defaults and collapses in a heap.
+				time.Sleep(time.Minute)
+			}
+
 			// Create a clean namespace to test in, we can clean up everything
 			// by just deleting it and letting the cascade do its thing.
 			namespace := util.MustCreateResource(t, clients, "", util.MustGetNamespace(t))
@@ -176,7 +203,7 @@ func TestExamples(t *testing.T) {
 
 			util.MustCreateResources(t, clients, namespace.GetName(), objects)
 
-			util.MustWaitFor(t, util.ResourceCondition(clients, namespace.GetName(), serviceInstance, "Ready", "True"), 5*time.Minute)
+			util.MustWaitFor(t, util.ResourceCondition(clients, namespace.GetName(), serviceInstance, "Ready", "True"), 10*time.Minute)
 
 			// Create the service binding if one exists.
 			// * Tests the configuration provisions.

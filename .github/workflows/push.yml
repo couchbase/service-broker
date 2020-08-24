@@ -56,6 +56,41 @@ jobs:
       with:
         name: code-coverage
         path: /tmp/cover.html
+  test-acceptance:
+    name: Acceptance Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        versions:
+        - v1.14.10
+        - v1.15.11
+        - v1.16.9
+        - v1.17.5
+        - v1.18.8
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+      with:
+        path: github.com/couchbase/service-broker
+    - name: Configure Go
+      uses: actions/setup-go@v2-beta
+      with:
+        go-version: '^1.13.3'
+    - name: Setup Kind
+      uses: engineerd/setup-kind@v0.4.0
+      with:
+        image: kindest/node:${{ matrix.versions }}
+    - name: Build Images
+      run: |
+        make container
+        kind load docker-image couchbase/service-broker:0.0.0
+    - name: Install Helm
+      uses: azure/setup-helm@v1
+    - name: Install Service Catalog
+      run: |
+        helm install --wait --repo https://svc-catalog-charts.storage.googleapis.com --namespace default catalog catalog --version 0.3.0
+    - name: Acceptance Test
+      run: make acceptance
   release:
     name: Archive
     runs-on: ubuntu-latest
