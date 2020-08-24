@@ -112,6 +112,10 @@ This is used to register the service broker with the service catalog.
 Every configuration has its own directory, _my-configuration_ in this case.
 The acceptance tests will dynamically create tests for each configuration.
 
+#### examples/configurations/my-configuration/prerequisites.yaml
+
+Configurations may supply a set of prerequisite resources, such as CRDs etc. that the service broker cannot configure.
+
 #### examples/configurations/my-configuration/broker.yaml
 
 Every configuration must have a service broker configuration, and role that allows the configuration to create and delete a service instance (optionally a service binding).
