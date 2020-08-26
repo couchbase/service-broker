@@ -102,6 +102,14 @@ type ServiceOffering struct {
 	// this field (see Service Plan Object).
 	Bindable bool `json:"bindable"`
 
+	// InstancesRetrievable specifies whether the Fetching a Service Instance endpoint is supported
+	// for all Service Plans.
+	InstancesRetrievable bool `json:"instancesRetrievable,omitempty"`
+
+	// BindingsRetrievable specifies whether the Fetching a Service Binding endpoint is supported
+	// for all Service Plans.
+	BindingsRetrievable bool `json:"bindingsRetrievable,omitempty"`
+
 	// Metadata is an opaque object of metadata for a Service Offering. It is expected that Platforms will
 	// treat this as a blob. Note that there are conventions in existing Service Brokers and Platforms for
 	// fields that aid in the display of catalog data.

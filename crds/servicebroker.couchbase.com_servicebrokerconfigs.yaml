@@ -255,6 +255,16 @@ spec:
                           Service Plans can override this field (see Service Plan
                           Object).
                         type: boolean
+                      instancesRetrievable:
+                        description:
+                          Specifies whether the Fetching a Service Instance endpoint
+                          is supported for all Service Plans.
+                        type: boolean
+                      bindingsRetrievable:
+                        description:
+                          Specifies whether the Fetching a Service Binding endpoint
+                          is supported for all Service Plans.
+                        type: boolean
                       dashboardClient:
                         description: Dashboard is a Cloud Foundry extension described
                           in Catalog Extensions. Contains the data necessary to activate
