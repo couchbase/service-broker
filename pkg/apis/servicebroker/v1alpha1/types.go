@@ -105,6 +105,7 @@ type ServiceOffering struct {
 	// Metadata is an opaque object of metadata for a Service Offering. It is expected that Platforms will
 	// treat this as a blob. Note that there are conventions in existing Service Brokers and Platforms for
 	// fields that aid in the display of catalog data.
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Metadata *runtime.RawExtension `json:"metadata,omitempty"`
 
 	// Dashboard is a Cloud Foundry extension described in Catalog Extensions. Contains the data necessary
@@ -161,6 +162,7 @@ type ServicePlan struct {
 	// Metadata is an opaque object of metadata for a Service Plan. It is expected that Platforms
 	// will treat this as a blob. Note that there are conventions in existing Service Brokers and
 	// Platforms for fields that aid in the display of catalog data.
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Metadata *runtime.RawExtension `json:"metadata,omitempty"`
 
 	// Free, when false, Service Instances of this Service Plan have a cost. The default is true.
@@ -209,6 +211,7 @@ type ServiceBindingSchema struct {
 type InputParamtersSchema struct {
 	// Parameters is the schema definition for the input parameters. Each input parameter is
 	// expressed as a property within a JSON object.
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Parameters *runtime.RawExtension `json:"parameters,omitempty"`
 }
 
@@ -227,6 +230,7 @@ type ConfigurationTemplate struct {
 
 	// Template defines the resource template, it can be any kind of resource
 	// supported by client-go or couchbase.
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Template *runtime.RawExtension `json:"template"`
 
 	// Singleton alters the behaviour of resource creation.  Typically we will

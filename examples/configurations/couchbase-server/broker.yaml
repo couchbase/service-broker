@@ -343,7 +343,7 @@ spec:
       metadata:
         name: '{{ registry "instance-name" }}'
       spec:
-        image: '{{ parameter "/image" | default "couchbase/server:6.5.0" }}'
+        image: '{{ parameter "/image" | default "couchbase/server:6.5.1" }}'
         security:
           adminSecret: '{{ printf "%v-admin" (registry "instance-name") }}'
           rbac:

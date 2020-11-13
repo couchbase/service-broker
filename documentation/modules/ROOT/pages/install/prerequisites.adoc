@@ -16,8 +16,8 @@ These are the basic platform requirements that you will need for the various set
 
 The following platforms are supported:
 
-* Kubernetes 1.13+
-* Red Hat OpenShift 4.1+
+* Kubernetes 1.17+
+* Red Hat OpenShift 4.4+
 
 In general, any Kubernetes distribution based on a supported version should work.
 
@@ -27,7 +27,7 @@ The Service Broker is recommended for use with the https://kubernetes.io/docs/co
 
 Installation instructions can be found in the https://kubernetes.io/docs/tasks/service-catalog/[official documentation].
 
-As the Service Broker is standards based, any version of the Service Catalog supporting the Open Service Broker API version 2.13 is supported.
+As the Service Broker is standards based, any version of the Service Catalog supporting the Open Service Broker API version 2.13+ is supported.
 
 == Build Requirements
 
