@@ -45,8 +45,8 @@ spec:
               configuration data structure.
             properties:
               bindings:
-                description: Bindings is a set of bindings that link service plans
-                  to resource templates and is required.
+                description: 'Bindings is a set of bindings that link service plans
+                  to resource templates. More info: https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/bindings.adoc'
                 items:
                   description: ConfigurationBinding binds a service plan to a set
                     of templates required to realize that plan.
@@ -137,8 +137,8 @@ spec:
                                   to set.
                                 type: string
                               value:
-                                description: Value is the templated string value to
-                                  calculate.
+                                description: 'Value is the templated string value
+                                  to calculate. More info: https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/dynamic-attributes.adoc'
                                 type: string
                             required:
                             - name
@@ -223,8 +223,8 @@ spec:
                                   to set.
                                 type: string
                               value:
-                                description: Value is the templated string value to
-                                  calculate.
+                                description: 'Value is the templated string value
+                                  to calculate. More info: https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/dynamic-attributes.adoc'
                                 type: string
                             required:
                             - name
@@ -247,10 +247,12 @@ spec:
                 minItems: 1
                 type: array
               catalog:
-                description: Catalog is the service catalog definition and is required.
+                description: 'Catalog is the Open Service Broker service catalog definition.
+                  More info: https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/catalog.adoc'
                 properties:
                   services:
-                    description: Services is an array of Service Offering objects
+                    description: 'Services is an array of Service Offering objects.
+                      More info: https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/catalog.adoc#service-offerings'
                     items:
                       description: 'ServiceOffering is defined by: https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#body'
                       properties:
@@ -326,9 +328,9 @@ spec:
                             breaking backward compatibility. Defaults to false.
                           type: boolean
                         plans:
-                          description: ServicePlan is a list of Service Plans for
+                          description: 'ServicePlan is a list of Service Plans for
                             this Service Offering, schema is defined below. MUST contain
-                            at least one Service Plan.
+                            at least one Service Plan. More info: https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/catalog.adoc#service-plans'
                           items:
                             description: 'ServicePlan is defined by: https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#body'
                             properties:
@@ -376,8 +378,9 @@ spec:
                                 minLength: 1
                                 type: string
                               schemas:
-                                description: Schemas are schema definitions for Service
+                                description: 'Schemas are schema definitions for Service
                                   Instances and Service Bindings for the Service Plan.
+                                  More info: https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/catalog.adoc#json-schemas'
                                 properties:
                                   serviceBinding:
                                     description: ServiceBinding is the schema definition
@@ -469,8 +472,8 @@ spec:
                 - services
                 type: object
               templates:
-                description: Templates is a set of resource templates that can be
-                  rendered by the service broker and is required.
+                description: 'Templates is a set of resource templates that can be
+                  rendered by the service broker. More info: https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/templates.adoc'
                 items:
                   description: ConfigurationTemplate defines a resource template for
                     use when either creating a service instance or service binding.

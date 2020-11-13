@@ -47,13 +47,16 @@ type ServiceBrokerConfig struct {
 // ServiceBrokerConfigSpec defines the top level service broker configuration
 // data structure.
 type ServiceBrokerConfigSpec struct {
-	// Catalog is the service catalog definition and is required.
+	// Catalog is the Open Service Broker service catalog definition. More info:
+	// https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/catalog.adoc
 	Catalog ServiceCatalog `json:"catalog"`
 
-	// Templates is a set of resource templates that can be rendered by the service broker and is required.
+	// Templates is a set of resource templates that can be rendered by the service broker. More info:
+	// https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/templates.adoc
 	Templates []ConfigurationTemplate `json:"templates"`
 
-	// Bindings is a set of bindings that link service plans to resource templates and is required.
+	// Bindings is a set of bindings that link service plans to resource templates. More info:
+	// https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/bindings.adoc
 	// +kubebuilder:validation:MinItems=1
 	Bindings []ConfigurationBinding `json:"bindings"`
 }
@@ -61,7 +64,8 @@ type ServiceBrokerConfigSpec struct {
 // ServiceCatalog is defined by:
 // https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#body
 type ServiceCatalog struct {
-	// Services is an array of Service Offering objects
+	// Services is an array of Service Offering objects. More info:
+	// https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/catalog.adoc#service-offerings
 	// +kubebuilder:validation:MinItems=1
 	Services []ServiceOffering `json:"services"`
 }
@@ -119,7 +123,8 @@ type ServiceOffering struct {
 	PlanUpdatable bool `json:"planUpdatable,omitempty"`
 
 	// ServicePlan is a list of Service Plans for this Service Offering, schema is defined below. MUST
-	// contain at least one Service Plan.
+	// contain at least one Service Plan. More info:
+	// https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/catalog.adoc#service-plans
 	// +kubebuilder:validation:MinItems=1
 	Plans []ServicePlan `json:"plans"`
 }
@@ -174,7 +179,8 @@ type ServicePlan struct {
 	Bindable *bool `json:"bindable,omitempty"`
 
 	// Schemas are schema definitions for Service Instances and Service Bindings for the Service
-	// Plan.
+	// Plan. More info:
+	// https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/catalog.adoc#json-schemas
 	Schemas *Schemas `json:"schemas,omitempty"`
 }
 
@@ -245,7 +251,8 @@ type RegistryValue struct {
 	// Name is the name of the registry key to set.
 	Name string `json:"name"`
 
-	// Value is the templated string value to calculate.
+	// Value is the templated string value to calculate. More info:
+	// https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/dynamic-attributes.adoc
 	Value string `json:"value"`
 }
 

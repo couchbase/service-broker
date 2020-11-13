@@ -11,535 +11,70 @@ endif::[]
 The `ServiceBrokerConfig` resource is required by each instance of the Service Broker.
 Each Service Broker instance requires exactly one `ServiceBrokerConfig` resource.
 
-All attribute names are given in JSON path format as this is the standard Kubernetes notation.
+Documentation is provided by the resource custom resource definition.
+To read documentation about the resource, use the following command:
 
-== Resource Types
-
-=== ServiceBrokerConfig Resource
-
-The `ServiceBrokerConfig` resource supports all the regular attributes a core Kubernetes resource contains:
-
-[source,yaml]
+[source,console]
 ----
-apiVersion: servicebroker.couchbase.com/v1alpha1
-kind: ServiceBrokerConfig
-metadata:
-  name: couchbase-service-broker
-spec: {}
-----
+kubectl explain servicebrokerconfig
+KIND:     ServiceBrokerConfig
+VERSION:  servicebroker.couchbase.com/v1alpha1
 
-==== apiVersion
+DESCRIPTION:
+     <empty>
 
-This attribute defines the Kubernetes API Version of the resource.
+FIELDS:
+   apiVersion	<string>
+     APIVersion defines the versioned schema of this representation of an
+     object. Servers should convert recognized schemas to the latest internal
+     value, and may reject unrecognized values. More info:
+     https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
 
-* This attribute is required and must be `servicebroker.couchbase.com/v1alpha1`.
+   kind	<string>
+     Kind is a string value representing the REST resource this object
+     represents. Servers may infer this from the endpoint the client submits
+     requests to. Cannot be updated. In CamelCase. More info:
+     https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
 
-==== kind
+   metadata	<Object>
+     Standard object's metadata. More info:
+     https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 
-This attribute defines the Kubernetes resource kind.
+   spec	<Object> -required-
+     ServiceBrokerConfigSpec defines the top level service broker configuration
+     data structure.
 
-* This attribute is required and must be `ServiceBrokerConfig`.
-
-==== metadata.name
-
-This attribute defines the name of the resource.
-By default, the Service Broker will look for a `ServiceBrokerConfig` resource named `couchbase-service-broker`.
-This can be modified by the `-config` argument to the xref:reference/container.adoc#arguments[Service Broker container].
-
-* This attribute is required and must be a string.
-
-==== spec
-
-This attribute contains the resource specification and controls how the Service Broker functions.
-It contains the following objects:
-
-[source,yaml]
-----
-spec:
-  catalog: {}
-  bindings: []
-  templates: []
+   status	<Object>
+     ServiceBrokerConfigStatus records status information about a configuration
+     as the Service Broker processes it.
 ----
 
-* This attribute is required and must be an object.
+You can read documentation about nested attributes by specifying a JSON path, for example:
 
-==== spec.catalog
-
-This attribute controls what services are advertised to clients and how clients should behave:
-Service catalog use is described by the xref:concepts/catalog.adoc[service catalog concepts documentation].
-A service catalog is defined as follows:
-
-[source,yaml]
+[source,console]
 ----
-spec:
-  catalog:
-    services: []
+$ kubectl explain servicebrokerconfig.spec.bindings.serviceBinding
+KIND:     ServiceBrokerConfig
+VERSION:  servicebroker.couchbase.com/v1alpha1
+
+RESOURCE: serviceBinding <Object>
+
+DESCRIPTION:
+     ServiceBinding defines the set of templates to render and create when a new
+     service binding is created. This attribute is optional based on whether the
+     service plan allows binding.
+
+FIELDS:
+   readinessChecks	<[]Object>
+     ReadinessChecks defines a set of tests that define whether a service
+     instance or service binding is actually ready as reported by the service
+     broker polling API.
+
+   registry	<[]Object>
+     Registry allows the pre-calculation of dynamic configuration from request
+     inputs i.e. registry or parameters, or generated e.g. passwords.
+
+   templates	<[]string>
+     Templates defines all the templates that will be created, in order, by the
+     service broker for this operation.
 ----
-
-* This attribute is required and must be an object.
-
-==== spec.catalog.services
-
-This attribute contains a list of service offerings that the Service Broker can provision.
-Service offering use is described by the xref:concepts/catalog.adoc#service-offerings[service offering concepts documentation].
-A service offering is configured as follows:
-
-[source,yaml]
-----
-spec:
-  catalog:
-    services:
-    - name: my-service
-      id: 9bb044e2-8733-4ba3-a85e-7f416ca665cb
-      description: A service that does foo
-      tags:
-      - foo
-      bindable: true
-      metadata:
-        foo: bar
-      planUpdatable: false
-      plans: []
-----
-
-* This attribute is required and must be a list of service offerings with at least one member.
-
-==== spec.catalog.services.name
-
-This attribute defines a short service offering name.
-The name must be unique across all services advertised by this Service Broker.
-The name should be CLI-friendly e.g. no spaces or special characters.
-
-* This attribute is required and must be a non-empty string.
-
-==== spec.catalog.services.id
-
-This attribute defines an ID for a service offering.
-The ID must be unique across all service offerings advertised by any service broker.
-The ID should be a UUID (generated with `uuidgen`).
-
-* This attribute is required and must be a non-empty string.
-
-==== spec.catalog.services.description
-
-This attribute defines a description of the service offering.
-
-* This attribute is required and must be a non-empty string.
-
-==== spec.catalog.services.tags
-
-This attribute defines an array of tags that allow classification and indexing of a service offering.
-
-* This attribute is optional and must be an array of strings.
-
-==== spec.catalog.services.bindable
-
-This attribute defines whether a service instance created by this service offering can have an associated service binding.
-If set to `false` the client should not attempt to bind to a service instance of this service offering type.
-The Service Broker will reject binding requests for service offerings whose `bindable` attribute is set to `false`.
-This attribute can be overridden on a per-service plan basis by the <<spec-catalog-services-plans-bindable,`spec.catalog.services.plans.bindable`>> attribute.
-
-* This attribute is optional and must be a boolean.
-* This attribute defaults to `false`.
-
-==== spec.catalog.services.metadata
-
-This attribute defines an object that contains metadata associated with a service offering.
-
-This attribute is optional and must be an object.
-
-==== spec.catalog.services.planUpdatable
-
-This attribute defines whether a service instance update is capable of changing its plan ID e.g. to facilitate an upgrade.
-Changing the plan ID is not currently fully supported so should be set to `false`.
-Changing the plan ID should, however, be possible if the underlying Kubernetes resources generated by the Service Broker are the same i.e. same group, version, kind and name.
-
-* This attribute is optional and must be a boolean.
-* This attribute defaults to `false`.
-
-==== spec.catalog.services.plans
-
-This attribute defines service plans.
-Service offerings are an abstract representation of a service, a service plan is a realization of that service.
-Service plan use is described by the xref:concepts/catalog.adoc#service-plans[service plan concepts documentation].
-A service plan is defined as follows:
-
-[source,yaml]
-----
-spec:
-  catalog:
-    services:
-    - plans:
-      - name: my-plan
-        id: d88f2b01-8fa0-4a0e-b560-3ced84480c8a
-        description: A plan that implements a large foo
-        metadata:
-          foo: bar
-        free: false
-        bindable: true
-        schemas: {}
-----
-
-* This attribute is required and must be a list of service plan objects.
-
-==== spec.catalog.services.plans.name
-
-This attribute defines a short service plan name.
-The name must be unique across all plans advertised by this service offering.
-The name should be CLI-friendly e.g. no spaces or special characters.
-
-* This attribute is required and must be a non-empty string.
-
-==== spec.catalog.services.plans.id
-
-This attribute defines an ID for a service plan.
-The ID must be unique across all plans advertised by any service broker.
-The ID should be a UUID (generated with `uuidgen`).
-
-* This attribute is required and must be a non-empty string.
-
-==== spec.catalog.services.plans.description
-
-This attribute defines a description of the service plan.
-
-* This attribute is required and must be a non-empty string.
-
-==== spec.catalog.services.plans.metadata
-
-This attribute defines an object that contains metadata associated with a service plan.
-
-* This attribute is optional and must be an object.
-
-==== spec.catalog.services.plans.free
-
-This attribute is an indication to the end user whether creating as service instance of this service plan is free.
-If set to `false`, you may wish to also state the cost in the <<spec-catalog-services-plans-metadata,`spec.catalog.services.plans.metadata`>> object, for example.
-
-* This attribute is optional and must be a boolean.
-* This attribute defaults to `false`.
-
-==== spec.catalog.services.plans.bindable
-
-This attribute defines whether a service instance created by this service plan can have an associated service binding.
-If set to `false` the client should not attempt to bind to a service instance of this service offering type.
-The Service Broker will reject binding requests for service plans whose `bindable` attribute is set to `false`.
-This attribute overrides the service offering default set by the <<spec-catalog-services-bindable,`spec.catalog.services.bindable`>> attribute.
-
-* This attribute is optional and must be a boolean.
-
-==== spec.catalog.services.plans.schemas
-
-This attribute defines schemas that are advertised to the client.
-These define the parameter object that can be passed to the Service Broker when performing API operations.
-Schema use is described by the xref:concepts/catalog.adoc#json-schemas[JSON schema concepts documentation].
-Service plan schemas are defined as follows:
-
-[source,yaml]
-----
-spec:
-  catalog:
-    services:
-    - plans:
-      - schemas:
-          serviceInstance:
-            create: {}
-            update: {}
-          serviceBinding:
-            create: {}
-----
-
-* This attribute is optional and must be an object.
-
-==== spec.catalog.services.plans.schemas.serviceInstance
-
-This attribute defines schemas that can be associated with service instance operations.
-
-* This attribute is optional and must be an object.
-
-==== spec.catalog.services.plans.schemas.serviceInstance.create
-
-This attribute defines a schema that can be associated with service instance creation.
-
-* This attribute is optional and must be an object.
-* This attribute is described in more detail in the <<input-parameter-schema,input parameter schema>> reference documentation.
-
-==== spec.catalog.services.plans.schemas.serviceInstance.update
-
-This attribute defines a schema that can be associated with a service instance update.
-
-* This attribute is optional and must be an object.
-* This attribute is described in more detail in the <<input-parameter-schema,input parameter schema>> reference documentation.
-
-==== spec.catalog.services.plans.schemas.serviceBinding
-
-This attribute defines schemas that can be associated with service binding operations.
-
-* This attribute is optional and must be an object.
-
-==== spec.catalog.services.plans.schemas.serviceBinding.create
-
-This attribute defines a schema that can be associated with service binding creation.
-
-* This attribute is optional and must be an object.
-* This attribute is described in more detail in the <<input-parameter-schema,input parameter schema>> reference documentation.
-
-==== spec.bindings
-
-This attribute defines how service plans are mapped to configuration templates.
-Configuration binding use is described in the xref:concepts/bindings.adoc[configuration bindings concepts documentation].
-Configuration bindings are defined as follows:
-
-[source,yaml]
-----
-spec:
-  bindings:
-  - name: my-binding
-    service: my-service
-    plan: my-plan
-    serviceInstance: {}
-    serviceBindings: {}
-----
-
-* This attribute is required and must be an array of configuration binding objects.
-
-==== spec.bindings.name
-
-This attribute defines a human-readable name for the configuration binding.
-The name is primarily used to provide debugging hints.
-
-* The attribute is required and must be a string.
-
-==== spec.bindings.service
-
-This attribute refers to the <<spec-catalog-services-name,name of the service offering>> this configuration binding is bound to.
-This name must reference the name of a service offering defined in the service catalog.
-
-* This attribute is required and must be a string.
-
-==== spec.bindings.plan
-
-This attribute refers to the <<spec-catalog-services-plans-name,name of the service plan>> this configuration binding is bound to.
-This name must reference the name of a service plan defined in the service catalog.
-This plan name must be referenced by one configuration binding.
-
-* This attribute is required and must be a string.
-
-==== spec.bindings.serviceInstance
-
-This attribute defines the parameters and templates that are processed when a service instance is created and updated.
-
-* This attribute is optional and must be an array of objects.
-* This attribute is described in more detail in the <<configuration-binding-parameters,configuration binding parameters>> reference.
-
-==== spec.bindings.serviceBinding
-
-This attribute defines the parameters and templates that are processed when a service binding is created.
-
-* This attribute is optional and must be an array of objects.
-* This attribute is described in more detail in the <<configuration-binding-parameters,configuration binding parameters>> reference.
-
-==== spec.templates
-
-This attribute defines an array of configuration templates that may be referenced by configuration bindings and configuration parameters.
-Configuration template use is described in the xref:concepts/templates.adoc[configuration templates concepts documentation].
-Configuration templates are defined as follows:
-
-[source,yaml]
-----
-spec:
-  templates:
-  - name: my-template
-    template: {}
-    singleton: false
-----
-
-* This attribute is optional and must be an array of configuration templates objects.
-
-==== spec.templates.name
-
-This attribute defines a human-readable name for the configuration template.
-The name is primarily used to provide debugging hints.
-
-* The attribute is required and must be a string.
-
-==== spec.templates.template
-
-This attribute defines the template to render and patch with configuration parameters.
-This must be an object.
-Templates referenced by configuration bindings must be Kubernetes resource objects.
-
-* This attribute is required and must be an object.
-
-==== spec.templates.singleton
-
-This attribute defines whether the rendered Kubernetes resource is a singleton.
-When set to `true`, the Service Broker will ignore conflict errors when attempting to create the resource.
-Singleton resources cannot be updated.
-When set to `false`, the Service Broker will raise an error if a conflict occurs during provisioning.
-
-* This attribute is optional and must be a boolean.
-* This attribute defaults to `false`.
-
-== Common Types
-
-Common types are configuration objects that are referenced in multiple places in the `ServiceBrokerConfig` resource.
-
-[#input-parameter-schema]
-=== Input Parameter Schema
-
-This object is used to provide a schema for advertising parameters that can be passed to the Service Broker API for creating and updating service instance and service bindings.
-Schema use is described by the xref:concepts/catalog.adoc#json-schemas[JSON schema concepts documentation].
-Schemas primarily define the structure of the parameter object that can be provided to the Service Broker API.
-The Service Broker will also validate parameters--if provided--against the schema.
-
-Schemas must be v4 and above.
-Schemas must contain the `$schema` attribute.
-Schemas must not contain any external references.
-Schemas must not be larger than 64KiB.
-
-Schemas are defined as follows:
-
-[source,yaml]
-----
-parameters:
-  $schema: "http://json-schema.org/draft-04/schema#"
-  type: object
-  properties:
-    size:
-      description: "service size"
-      type: number
-      minimum: 3
-      maximum: 9
-----
-
-==== parameters
-
-This attribute defines the JSON schema object.
-
-* This attribute is required and must be an object.
-
-[#configuration-binding-parameters]
-=== Configuration Binding Parameters
-
-This object contains configuration associated with a configuration binding for service instances and service bindings.
-Parameters are processed first, as they define global configuration.
-Templates are processed last, as they may reference global configuration created by parameter processing.
-Configuration binding parameters are defined as follows:
-
-[source,yaml]
-----
-registry:
-- name: my-key
-  value: '{{ generatePassword 32 nil }}'
-templates:
-- my-template
-readinessChecks: []
-----
-
-==== registry
-
-This attribute defines an array of registry definitions to process.
-Registry definitions are processed in order.
-
-* This attribute is optional and must be an array of objects.
-
-==== registry.name
-
-This attribute defines the registry key name to define.
-
-* This attribute is required and must be a string.
-
-==== registry.value
-
-This attribute defines the registry value to define.
-The value is defined using the same syntax as xref:concepts/dynamic-attributes.adoc[dynamic attributes].
-
-* This attribute is required and must be a string.
-
-==== templates
-
-This attribute defines an array of configuration template names to process.
-The refers to <<spec-templates-name,configuration template names>> and the referenced configuration template must exist.
-Configuration templates are processed in order.
-
-* This attribute is optional and must be an array of string.
-
-==== readinessChecks
-
-This attribute defines any readiness checks that need to be performed on generated resources before allowing the API to declare the service instance ready.
-Readiness checks are only allowed for service instances as service bindings do not support asynchronous provisioning.
-Readiness checks are only performed on an initial service instance create operation.
-Readiness checks are defined as follows:
-
-[source,yaml]
-----
-readinessChecks:
-- name: my-readiness-check
-  condition: {}
-----
-
-==== readinessChecks.name
-
-This attribute defines a human-readable name for the readiness check.
-The name is primarily used to provide debugging hints.
-
-* The attribute is required and must be a string.
-
-==== readinessChecks.condition
-
-This object represents a readiness check against a Kubernetes resource condition.
-It references a specific Kubernetes resource type, and should be one defined as a configuration templates.
-The namespace and name reference a specific resource of the defined type.
-These attributes are configurable to use either a literal name, or reference one pragmatically from a data source such as the registry.
-The readiness check waits until a named condition condition exists in the resource status with a defined value.
-A condition readiness check is defined as follows:
-
-[source,yaml]
-----
-readinessChecks:
-- condition:
-    apiVersion: apps/v1
-    kind: Deployment
-    namespace: '{{ registry "namespace" }}'
-    name: '{{ registry "instance-name" }}'
-    type: Available
-    status: "True"
-----
-
-==== readinessChecks.condition.apiVersion
-
-This attribute defines the API version of the desired resource.
-This is a combination of the resource group, and resource version.
-
-* This attribute is required and must be a string.
-
-==== readinessChecks.condition.kind
-
-This attribute defines the resource kind of the desired resource.
-
-* This attribute is required and must be a string.
-
-==== readinessChecks.condition.namespace
-
-This attribute defines the namespace the desired resource exists in.
-This attribute may be templated as per dynamic attributes.
-
-* This attribute is required and must be a string.
-
-==== readinessChecks.condition.name
-
-This attribute defines the name the desired resource has.
-This attribute may be templated as per dynamic attributes.
-
-* This attribute is required and must be a string.
-
-==== readinessChecks.condition.type
-
-This attribute defines the condition type to match.
-
-* This attribute is required and must be a string.
-
-==== readinessChecks.condition.status
-
-This attribute defines the condition status to match.
-
-* This attribute is required and must be a string.
