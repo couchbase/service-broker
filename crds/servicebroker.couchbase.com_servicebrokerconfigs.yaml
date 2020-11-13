@@ -1,6 +1,6 @@
 
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -8,14 +8,6 @@ metadata:
   creationTimestamp: null
   name: servicebrokerconfigs.servicebroker.couchbase.com
 spec:
-  additionalPrinterColumns:
-  - JSONPath: .status.conditions[?(@.type=="ConfigurationValid")].status
-    description: whether the configuration is valid
-    name: valid
-    type: string
-  - JSONPath: .metadata.creationTimestamp
-    name: age
-    type: date
   group: servicebroker.couchbase.com
   names:
     kind: ServiceBrokerConfig
@@ -23,512 +15,535 @@ spec:
     plural: servicebrokerconfigs
     singular: servicebrokerconfig
   scope: Namespaced
-  subresources: {}
-  validation:
-    openAPIV3Schema:
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: ServiceBrokerConfigSpec defines the top level service broker
-            configuration data structure.
-          properties:
-            bindings:
-              description: Bindings is a set of bindings that link service plans to
-                resource templates and is required.
-              items:
-                description: ConfigurationBinding binds a service plan to a set of
-                  templates required to realize that plan.
-                properties:
-                  name:
-                    description: Name is a unique identifier for the binding.
-                    minLength: 1
-                    type: string
-                  plan:
-                    description: Plan is the name of the service plan to bind to.
-                    minLength: 1
-                    type: string
-                  service:
-                    description: Service is the name of the service offering to bind
-                      to.
-                    minLength: 1
-                    type: string
-                  serviceBinding:
-                    description: ServiceBinding defines the set of templates to render
-                      and create when a new service binding is created.  This attribute
-                      is optional based on whether the service plan allows binding.
-                    properties:
-                      readinessChecks:
-                        description: ReadinessChecks defines a set of tests that define
-                          whether a service instance or service binding is actually
-                          ready as reported by the service broker polling API.
-                        items:
-                          description: ConfigurationReadinessCheck is a readiness
-                            check to perform on a service instance or binding before
-                            declaring it ready and provisioning has completed.
-                          properties:
-                            condition:
-                              description: Condition allows the service broker to
-                                poll well-formed status conditions in order to determine
-                                whether a specific resource is ready.
-                              properties:
-                                apiVersion:
-                                  description: APIVersion is the resource api version
-                                    e.g. "apps/v1"
-                                  type: string
-                                kind:
-                                  description: Kind is the resource kind to poll e.g.
-                                    "Deployment"
-                                  type: string
-                                name:
-                                  description: Name is the resource name to poll.
-                                  type: string
-                                namespace:
-                                  description: Namespace is the namespace the resource
-                                    resides in.
-                                  type: string
-                                status:
-                                  description: Status is the status of the condition
-                                    that must match e.g. "True"
-                                  type: string
-                                type:
-                                  description: Type is the type of the condition to
-                                    look for e.g. "Available"
-                                  type: string
-                              required:
-                              - apiVersion
-                              - kind
-                              - name
-                              - namespace
-                              - status
-                              - type
-                              type: object
-                            name:
-                              description: Name is a unique name for the readiness
-                                check for debugging purposes.
-                              type: string
-                          required:
-                          - name
-                          type: object
-                        type: array
-                      registry:
-                        description: Registry allows the pre-calculation of dynamic
-                          configuration from request inputs i.e. registry or parameters,
-                          or generated e.g. passwords.
-                        items:
-                          description: RegistryValue sets a registry key using a template.
-                          properties:
-                            name:
-                              description: Name is the name of the registry key to
-                                set.
-                              type: string
-                            value:
-                              description: Value is the templated string value to
-                                calculate.
-                              type: string
-                          required:
-                          - name
-                          - value
-                          type: object
-                        type: array
-                      templates:
-                        description: Templates defines all the templates that will
-                          be created, in order, by the service broker for this operation.
-                        items:
-                          type: string
-                        type: array
-                    type: object
-                  serviceInstance:
-                    description: ServiceInstance defines the set of templates to render
-                      and create when a new service instance is created.
-                    properties:
-                      readinessChecks:
-                        description: ReadinessChecks defines a set of tests that define
-                          whether a service instance or service binding is actually
-                          ready as reported by the service broker polling API.
-                        items:
-                          description: ConfigurationReadinessCheck is a readiness
-                            check to perform on a service instance or binding before
-                            declaring it ready and provisioning has completed.
-                          properties:
-                            condition:
-                              description: Condition allows the service broker to
-                                poll well-formed status conditions in order to determine
-                                whether a specific resource is ready.
-                              properties:
-                                apiVersion:
-                                  description: APIVersion is the resource api version
-                                    e.g. "apps/v1"
-                                  type: string
-                                kind:
-                                  description: Kind is the resource kind to poll e.g.
-                                    "Deployment"
-                                  type: string
-                                name:
-                                  description: Name is the resource name to poll.
-                                  type: string
-                                namespace:
-                                  description: Namespace is the namespace the resource
-                                    resides in.
-                                  type: string
-                                status:
-                                  description: Status is the status of the condition
-                                    that must match e.g. "True"
-                                  type: string
-                                type:
-                                  description: Type is the type of the condition to
-                                    look for e.g. "Available"
-                                  type: string
-                              required:
-                              - apiVersion
-                              - kind
-                              - name
-                              - namespace
-                              - status
-                              - type
-                              type: object
-                            name:
-                              description: Name is a unique name for the readiness
-                                check for debugging purposes.
-                              type: string
-                          required:
-                          - name
-                          type: object
-                        type: array
-                      registry:
-                        description: Registry allows the pre-calculation of dynamic
-                          configuration from request inputs i.e. registry or parameters,
-                          or generated e.g. passwords.
-                        items:
-                          description: RegistryValue sets a registry key using a template.
-                          properties:
-                            name:
-                              description: Name is the name of the registry key to
-                                set.
-                              type: string
-                            value:
-                              description: Value is the templated string value to
-                                calculate.
-                              type: string
-                          required:
-                          - name
-                          - value
-                          type: object
-                        type: array
-                      templates:
-                        description: Templates defines all the templates that will
-                          be created, in order, by the service broker for this operation.
-                        items:
-                          type: string
-                        type: array
-                    type: object
-                required:
-                - name
-                - plan
-                - service
-                - serviceInstance
-                type: object
-              minItems: 1
-              type: array
-            catalog:
-              description: Catalog is the service catalog definition and is required.
-              properties:
-                services:
-                  description: Services is an array of Service Offering objects
-                  items:
-                    description: 'ServiceOffering is defined by: https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#body'
-                    properties:
-                      bindable:
-                        description: Bindable specifies whether Service Instances
-                          of the service can be bound to applications. This specifies
-                          the default for all Service Plans of this Service Offering.
-                          Service Plans can override this field (see Service Plan
-                          Object).
-                        type: boolean
-                      dashboardClient:
-                        description: Dashboard is a Cloud Foundry extension described
-                          in Catalog Extensions. Contains the data necessary to activate
-                          the Dashboard SSO feature for this service.
-                        properties:
-                          id:
-                            description: ID is the id of the OAuth client that the
-                              dashboard will use. If present, MUST be a non-empty
-                              string.
-                            minLength: 1
-                            type: string
-                          redirectedURI:
-                            description: RedirectedURI is a URI for the service dashboard.
-                              Validated by the OAuth token server when the dashboard
-                              requests a token.
-                            type: string
-                          secret:
-                            description: Secret is a secret for the dashboard client.
-                              If present, MUST be a non-empty string.
-                            minLength: 1
-                            type: string
-                        required:
-                        - id
-                        - secret
-                        type: object
-                      description:
-                        description: Descriptions is a short description of the service.
-                          MUST be a non-empty string.
-                        minLength: 1
-                        type: string
-                      id:
-                        description: ID is an identifier used to correlate this Service
-                          Offering in future requests to the Service Broker. This
-                          MUST be globally unique such that Platforms (and their users)
-                          MUST be able to assume that seeing the same value (no matter
-                          what Service Broker uses it) will always refer to this Service
-                          Offering. MUST be a non-empty string. Using a GUID is RECOMMENDED.
-                        minLength: 1
-                        type: string
-                      metadata:
-                        description: Metadata is an opaque object of metadata for
-                          a Service Offering. It is expected that Platforms will treat
-                          this as a blob. Note that there are conventions in existing
-                          Service Brokers and Platforms for fields that aid in the
-                          display of catalog data.
-                        type: object
-                      name:
-                        description: Name is the name of the Service Offering. MUST
-                          be unique across all Service Offering objects returned in
-                          this response. MUST be a non-empty string. Using a CLI-friendly
-                          name is RECOMMENDED.
-                        minLength: 1
-                        type: string
-                      planUpdatable:
-                        description: PlanUpdatable is whether the Service Offering
-                          supports upgrade/downgrade for Service Plans by default.
-                          Service Plans can override this field (see Service Plan).
-                          Please note that the misspelling of the attribute plan_updatable
-                          as plan_updateable was done by mistake. We have opted to
-                          keep that misspelling instead of fixing it and thus breaking
-                          backward compatibility. Defaults to false.
-                        type: boolean
-                      plans:
-                        description: ServicePlan is a list of Service Plans for this
-                          Service Offering, schema is defined below. MUST contain
-                          at least one Service Plan.
-                        items:
-                          description: 'ServicePlan is defined by: https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#body'
-                          properties:
-                            bindable:
-                              description: Bindable specifies whether Service Instances
-                                of the Service Plan can be bound to applications.
-                                This field is OPTIONAL. If specified, this takes precedence
-                                over the bindable attribute of the Service Offering.
-                                If not specified, the default is derived from the
-                                Service Offering.
-                              type: boolean
-                            description:
-                              description: Description is a short description of the
-                                Service Plan. MUST be a non-empty string.
-                              minLength: 1
-                              type: string
-                            free:
-                              description: Free, when false, Service Instances of
-                                this Service Plan have a cost. The default is true.
-                              type: boolean
-                            id:
-                              description: ID is an identifier used to correlate this
-                                Service Offering in future requests to the Service
-                                Broker. This MUST be globally unique such that Platforms
-                                (and their users) MUST be able to assume that seeing
-                                the same value (no matter what Service Broker uses
-                                it) will always refer to this Service Offering. MUST
-                                be a non-empty string. Using a GUID is RECOMMENDED.
-                              minLength: 1
-                              type: string
-                            metadata:
-                              description: Metadata is an opaque object of metadata
-                                for a Service Plan. It is expected that Platforms
-                                will treat this as a blob. Note that there are conventions
-                                in existing Service Brokers and Platforms for fields
-                                that aid in the display of catalog data.
-                              type: object
-                            name:
-                              description: Name is the name of the Service Plan. MUST
-                                be unique within the Service Offering. MUST be a non-empty
-                                string. Using a CLI-friendly name is RECOMMENDED.
-                              minLength: 1
-                              type: string
-                            schemas:
-                              description: Schemas are schema definitions for Service
-                                Instances and Service Bindings for the Service Plan.
-                              properties:
-                                serviceBinding:
-                                  description: ServiceBinding is the schema definition
-                                    for creating a Service Binding. Used only if the
-                                    Service Plan is bindable.
-                                  properties:
-                                    create:
-                                      description: Create is the schema definition
-                                        for creating a Service Binding.
-                                      properties:
-                                        parameters:
-                                          description: Parameters is the schema definition
-                                            for the input parameters. Each input parameter
-                                            is expressed as a property within a JSON
-                                            object.
-                                          type: object
-                                      type: object
-                                  type: object
-                                serviceInstance:
-                                  description: ServiceInstance is the schema definitions
-                                    for creating and updating a Service Instance.
-                                  properties:
-                                    create:
-                                      description: Create is the schema definition
-                                        for creating a Service Instance.
-                                      properties:
-                                        parameters:
-                                          description: Parameters is the schema definition
-                                            for the input parameters. Each input parameter
-                                            is expressed as a property within a JSON
-                                            object.
-                                          type: object
-                                      type: object
-                                    update:
-                                      description: Update is the chema definition
-                                        for updating a Service Instance.
-                                      properties:
-                                        parameters:
-                                          description: Parameters is the schema definition
-                                            for the input parameters. Each input parameter
-                                            is expressed as a property within a JSON
-                                            object.
-                                          type: object
-                                      type: object
-                                  type: object
-                              type: object
-                          required:
-                          - description
-                          - id
-                          - name
-                          type: object
-                        minItems: 1
-                        type: array
-                      requires:
-                        description: Requires is a list of permissions that the user
-                          would have to give the service, if they provision it. The
-                          only permissions currently supported are syslog_drain, route_forwarding
-                          and volume_mount.
-                        enum:
-                        - syslog_drain
-                        - route_forwarding
-                        - volume_mount
-                        items:
-                          type: string
-                        type: array
-                      tags:
-                        description: Tags provide a flexible mechanism to expose a
-                          classification, attribute, or base technology of a service,
-                          enabling equivalent services to be swapped out without changes
-                          to dependent logic in applications, buildpacks, or other
-                          services. E.g. mysql, relational, redis, key-value, caching,
-                          messaging, amqp.
-                        items:
-                          type: string
-                        type: array
-                    required:
-                    - bindable
-                    - description
-                    - id
-                    - name
-                    - plans
-                    type: object
-                  minItems: 1
-                  type: array
-              required:
-              - services
-              type: object
-            templates:
-              description: Templates is a set of resource templates that can be rendered
-                by the service broker and is required.
-              items:
-                description: ConfigurationTemplate defines a resource template for
-                  use when either creating a service instance or service binding.
-                properties:
-                  name:
-                    description: Name is the name of the template
-                    minLength: 1
-                    type: string
-                  singleton:
-                    description: Singleton alters the behaviour of resource creation.  Typically
-                      we will create a resource and use parameters to alter it's name,
-                      ensuring it doesn't already exist.  Singleton resources will
-                      first check to see whether they exist before attempting creation.
-                    type: boolean
-                  template:
-                    description: Template defines the resource template, it can be
-                      any kind of resource supported by client-go or couchbase.
-                    type: object
-                required:
-                - name
-                - template
-                type: object
-              type: array
-          required:
-          - bindings
-          - catalog
-          - templates
-          type: object
-        status:
-          description: ServiceBrokerConfigStatus records status information about
-            a configuration as the Service Broker processes it.
-          properties:
-            conditions:
-              description: Conditions indicate state of particular aspects of a configuration.
-              items:
-                description: ServiceBrokerConfigCondition represents a condition associated
-                  with the configuration.
-                properties:
-                  lastTransitionTime:
-                    description: LastTransitionTime records the last time the status
-                      changed from one value to another.
-                    format: date-time
-                    type: string
-                  message:
-                    description: Message is a human readable message indicating details
-                      about the last transition.
-                    type: string
-                  reason:
-                    description: Reason is a unique one word camel case reason for
-                      the condition's last transition.
-                    type: string
-                  status:
-                    description: Status is the status of the condition, whether it
-                      is true or false.
-                    type: string
-                  type:
-                    description: Type is the type of condition.
-                    type: string
-                required:
-                - status
-                - type
-                type: object
-              type: array
-          type: object
-      required:
-      - spec
-      type: object
-  version: v1alpha1
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: whether the configuration is valid
+      jsonPath: .status.conditions[?(@.type=="ConfigurationValid")].status
+      name: valid
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ServiceBrokerConfigSpec defines the top level service broker
+              configuration data structure.
+            properties:
+              bindings:
+                description: Bindings is a set of bindings that link service plans
+                  to resource templates and is required.
+                items:
+                  description: ConfigurationBinding binds a service plan to a set
+                    of templates required to realize that plan.
+                  properties:
+                    name:
+                      description: Name is a unique identifier for the binding.
+                      minLength: 1
+                      type: string
+                    plan:
+                      description: Plan is the name of the service plan to bind to.
+                      minLength: 1
+                      type: string
+                    service:
+                      description: Service is the name of the service offering to
+                        bind to.
+                      minLength: 1
+                      type: string
+                    serviceBinding:
+                      description: ServiceBinding defines the set of templates to
+                        render and create when a new service binding is created.  This
+                        attribute is optional based on whether the service plan allows
+                        binding.
+                      properties:
+                        readinessChecks:
+                          description: ReadinessChecks defines a set of tests that
+                            define whether a service instance or service binding is
+                            actually ready as reported by the service broker polling
+                            API.
+                          items:
+                            description: ConfigurationReadinessCheck is a readiness
+                              check to perform on a service instance or binding before
+                              declaring it ready and provisioning has completed.
+                            properties:
+                              condition:
+                                description: Condition allows the service broker to
+                                  poll well-formed status conditions in order to determine
+                                  whether a specific resource is ready.
+                                properties:
+                                  apiVersion:
+                                    description: APIVersion is the resource api version
+                                      e.g. "apps/v1"
+                                    type: string
+                                  kind:
+                                    description: Kind is the resource kind to poll
+                                      e.g. "Deployment"
+                                    type: string
+                                  name:
+                                    description: Name is the resource name to poll.
+                                    type: string
+                                  namespace:
+                                    description: Namespace is the namespace the resource
+                                      resides in.
+                                    type: string
+                                  status:
+                                    description: Status is the status of the condition
+                                      that must match e.g. "True"
+                                    type: string
+                                  type:
+                                    description: Type is the type of the condition
+                                      to look for e.g. "Available"
+                                    type: string
+                                required:
+                                - apiVersion
+                                - kind
+                                - name
+                                - namespace
+                                - status
+                                - type
+                                type: object
+                              name:
+                                description: Name is a unique name for the readiness
+                                  check for debugging purposes.
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          type: array
+                        registry:
+                          description: Registry allows the pre-calculation of dynamic
+                            configuration from request inputs i.e. registry or parameters,
+                            or generated e.g. passwords.
+                          items:
+                            description: RegistryValue sets a registry key using a
+                              template.
+                            properties:
+                              name:
+                                description: Name is the name of the registry key
+                                  to set.
+                                type: string
+                              value:
+                                description: Value is the templated string value to
+                                  calculate.
+                                type: string
+                            required:
+                            - name
+                            - value
+                            type: object
+                          type: array
+                        templates:
+                          description: Templates defines all the templates that will
+                            be created, in order, by the service broker for this operation.
+                          items:
+                            type: string
+                          type: array
+                      type: object
+                    serviceInstance:
+                      description: ServiceInstance defines the set of templates to
+                        render and create when a new service instance is created.
+                      properties:
+                        readinessChecks:
+                          description: ReadinessChecks defines a set of tests that
+                            define whether a service instance or service binding is
+                            actually ready as reported by the service broker polling
+                            API.
+                          items:
+                            description: ConfigurationReadinessCheck is a readiness
+                              check to perform on a service instance or binding before
+                              declaring it ready and provisioning has completed.
+                            properties:
+                              condition:
+                                description: Condition allows the service broker to
+                                  poll well-formed status conditions in order to determine
+                                  whether a specific resource is ready.
+                                properties:
+                                  apiVersion:
+                                    description: APIVersion is the resource api version
+                                      e.g. "apps/v1"
+                                    type: string
+                                  kind:
+                                    description: Kind is the resource kind to poll
+                                      e.g. "Deployment"
+                                    type: string
+                                  name:
+                                    description: Name is the resource name to poll.
+                                    type: string
+                                  namespace:
+                                    description: Namespace is the namespace the resource
+                                      resides in.
+                                    type: string
+                                  status:
+                                    description: Status is the status of the condition
+                                      that must match e.g. "True"
+                                    type: string
+                                  type:
+                                    description: Type is the type of the condition
+                                      to look for e.g. "Available"
+                                    type: string
+                                required:
+                                - apiVersion
+                                - kind
+                                - name
+                                - namespace
+                                - status
+                                - type
+                                type: object
+                              name:
+                                description: Name is a unique name for the readiness
+                                  check for debugging purposes.
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          type: array
+                        registry:
+                          description: Registry allows the pre-calculation of dynamic
+                            configuration from request inputs i.e. registry or parameters,
+                            or generated e.g. passwords.
+                          items:
+                            description: RegistryValue sets a registry key using a
+                              template.
+                            properties:
+                              name:
+                                description: Name is the name of the registry key
+                                  to set.
+                                type: string
+                              value:
+                                description: Value is the templated string value to
+                                  calculate.
+                                type: string
+                            required:
+                            - name
+                            - value
+                            type: object
+                          type: array
+                        templates:
+                          description: Templates defines all the templates that will
+                            be created, in order, by the service broker for this operation.
+                          items:
+                            type: string
+                          type: array
+                      type: object
+                  required:
+                  - name
+                  - plan
+                  - service
+                  - serviceInstance
+                  type: object
+                minItems: 1
+                type: array
+              catalog:
+                description: Catalog is the service catalog definition and is required.
+                properties:
+                  services:
+                    description: Services is an array of Service Offering objects
+                    items:
+                      description: 'ServiceOffering is defined by: https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#body'
+                      properties:
+                        bindable:
+                          description: Bindable specifies whether Service Instances
+                            of the service can be bound to applications. This specifies
+                            the default for all Service Plans of this Service Offering.
+                            Service Plans can override this field (see Service Plan
+                            Object).
+                          type: boolean
+                        dashboardClient:
+                          description: Dashboard is a Cloud Foundry extension described
+                            in Catalog Extensions. Contains the data necessary to
+                            activate the Dashboard SSO feature for this service.
+                          properties:
+                            id:
+                              description: ID is the id of the OAuth client that the
+                                dashboard will use. If present, MUST be a non-empty
+                                string.
+                              minLength: 1
+                              type: string
+                            redirectedURI:
+                              description: RedirectedURI is a URI for the service
+                                dashboard. Validated by the OAuth token server when
+                                the dashboard requests a token.
+                              type: string
+                            secret:
+                              description: Secret is a secret for the dashboard client.
+                                If present, MUST be a non-empty string.
+                              minLength: 1
+                              type: string
+                          required:
+                          - id
+                          - secret
+                          type: object
+                        description:
+                          description: Descriptions is a short description of the
+                            service. MUST be a non-empty string.
+                          minLength: 1
+                          type: string
+                        id:
+                          description: ID is an identifier used to correlate this
+                            Service Offering in future requests to the Service Broker.
+                            This MUST be globally unique such that Platforms (and
+                            their users) MUST be able to assume that seeing the same
+                            value (no matter what Service Broker uses it) will always
+                            refer to this Service Offering. MUST be a non-empty string.
+                            Using a GUID is RECOMMENDED.
+                          minLength: 1
+                          type: string
+                        metadata:
+                          description: Metadata is an opaque object of metadata for
+                            a Service Offering. It is expected that Platforms will
+                            treat this as a blob. Note that there are conventions
+                            in existing Service Brokers and Platforms for fields that
+                            aid in the display of catalog data.
+                          type: object
+                          x-kubernetes-preserve-unknown-fields: true
+                        name:
+                          description: Name is the name of the Service Offering. MUST
+                            be unique across all Service Offering objects returned
+                            in this response. MUST be a non-empty string. Using a
+                            CLI-friendly name is RECOMMENDED.
+                          minLength: 1
+                          type: string
+                        planUpdatable:
+                          description: PlanUpdatable is whether the Service Offering
+                            supports upgrade/downgrade for Service Plans by default.
+                            Service Plans can override this field (see Service Plan).
+                            Please note that the misspelling of the attribute plan_updatable
+                            as plan_updateable was done by mistake. We have opted
+                            to keep that misspelling instead of fixing it and thus
+                            breaking backward compatibility. Defaults to false.
+                          type: boolean
+                        plans:
+                          description: ServicePlan is a list of Service Plans for
+                            this Service Offering, schema is defined below. MUST contain
+                            at least one Service Plan.
+                          items:
+                            description: 'ServicePlan is defined by: https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#body'
+                            properties:
+                              bindable:
+                                description: Bindable specifies whether Service Instances
+                                  of the Service Plan can be bound to applications.
+                                  This field is OPTIONAL. If specified, this takes
+                                  precedence over the bindable attribute of the Service
+                                  Offering. If not specified, the default is derived
+                                  from the Service Offering.
+                                type: boolean
+                              description:
+                                description: Description is a short description of
+                                  the Service Plan. MUST be a non-empty string.
+                                minLength: 1
+                                type: string
+                              free:
+                                description: Free, when false, Service Instances of
+                                  this Service Plan have a cost. The default is true.
+                                type: boolean
+                              id:
+                                description: ID is an identifier used to correlate
+                                  this Service Offering in future requests to the
+                                  Service Broker. This MUST be globally unique such
+                                  that Platforms (and their users) MUST be able to
+                                  assume that seeing the same value (no matter what
+                                  Service Broker uses it) will always refer to this
+                                  Service Offering. MUST be a non-empty string. Using
+                                  a GUID is RECOMMENDED.
+                                minLength: 1
+                                type: string
+                              metadata:
+                                description: Metadata is an opaque object of metadata
+                                  for a Service Plan. It is expected that Platforms
+                                  will treat this as a blob. Note that there are conventions
+                                  in existing Service Brokers and Platforms for fields
+                                  that aid in the display of catalog data.
+                                type: object
+                                x-kubernetes-preserve-unknown-fields: true
+                              name:
+                                description: Name is the name of the Service Plan.
+                                  MUST be unique within the Service Offering. MUST
+                                  be a non-empty string. Using a CLI-friendly name
+                                  is RECOMMENDED.
+                                minLength: 1
+                                type: string
+                              schemas:
+                                description: Schemas are schema definitions for Service
+                                  Instances and Service Bindings for the Service Plan.
+                                properties:
+                                  serviceBinding:
+                                    description: ServiceBinding is the schema definition
+                                      for creating a Service Binding. Used only if
+                                      the Service Plan is bindable.
+                                    properties:
+                                      create:
+                                        description: Create is the schema definition
+                                          for creating a Service Binding.
+                                        properties:
+                                          parameters:
+                                            description: Parameters is the schema
+                                              definition for the input parameters.
+                                              Each input parameter is expressed as
+                                              a property within a JSON object.
+                                            type: object
+                                            x-kubernetes-preserve-unknown-fields: true
+                                        type: object
+                                    type: object
+                                  serviceInstance:
+                                    description: ServiceInstance is the schema definitions
+                                      for creating and updating a Service Instance.
+                                    properties:
+                                      create:
+                                        description: Create is the schema definition
+                                          for creating a Service Instance.
+                                        properties:
+                                          parameters:
+                                            description: Parameters is the schema
+                                              definition for the input parameters.
+                                              Each input parameter is expressed as
+                                              a property within a JSON object.
+                                            type: object
+                                            x-kubernetes-preserve-unknown-fields: true
+                                        type: object
+                                      update:
+                                        description: Update is the chema definition
+                                          for updating a Service Instance.
+                                        properties:
+                                          parameters:
+                                            description: Parameters is the schema
+                                              definition for the input parameters.
+                                              Each input parameter is expressed as
+                                              a property within a JSON object.
+                                            type: object
+                                            x-kubernetes-preserve-unknown-fields: true
+                                        type: object
+                                    type: object
+                                type: object
+                            required:
+                            - description
+                            - id
+                            - name
+                            type: object
+                          minItems: 1
+                          type: array
+                        requires:
+                          description: Requires is a list of permissions that the
+                            user would have to give the service, if they provision
+                            it. The only permissions currently supported are syslog_drain,
+                            route_forwarding and volume_mount.
+                          enum:
+                          - syslog_drain
+                          - route_forwarding
+                          - volume_mount
+                          items:
+                            type: string
+                          type: array
+                        tags:
+                          description: Tags provide a flexible mechanism to expose
+                            a classification, attribute, or base technology of a service,
+                            enabling equivalent services to be swapped out without
+                            changes to dependent logic in applications, buildpacks,
+                            or other services. E.g. mysql, relational, redis, key-value,
+                            caching, messaging, amqp.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - bindable
+                      - description
+                      - id
+                      - name
+                      - plans
+                      type: object
+                    minItems: 1
+                    type: array
+                required:
+                - services
+                type: object
+              templates:
+                description: Templates is a set of resource templates that can be
+                  rendered by the service broker and is required.
+                items:
+                  description: ConfigurationTemplate defines a resource template for
+                    use when either creating a service instance or service binding.
+                  properties:
+                    name:
+                      description: Name is the name of the template
+                      minLength: 1
+                      type: string
+                    singleton:
+                      description: Singleton alters the behaviour of resource creation.  Typically
+                        we will create a resource and use parameters to alter it's
+                        name, ensuring it doesn't already exist.  Singleton resources
+                        will first check to see whether they exist before attempting
+                        creation.
+                      type: boolean
+                    template:
+                      description: Template defines the resource template, it can
+                        be any kind of resource supported by client-go or couchbase.
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                  required:
+                  - name
+                  - template
+                  type: object
+                type: array
+            required:
+            - bindings
+            - catalog
+            - templates
+            type: object
+          status:
+            description: ServiceBrokerConfigStatus records status information about
+              a configuration as the Service Broker processes it.
+            properties:
+              conditions:
+                description: Conditions indicate state of particular aspects of a
+                  configuration.
+                items:
+                  description: ServiceBrokerConfigCondition represents a condition
+                    associated with the configuration.
+                  properties:
+                    lastTransitionTime:
+                      description: LastTransitionTime records the last time the status
+                        changed from one value to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: Message is a human readable message indicating
+                        details about the last transition.
+                      type: string
+                    reason:
+                      description: Reason is a unique one word camel case reason for
+                        the condition's last transition.
+                      type: string
+                    status:
+                      description: Status is the status of the condition, whether
+                        it is true or false.
+                      type: string
+                    type:
+                      description: Type is the type of condition.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        required:
+        - spec
+        type: object
     served: true
     storage: true
+    subresources: {}
 status:
   acceptedNames:
     kind: ""

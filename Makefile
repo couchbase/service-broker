@@ -238,7 +238,7 @@ license:
 
 # Clean all generated code and artifacts.
 clean:
-	rm -rf $(BUILD_DIR) *.tar.gz *.zip *.rpm *.deb
+	rm -rf $(BUILD_DIR) $(CRD_DIR) *.tar.gz *.zip *.rpm *.deb
 
 ################################################################################
 # Make rules
@@ -264,7 +264,7 @@ $(BROKER_BIN): $(GENERATED_DIR) $(SOURCE) $(DEPSRC)
 # The CRDs are auto generated and depend on the API source only.
 $(CRD_DIR)/%: $(APISRC)
 	@mkdir -p $(CRD_DIR)
-	go run sigs.k8s.io/controller-tools/cmd/controller-gen crd paths=./pkg/apis/... output:dir=$(CRD_DIR)
+	go run sigs.k8s.io/controller-tools/cmd/controller-gen crd crd:crdVersions=v1 paths=./pkg/apis/... output:dir=$(CRD_DIR)
 
 # The TGZ archive relies on the archive directory.
 $(ARCHIVE_TGZ): $(INSTALL_TARGETS)
