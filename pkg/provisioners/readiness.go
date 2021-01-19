@@ -56,7 +56,7 @@ func (e *conditionUnreadyError) Error() string {
 // conditionReady waits for a condition on a resource to report as ready.  Returns nil on success and
 // an error otherwise.
 func conditionReady(entry *registry.Entry, condition *v1.ConfigurationReadinessCheckCondition) error {
-	namespaceRaw, err := renderTemplateString(condition.Namespace, entry)
+	namespaceRaw, err := renderTemplateString(condition.Namespace, entry, nil)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func conditionReady(entry *registry.Entry, condition *v1.ConfigurationReadinessC
 		return errors.NewConfigurationError("condition resource namespace not a string %v", namespaceRaw)
 	}
 
-	nameRaw, err := renderTemplateString(condition.Name, entry)
+	nameRaw, err := renderTemplateString(condition.Name, entry, nil)
 	if err != nil {
 		return err
 	}

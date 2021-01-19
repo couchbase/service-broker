@@ -135,8 +135,14 @@ var (
 				},
 			},
 			{
+				Name: "port-snippet",
+				Template: &runtime.RawExtension{
+					Raw: []byte(`{"containerPort":"{{ . }}"}`),
+				},
+			},
+			{
 				Name:     "test-template",
-				Template: &runtime.RawExtension{Raw: []byte(`{"apiVersion":"v1","kind":"Pod","metadata":{"name":"{{ registry \"instance-name\" }}"},"spec":{"containers":[{"name":"image","image":"name/image:tag"}],"automountServiceAccountToken":"{{ true }}","priority":"{{ 0 }}","dnsConfig":"{{ snippet \"dns-snippet\" }}","hostname":"{{ parameter \"/hostname\" }}"}}`)},
+				Template: &runtime.RawExtension{Raw: []byte(`{"apiVersion":"v1","kind":"Pod","metadata":{"name":"{{ registry \"instance-name\" }}"},"spec":{"containers":[{"name":"image","image":"name/image:tag","ports":"{{ snippetArray \"port-snippet\" (list 80 443) }}"}],"automountServiceAccountToken":"{{ true }}","priority":"{{ 0 }}","dnsConfig":"{{ snippet \"dns-snippet\" }}","hostname":"{{ parameter \"/hostname\" }}"}}`)},
 			},
 			{
 				Name:      "test-singleton",
