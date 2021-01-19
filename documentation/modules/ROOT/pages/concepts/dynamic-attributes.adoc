@@ -161,6 +161,66 @@ metadata:
     app: merlin
 ----
 
+==== Template Array Snippet
+
+The array snippet function acts like the snippet function, but extends it to iterate across an array of inputs and provide them as "dot" parameters to the snippet.
+Array snippets return arrays of values, and provide a form of iteration.
+
+For example, consider the following parameters:
+
+[source,json]
+----
+{
+  "ports": [
+    {"name":"http","port":80},
+    {"name":"https","port":443},
+  ]
+}
+----
+
+You can define a snippet to generate Kubernetes ports:
+
+[source,yaml]
+----
+name: port-snippet
+template:
+  name: {{ .name }}
+  containerPort: {{ .port }}
+  protocol: TCP
+----
+
+Then reference this snippet, and the parameter in your main pod template:
+
+[source,yaml]
+----
+template:
+  apiVersion: v1
+  kind: Pod
+  spec:
+    containers:
+    - ports: '{{ snippetArray "port-snippet" (parameter "ports" | required) }}'
+----
+
+This will yield the following rendered template:
+
+[source.yaml]
+----
+template:
+  apiVersion: v1
+  kind: Pod
+  spec:
+    containers:
+    - ports:
+      - name: http
+        containerPort: 80
+        protocol: TCP
+      - name: https
+        containerPort: 443
+        protocol: TCP
+----
+
+For further information on "dot" parameters, see the official Go language https://golang.org/pkg/text/template/#hdr-Arguments[templating documentation^].
+
 === Mutators
 
 Mutators allow data to be modified.

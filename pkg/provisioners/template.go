@@ -103,7 +103,7 @@ func templateFunctionSnippet(entry *registry.Entry) func(name string) (interface
 			return nil, err
 		}
 
-		template, err = renderTemplate(template, entry)
+		template, err = renderTemplate(template, entry, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -117,6 +117,42 @@ func templateFunctionSnippet(entry *registry.Entry) func(name string) (interface
 		glog.V(log.LevelDebug).Infof("template: value '%v'", value)
 
 		return value, nil
+	}
+}
+
+// templateFunctionSnippetArray iteratively renders a template with each parameter
+// in the specified list and yields an array.
+func templateFunctionSnippetArray(entry *registry.Entry) func(name string, parameters []interface{}) ([]interface{}, error) {
+	return func(name string, parameters []interface{}) ([]interface{}, error) {
+		glog.V(log.LevelDebug).Infof("snippetArray: values '%v'", parameters)
+
+		template, err := getTemplate(name)
+		if err != nil {
+			return nil, err
+		}
+
+		result := make([]interface{}, len(parameters))
+
+		for i, parameter := range parameters {
+			rendered, err := renderTemplate(template, entry, parameter)
+			if err != nil {
+				return nil, err
+			}
+
+			var value interface{}
+
+			if err := json.Unmarshal(rendered.Template.Raw, &value); err != nil {
+				return nil, errors.NewConfigurationError("template not JSON formatted: %v", err)
+			}
+
+			glog.V(log.LevelDebug).Infof("snippetArray: element '%v'", value)
+
+			result[i] = value
+		}
+
+		glog.V(log.LevelDebug).Infof("snippetArray: result '%v'", result)
+
+		return result, nil
 	}
 }
 
@@ -357,7 +393,7 @@ func transformActionsToJSON(n parse.Node) {
 
 // renderTemplateString takes a string and returns either the literal value if it's
 // not a template or the object returned after template rendering.
-func renderTemplateString(str string, entry *registry.Entry) (interface{}, error) {
+func renderTemplateString(str string, entry *registry.Entry, data interface{}) (interface{}, error) {
 	// Template expansion must occur in a string, and it must be all one template.
 	if !strings.HasPrefix(str, templatePrefix) {
 		return str, nil
@@ -373,6 +409,7 @@ func renderTemplateString(str string, entry *registry.Entry) (interface{}, error
 		"registry":            templateFunctionRegistry(entry),
 		"parameter":           templateFunctionParameter(entry),
 		"snippet":             templateFunctionSnippet(entry),
+		"snippetArray":        templateFunctionSnippetArray(entry),
 		"list":                templateFunctionList,
 		"generatePassword":    templateFunctionGeneratePassword,
 		"generatePrivateKey":  templateFunctionGeneratePrivatekey,
@@ -394,7 +431,7 @@ func renderTemplateString(str string, entry *registry.Entry) (interface{}, error
 	transformActionsToJSON(tmpl.Root)
 
 	buf := &bytes.Buffer{}
-	if err := tmpl.Execute(buf, nil); err != nil {
+	if err := tmpl.Execute(buf, data); err != nil {
 		return nil, errors.NewConfigurationError("dynamic attribute resolution failed: %v", err)
 	}
 
@@ -412,13 +449,13 @@ func renderTemplateString(str string, entry *registry.Entry) (interface{}, error
 // benefit of having free error checking.  Strings are special in that they may be
 // go templates that can resolve to an arbitrary JSON structure to replace the
 // template string.
-func recurseRenderTemplate(object interface{}, entry *registry.Entry) (interface{}, error) {
+func recurseRenderTemplate(object interface{}, entry *registry.Entry, data interface{}) (interface{}, error) {
 	// For maps and lists, recursovely render each value and replace with what is returned.
 	// Strings are special and may undergo templating.
 	switch t := object.(type) {
 	case map[string]interface{}:
 		for k, v := range t {
-			value, err := recurseRenderTemplate(v, entry)
+			value, err := recurseRenderTemplate(v, entry, data)
 			if err != nil {
 				return nil, err
 			}
@@ -432,7 +469,7 @@ func recurseRenderTemplate(object interface{}, entry *registry.Entry) (interface
 		}
 	case []interface{}:
 		for i, v := range t {
-			value, err := recurseRenderTemplate(v, entry)
+			value, err := recurseRenderTemplate(v, entry, data)
 			if err != nil {
 				return nil, err
 			}
@@ -440,7 +477,7 @@ func recurseRenderTemplate(object interface{}, entry *registry.Entry) (interface
 			t[i] = value
 		}
 	case string:
-		value, err := renderTemplateString(t, entry)
+		value, err := renderTemplateString(t, entry, data)
 		if err != nil {
 			return nil, err
 		}

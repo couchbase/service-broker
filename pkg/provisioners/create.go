@@ -52,7 +52,7 @@ func NewCreator(resourceType ResourceType) (*Creator, error) {
 
 // renderTemplate applies any requested parameters to the template.
 func (p *Creator) renderTemplate(template *v1.ConfigurationTemplate, entry *registry.Entry) error {
-	t, err := renderTemplate(template, entry)
+	t, err := renderTemplate(template, entry, nil)
 	if err != nil {
 		return err
 	}
@@ -220,7 +220,7 @@ func (p *Creator) Prepare(entry *registry.Entry) error {
 	glog.Infof("rendering parameters for binding")
 
 	for _, registry := range templates.Registry {
-		value, err := renderTemplateString(registry.Value, entry)
+		value, err := renderTemplateString(registry.Value, entry, nil)
 		if err != nil {
 			return err
 		}
