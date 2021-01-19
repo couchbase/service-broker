@@ -21,6 +21,12 @@ The following platforms are supported:
 
 In general, any Kubernetes distribution based on a supported version should work.
 
+[IMPORTANT]
+====
+Only in-support versions of Kubernetes will be tested (versions currently remain supported for 1 year).
+There are no guarantees older versions of Kubernetes will work.
+====
+
 === Service Catalog
 
 The Service Broker is recommended for use with the https://kubernetes.io/docs/concepts/extend-kubernetes/service-catalog/[Kubernetes Service Catalog^].
