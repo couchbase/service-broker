@@ -104,7 +104,7 @@ func (u *Updater) Prepare(entry *registry.Entry) error {
 			continue
 		}
 
-		t, err := renderTemplate(template, entry)
+		t, err := renderTemplate(template, entry, nil)
 		if err != nil {
 			return err
 		}

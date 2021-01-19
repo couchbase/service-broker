@@ -99,7 +99,7 @@ func getTemplate(name string) (*v1.ConfigurationTemplate, error) {
 
 // renderTemplate accepts a template defined in the configuration and applies any
 // request or metadata parameters to it.
-func renderTemplate(template *v1.ConfigurationTemplate, entry *registry.Entry) (*v1.ConfigurationTemplate, error) {
+func renderTemplate(template *v1.ConfigurationTemplate, entry *registry.Entry, data interface{}) (*v1.ConfigurationTemplate, error) {
 	glog.Infof("rendering template %s", template.Name)
 
 	if template.Template == nil || template.Template.Raw == nil {
@@ -118,7 +118,7 @@ func renderTemplate(template *v1.ConfigurationTemplate, entry *registry.Entry) (
 	}
 
 	var err error
-	if object, err = recurseRenderTemplate(object, entry); err != nil {
+	if object, err = recurseRenderTemplate(object, entry, data); err != nil {
 		return nil, err
 	}
 
