@@ -270,6 +270,21 @@ func templateFunctionGenerateDefault(def, value interface{}) interface{} {
 	return def
 }
 
+// templateFunctionUpper converts strings to upper case.
+func templateFunctionUpper(value string) string {
+	return strings.ToUpper(value)
+}
+
+// templateFunctionLower converts strings to lower case.
+func templateFunctionLower(value string) string {
+	return strings.ToLower(value)
+}
+
+// templateFunctionTitle converts strings to title case.
+func templateFunctionTitle(value string) string {
+	return strings.Title(value)
+}
+
 // templateFunctionGenerateJSON marshals template output into a JSON string.  As template
 // processing assumes the output is a string, we have to encode to JSON to preserve structure
 // as a string.
@@ -364,6 +379,9 @@ func renderTemplateString(str string, entry *registry.Entry) (interface{}, error
 		"generateCertificate": templateFunctionGenerateCertificate,
 		"required":            templateFunctionRequired,
 		"default":             templateFunctionGenerateDefault,
+		"upper":               templateFunctionUpper,
+		"lower":               templateFunctionLower,
+		"title":               templateFunctionTitle,
 		"json":                templateFunctionGenerateJSON,
 	}
 
