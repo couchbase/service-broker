@@ -651,7 +651,7 @@ func handlePollServiceInstance(w http.ResponseWriter, r *http.Request, params ht
 	}
 
 	if !entry.Exists() {
-		jsonError(w, errors.NewResourceGoneError("service instance does not exist"))
+		JSONResponse(w, http.StatusGone, struct{}{})
 		return
 	}
 

@@ -568,14 +568,14 @@ func MustDeleteServiceInstance(t *testing.T, name string, req *api.CreateService
 func MustPollServiceInstanceForDeletion(t *testing.T, name string, rsp *api.CreateServiceInstanceResponse) {
 	callback := func() error {
 		// When polling for deletion, it will start as OK (as per MustPollServiceInstanceForCompletion)
-		// however will finally respond with Gone.
-		apiError := &api.Error{}
-		if err := Get(ServiceInstancePollURI(name, PollServiceInstanceQuery(nil, rsp)), http.StatusGone, apiError); err != nil {
+		// however will finally respond with Gone.  When it does, assert the response is an empty object.
+		var response map[string]interface{}
+
+		if err := Get(ServiceInstancePollURI(name, PollServiceInstanceQuery(nil, rsp)), http.StatusGone, &response); err != nil {
 			return err
 		}
 
-		// Assert that the correct error message is given.
-		Assert(t, apiError.Error == api.ErrorResourceGone)
+		Assert(t, len(response) == 0)
 
 		return nil
 	}
