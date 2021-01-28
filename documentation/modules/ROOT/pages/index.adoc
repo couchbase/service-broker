@@ -14,7 +14,7 @@ image::osb-logo.png[align="center"]
 Service brokers implement the https://www.openservicebrokerapi.org/[Open Service Broker API^], an open standard for interoperability between clients and service brokers.
 Service brokers are an abstraction layer around a service that allow users to create instances of a service and bind applications to them.
 
-In summary, service instances are things that that provide a service e.g. databases and web applications.
+In summary, service instances are things that provide a service e.g. databases and web applications.
 Service bindings provide the way to connect to and authenticate against a service instance e.g. URIs, user names and passwords.
 
 == Why Should I use a Service Broker?
