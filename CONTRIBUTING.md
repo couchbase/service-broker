@@ -76,12 +76,7 @@ Acceptance tests provide end-to-end testing of the service broker and for accept
 These tests also aid in testing the installation documentation and ensure all configuration works.
 Acceptance tests are not automated as part of continuous integration, but you will be expected to test and confirm your submissions work.
 
-Acceptance testing is done with minikube, you must first install the Kubernetes Service Catalog.
-Next enable access to docker with:
-
-```bash
-$ eval `minikube docker-env`
-```
+Acceptance testing is done with kind (Kubernetes in Docker), you must first install the Kubernetes Service Catalog.
 
 Acceptance tests can then be run with:
 
