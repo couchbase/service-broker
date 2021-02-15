@@ -26,6 +26,7 @@ import (
 	"github.com/golang/glog"
 
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -136,7 +137,13 @@ func (p *Creator) createResource(template *v1.ConfigurationTemplate, entry *regi
 	// Create the object
 	client := config.Clients().Dynamic()
 
-	if _, err := client.Resource(mapping.Resource).Namespace(namespace).Create(object, metav1.CreateOptions{}); err != nil {
+	if mapping.Scope.Name() == meta.RESTScopeNameRoot {
+		_, err = client.Resource(mapping.Resource).Create(object, metav1.CreateOptions{})
+	} else {
+		_, err = client.Resource(mapping.Resource).Namespace(namespace).Create(object, metav1.CreateOptions{})
+	}
+
+	if err != nil {
 		// When the object already exists and it is marked as a singleton we need to
 		// update the owner references to include this new serivce instance so it
 		// will not be garbage collected when an existing service instance is removed.
@@ -172,7 +179,13 @@ func (p *Creator) createResource(template *v1.ConfigurationTemplate, entry *regi
 				return err
 			}
 
-			if _, err := client.Resource(mapping.Resource).Namespace(namespace).Update(existing, metav1.UpdateOptions{}); err != nil {
+			if mapping.Scope.Name() == meta.RESTScopeNameRoot {
+				_, err = client.Resource(mapping.Resource).Update(existing, metav1.UpdateOptions{})
+			} else {
+				_, err = client.Resource(mapping.Resource).Namespace(namespace).Update(existing, metav1.UpdateOptions{})
+			}
+
+			if err != nil {
 				glog.Infof("unable to update singleton resource owner references: %v", err)
 				return err
 			}

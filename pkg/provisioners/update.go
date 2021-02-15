@@ -28,6 +28,7 @@ import (
 	"github.com/evanphx/json-patch"
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -151,7 +152,14 @@ func (u *Updater) Prepare(entry *registry.Entry) error {
 		// remove configuration in response to parameter changes and also
 		// preserve any mutations that have been applied by Kubernetes or any
 		// other controller.
-		currentObject, err := client.Resource(mapping.Resource).Namespace(namespace).Get(newObject.GetName(), metav1.GetOptions{})
+		var currentObject *unstructured.Unstructured
+
+		if mapping.Scope.Name() == meta.RESTScopeNameRoot {
+			currentObject, err = client.Resource(mapping.Resource).Get(newObject.GetName(), metav1.GetOptions{})
+		} else {
+			currentObject, err = client.Resource(mapping.Resource).Namespace(namespace).Get(newObject.GetName(), metav1.GetOptions{})
+		}
+
 		if err != nil {
 			glog.Infof("failed to get resource %s/%s %s", newObject.GetAPIVersion(), newObject.GetKind(), newObject.GetName())
 			return err
@@ -234,7 +242,13 @@ func (u *Updater) run() error {
 			return err
 		}
 
-		if _, err := client.Resource(mapping.Resource).Namespace(resource.GetNamespace()).Update(resource, metav1.UpdateOptions{}); err != nil {
+		if mapping.Scope.Name() == meta.RESTScopeNameRoot {
+			_, err = client.Resource(mapping.Resource).Update(resource, metav1.UpdateOptions{})
+		} else {
+			_, err = client.Resource(mapping.Resource).Namespace(resource.GetNamespace()).Update(resource, metav1.UpdateOptions{})
+		}
+
+		if err != nil {
 			return err
 		}
 	}
