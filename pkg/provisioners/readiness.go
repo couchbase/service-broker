@@ -23,6 +23,7 @@ import (
 	"github.com/couchbase/service-broker/pkg/operation"
 	"github.com/couchbase/service-broker/pkg/registry"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -90,7 +91,14 @@ func conditionReady(entry *registry.Entry, condition *v1.ConfigurationReadinessC
 
 	client := config.Clients().Dynamic()
 
-	object, err := client.Resource(mapping.Resource).Namespace(namespace).Get(name, metav1.GetOptions{})
+	var object *unstructured.Unstructured
+
+	if mapping.Scope.Name() == meta.RESTScopeNameRoot {
+		object, err = client.Resource(mapping.Resource).Get(name, metav1.GetOptions{})
+	} else {
+		object, err = client.Resource(mapping.Resource).Namespace(namespace).Get(name, metav1.GetOptions{})
+	}
+
 	if err != nil {
 		return err
 	}
