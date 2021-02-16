@@ -124,6 +124,9 @@ spec:
                             - name
                             type: object
                           type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
                         registry:
                           description: Registry allows the pre-calculation of dynamic
                             configuration from request inputs i.e. registry or parameters,
@@ -145,12 +148,16 @@ spec:
                             - value
                             type: object
                           type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
                         templates:
                           description: Templates defines all the templates that will
                             be created, in order, by the service broker for this operation.
                           items:
                             type: string
                           type: array
+                          x-kubernetes-list-type: set
                       type: object
                     serviceInstance:
                       description: ServiceInstance defines the set of templates to
@@ -210,6 +217,9 @@ spec:
                             - name
                             type: object
                           type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
                         registry:
                           description: Registry allows the pre-calculation of dynamic
                             configuration from request inputs i.e. registry or parameters,
@@ -231,12 +241,16 @@ spec:
                             - value
                             type: object
                           type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
                         templates:
                           description: Templates defines all the templates that will
                             be created, in order, by the service broker for this operation.
                           items:
                             type: string
                           type: array
+                          x-kubernetes-list-type: set
                       type: object
                   required:
                   - name
@@ -246,6 +260,9 @@ spec:
                   type: object
                 minItems: 1
                 type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
               catalog:
                 description: 'Catalog is the Open Service Broker service catalog definition.
                   More info: https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/catalog.adoc'
@@ -437,6 +454,9 @@ spec:
                             type: object
                           minItems: 1
                           type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
                         requires:
                           description: Requires is a list of permissions that the
                             user would have to give the service, if they provision
@@ -449,6 +469,7 @@ spec:
                           items:
                             type: string
                           type: array
+                          x-kubernetes-list-type: set
                         tags:
                           description: Tags provide a flexible mechanism to expose
                             a classification, attribute, or base technology of a service,
@@ -459,6 +480,7 @@ spec:
                           items:
                             type: string
                           type: array
+                          x-kubernetes-list-type: set
                       required:
                       - bindable
                       - description
@@ -468,6 +490,9 @@ spec:
                       type: object
                     minItems: 1
                     type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
                 required:
                 - services
                 type: object
@@ -499,6 +524,9 @@ spec:
                   - template
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
             required:
             - bindings
             - catalog

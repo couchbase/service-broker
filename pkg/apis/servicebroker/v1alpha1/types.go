@@ -53,11 +53,15 @@ type ServiceBrokerConfigSpec struct {
 
 	// Templates is a set of resource templates that can be rendered by the service broker. More info:
 	// https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/templates.adoc
+	// +listType=map
+	// +listMapKey=name
 	Templates []ConfigurationTemplate `json:"templates"`
 
 	// Bindings is a set of bindings that link service plans to resource templates. More info:
 	// https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/bindings.adoc
 	// +kubebuilder:validation:MinItems=1
+	// +listType=map
+	// +listMapKey=name
 	Bindings []ConfigurationBinding `json:"bindings"`
 }
 
@@ -67,6 +71,8 @@ type ServiceCatalog struct {
 	// Services is an array of Service Offering objects. More info:
 	// https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/catalog.adoc#service-offerings
 	// +kubebuilder:validation:MinItems=1
+	// +listType=map
+	// +listMapKey=name
 	Services []ServiceOffering `json:"services"`
 }
 
@@ -94,11 +100,13 @@ type ServiceOffering struct {
 	// technology of a service, enabling equivalent services to be swapped out without changes
 	// to dependent logic in applications, buildpacks, or other services. E.g. mysql, relational,
 	// redis, key-value, caching, messaging, amqp.
+	// +listType=set
 	Tags []string `json:"tags,omitempty"`
 
 	// Requires is a list of permissions that the user would have to give the service, if they provision
 	// it. The only permissions currently supported are syslog_drain, route_forwarding and volume_mount.
 	// +kubebuilder:validation:Enum=syslog_drain;route_forwarding;volume_mount
+	// +listType=set
 	Requires []string `json:"requires,omitempty"`
 
 	// Bindable specifies whether Service Instances of the service can be bound to applications. This
@@ -126,6 +134,8 @@ type ServiceOffering struct {
 	// contain at least one Service Plan. More info:
 	// https://github.com/couchbase/service-broker/tree/master/documentation/modules/ROOT/pages/concepts/catalog.adoc#service-plans
 	// +kubebuilder:validation:MinItems=1
+	// +listType=map
+	// +listMapKey=name
 	Plans []ServicePlan `json:"plans"`
 }
 
@@ -286,19 +296,22 @@ type ConfigurationBinding struct {
 type ServiceBrokerTemplateList struct {
 	// Registry allows the pre-calculation of dynamic configuration from
 	// request inputs i.e. registry or parameters, or generated e.g. passwords.
+	// +listType=map
+	// +listMapKey=name
 	Registry []RegistryValue `json:"registry,omitempty"`
 
 	// Templates defines all the templates that will be created, in order,
 	// by the service broker for this operation.
+	// +listType=set
 	Templates []string `json:"templates,omitempty"`
 
 	// ReadinessChecks defines a set of tests that define whether a service instance
 	// or service binding is actually ready as reported by the service broker polling
 	// API.
-	ReadinessChecks ConfigurationReadinessCheckList `json:"readinessChecks,omitempty"`
+	// +listType=map
+	// +listMapKey=name
+	ReadinessChecks []ConfigurationReadinessCheck `json:"readinessChecks,omitempty"`
 }
-
-type ConfigurationReadinessCheckList []ConfigurationReadinessCheck
 
 // ConfigurationReadinessCheck is a readiness check to perform on a service instance
 // or binding before declaring it ready and provisioning has completed.
