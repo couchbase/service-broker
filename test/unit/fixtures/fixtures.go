@@ -212,7 +212,7 @@ var (
 
 	// basicReadinessChecks are used to check the test resource created by our
 	// service instance is ready.
-	basicReadinessChecks = v1.ConfigurationReadinessCheckList{
+	basicReadinessChecks = []v1.ConfigurationReadinessCheck{
 		{
 			Name: "pod-ready",
 			Condition: &v1.ConfigurationReadinessCheckCondition{
@@ -313,7 +313,14 @@ func BasicConfiguration() *v1.ServiceBrokerConfigSpec {
 // check added for the resource that is templated.
 func BasicConfigurationWithReadiness() *v1.ServiceBrokerConfigSpec {
 	configuration := BasicConfiguration()
-	configuration.Bindings[0].ServiceInstance.ReadinessChecks = basicReadinessChecks.DeepCopy()
+
+	checks := []v1.ConfigurationReadinessCheck{}
+
+	for _, check := range basicReadinessChecks {
+		checks = append(checks, *check.DeepCopy())
+	}
+
+	configuration.Bindings[0].ServiceInstance.ReadinessChecks = checks
 
 	return configuration
 }
