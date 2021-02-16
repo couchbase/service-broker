@@ -133,6 +133,24 @@ func TestParametersDefault(t *testing.T) {
 	util.MustHaveRegistryEntryWithValue(t, entry, registry.Key(key), defaultValue)
 }
 
+// TestParametersDefaultOverride tests a parameter with a default work when specified.
+func TestParametersDefaultOverride(t *testing.T) {
+	defer mustReset(t)
+
+	configuration := fixtures.BasicConfiguration()
+	fixtures.SetRegistry(configuration, key, fixtures.NewParameterPipeline("/animal").WithDefault(defaultValue))
+	util.MustReplaceBrokerConfig(t, clients, configuration)
+
+	req := fixtures.BasicServiceInstanceCreateRequest()
+	req.Parameters = &runtime.RawExtension{
+		Raw: []byte(`{"` + key + `":"` + value + `"}`),
+	}
+	util.MustCreateServiceInstanceSuccessfully(t, fixtures.ServiceInstanceName, req)
+
+	entry := util.MustGetRegistryEntry(t, clients, registry.ServiceInstance, fixtures.ServiceInstanceName)
+	util.MustHaveRegistryEntryWithValue(t, entry, registry.Key(key), value)
+}
+
 // TestParameterGenerateKeyRSAPKCS1 tests we can generate PKCS#1 formatted RSA keys.
 func TestParameterGenerateKeyRSAPKCS1(t *testing.T) {
 	defer mustReset(t)
