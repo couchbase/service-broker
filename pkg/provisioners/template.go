@@ -303,7 +303,7 @@ func templateFunctionGenerateDefault(def, value interface{}) interface{} {
 
 	glog.V(log.LevelDebug).Infof("default: value '%v'", value)
 
-	return def
+	return value
 }
 
 // templateFunctionUpper converts strings to upper case.
