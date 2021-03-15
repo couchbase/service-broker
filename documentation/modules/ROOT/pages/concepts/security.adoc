@@ -15,7 +15,7 @@ As such, the use of TLS and authentication is mandatory
 
 TLS provides network level security between the client and the Service Broker to prevent snooping of sensitive information that may be passed to the Service Broker as request parameters e.g. passwords.
 
-Authentication is provided with bearer tokens.
+Authentication is provided with username and password by default, although bearer tokens are supported if desired.
 Without mandatory authentication, any user who had knowledge of the Service Broker service endpoint could create and destroy service instances at will.
 
 Bearer token authorization is coarse-grained--it allows full access to the Service Broker API.

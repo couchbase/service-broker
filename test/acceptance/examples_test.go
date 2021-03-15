@@ -35,6 +35,12 @@ const (
 	// token is a bearer token for API authentication.
 	token = "allMyCatsDoIsMeowRandomlyAndBegForFood"
 
+	// username is for basic authentication.
+	username = "Mickey"
+
+	// password is for basic authentication.
+	password = "Mouse"
+
 	// exampleDir contains any common example files.
 	exampleDir = "/usr/local/share/couchbase-service-broker/examples"
 
@@ -109,6 +115,8 @@ func TestExamples(t *testing.T) {
 				// installed in this phase may not have started e.g. still pulling
 				// the image, when the service instance is created.  The service
 				// instance then misses all its defaults and collapses in a heap.
+				// Also we need the clients to sync in the mean time in order to
+				// see the new CRD types.  Make this synchronous.
 				time.Sleep(time.Minute)
 			}
 
@@ -143,6 +151,8 @@ func TestExamples(t *testing.T) {
 			// Override the service broker TLS secret data.
 			data := map[string]interface{}{
 				"token":           base64.StdEncoding.EncodeToString([]byte(token)),
+				"username":        base64.StdEncoding.EncodeToString([]byte(username)),
+				"password":        base64.StdEncoding.EncodeToString([]byte(password)),
 				"tls-certificate": base64.StdEncoding.EncodeToString(serverCertificate),
 				"tls-private-key": base64.StdEncoding.EncodeToString(serverKey),
 			}
@@ -161,6 +171,11 @@ func TestExamples(t *testing.T) {
 			}
 
 			if err := unstructured.SetNestedField(serviceBrokerRoleBinding.Object, subjects, "subjects"); err != nil {
+				util.Die(t, err)
+			}
+
+			// Set the pull policy so we use the cached version.
+			if err := unstructured.SetNestedField(serviceBrokerDeployment.Object, "IfNotPresent", "spec", "template", "spec", "imagePullPolicy"); err != nil {
 				util.Die(t, err)
 			}
 
@@ -184,7 +199,7 @@ func TestExamples(t *testing.T) {
 				util.Die(t, err)
 			}
 
-			if err := unstructured.SetNestedField(clusterServiceBroker.Object, namespace.GetName(), "spec", "authInfo", "bearer", "secretRef", "namespace"); err != nil {
+			if err := unstructured.SetNestedField(clusterServiceBroker.Object, namespace.GetName(), "spec", "authInfo", "basic", "secretRef", "namespace"); err != nil {
 				util.Die(t, err)
 			}
 

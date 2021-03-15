@@ -66,6 +66,14 @@ func TestMain(m *testing.M) {
 		os.Exit(errorCode)
 	}
 
+	token := util.Token
+
+	configuration := &broker.ServerConfiguration{
+		Namespace:   util.Namespace,
+		Token:       &token,
+		Certificate: cert,
+	}
+
 	// Create fake clients we can use to mock Kubernetes and have complete
 	// control over.
 	clients, err = util.NewClients()
@@ -75,14 +83,14 @@ func TestMain(m *testing.M) {
 	}
 
 	// Configure the server.
-	if err := broker.ConfigureServer(clients, util.Namespace, util.Token); err != nil {
+	if err := broker.ConfigureServer(clients, configuration); err != nil {
 		fmt.Println("failed to configure service broker server:", err)
 		os.Exit(errorCode)
 	}
 
 	// Start the server.
 	go func() {
-		_ = broker.RunServer(cert)
+		_ = broker.RunServer(configuration)
 	}()
 
 	// Synchronize on server readiness.

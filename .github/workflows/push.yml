@@ -76,7 +76,7 @@ jobs:
     - name: Build Images
       run: |
         make container
-        kind load docker-image couchbase/service-broker:0.0.0
+        kind load docker-image couchbase/service-broker:latest
     - name: Install Helm
       uses: azure/setup-helm@v1
     - name: Install Service Catalog

@@ -81,7 +81,8 @@ service/couchbase-service-broker created
 ----
 
 The `ServiceAccount` the Service Broker runs as is bound to the `Role` we created in the previous step.
-A `Secret` contains the TLS configuration and bearer token for authentication as the Service Broker is secure by default.
+A `Secret` contains the TLS configuration, and username/password or bearer token for authentication as the Service Broker is secure by default.
+Username and password is the default authentication mechanism that will be used.
 The `Deployment` creates the Service Broker and ensures it is highly available and a `Service` makes it discoverable by the Kubernetes Service Catalog in the next step.
 
 As it is a regular deployment with a readiness probe, you can check that the Service Broker is up and running with the following command:

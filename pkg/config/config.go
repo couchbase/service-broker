@@ -56,12 +56,6 @@ type configuration struct {
 	// config is the user supplied configuration custom resource.
 	config *v1.ServiceBrokerConfig
 
-	// token is the API access token.
-	token string
-
-	// namespace is the default namespace the broker is running in.
-	namespace string
-
 	// lock is used to remove races around the use of the context.
 	// The context can be read by many, but can only be written
 	// by one when there are no readers.
@@ -177,14 +171,12 @@ func deleteHandler(obj interface{}) {
 
 // Configure initializes global configuration and must be called before starting
 // the API service.
-func Configure(clients client.Clients, namespace, token string) error {
+func Configure(clients client.Clients, namespace string) error {
 	glog.Info("configuring service broker")
 
 	// Create the global configuration structure.
 	c = &configuration{
-		clients:   clients,
-		token:     token,
-		namespace: namespace,
+		clients: clients,
 	}
 
 	handlers := &cache.ResourceEventHandlerFuncs{
@@ -227,16 +219,6 @@ func Clients() client.Clients {
 // Config returns the user specified custom resource.
 func Config() *v1.ServiceBrokerConfig {
 	return c.config
-}
-
-// Token returns the API bearer token.
-func Token() string {
-	return c.token
-}
-
-// Namespace returns the broker namespace.
-func Namespace() string {
-	return c.namespace
 }
 
 // updateStatus runs any analysis on the confiuration, makes and commits any modifications.
@@ -290,7 +272,7 @@ func updateStatus(config *v1.ServiceBrokerConfig) error {
 	newConfig := config.DeepCopy()
 	newConfig.Status = status
 
-	if _, err := c.clients.Broker().ServicebrokerV1alpha1().ServiceBrokerConfigs(c.namespace).Update(newConfig); err != nil {
+	if _, err := c.clients.Broker().ServicebrokerV1alpha1().ServiceBrokerConfigs(newConfig.Namespace).Update(newConfig); err != nil {
 		glog.Infof("failed to update service broker configuration status: %v", err)
 		return rerr
 	}
