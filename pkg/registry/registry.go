@@ -212,12 +212,12 @@ func Name(t Type, name string) string {
 }
 
 // New creates a registry entry, or retrives an existing one.
-func New(t Type, name string, readOnly bool) (*Entry, error) {
+func New(t Type, namespace, name string, readOnly bool) (*Entry, error) {
 	resourceName := Name(t, name)
 	exists := true
 
 	// Look up an existing config map.
-	secret, err := config.Clients().Kubernetes().CoreV1().Secrets(config.Namespace()).Get(resourceName, metav1.GetOptions{})
+	secret, err := config.Clients().Kubernetes().CoreV1().Secrets(namespace).Get(resourceName, metav1.GetOptions{})
 	if err != nil {
 		if !k8s_errors.IsNotFound(err) {
 			return nil, err
@@ -230,7 +230,8 @@ func New(t Type, name string, readOnly bool) (*Entry, error) {
 	if !exists {
 		secret = &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: resourceName,
+				Name:      resourceName,
+				Namespace: namespace,
 				Labels: map[string]string{
 					"app": version.Application,
 				},
@@ -288,7 +289,7 @@ func (e *Entry) Commit() error {
 	}
 
 	if e.exists {
-		secret, err := config.Clients().Kubernetes().CoreV1().Secrets(config.Namespace()).Update(e.secret)
+		secret, err := config.Clients().Kubernetes().CoreV1().Secrets(e.secret.Namespace).Update(e.secret)
 		if err != nil {
 			return err
 		}
@@ -298,7 +299,7 @@ func (e *Entry) Commit() error {
 		return nil
 	}
 
-	secret, err := config.Clients().Kubernetes().CoreV1().Secrets(config.Namespace()).Create(e.secret)
+	secret, err := config.Clients().Kubernetes().CoreV1().Secrets(e.secret.Namespace).Create(e.secret)
 	if err != nil {
 		return err
 	}
@@ -319,7 +320,7 @@ func (e *Entry) Delete() error {
 		return nil
 	}
 
-	if err := config.Clients().Kubernetes().CoreV1().Secrets(config.Namespace()).Delete(e.secret.Name, metav1.NewDeleteOptions(0)); err != nil {
+	if err := config.Clients().Kubernetes().CoreV1().Secrets(e.secret.Namespace).Delete(e.secret.Name, metav1.NewDeleteOptions(0)); err != nil {
 		return err
 	}
 

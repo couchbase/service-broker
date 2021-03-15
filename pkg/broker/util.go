@@ -23,7 +23,6 @@ import (
 
 	"github.com/couchbase/service-broker/pkg/api"
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
-	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/pkg/errors"
 	"github.com/couchbase/service-broker/pkg/log"
 
@@ -348,7 +347,7 @@ func verifyBindable(config *v1.ServiceBrokerConfig, serviceID, planID string) er
 // getNamespace returns the namespace to provision resources in.  This is the namespace
 // the broker lives in by default, however when operating as a kubernetes cluster service
 // broker then this information is passed as request context.
-func getNamespace(context *runtime.RawExtension) (string, error) {
+func getNamespace(context *runtime.RawExtension, namespace string) (string, error) {
 	if context != nil {
 		var ctx interface{}
 
@@ -376,5 +375,5 @@ func getNamespace(context *runtime.RawExtension) (string, error) {
 		}
 	}
 
-	return config.Namespace(), nil
+	return namespace, nil
 }

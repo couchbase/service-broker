@@ -20,7 +20,7 @@ The key thing to remember is the Service Broker is just a Web service.
 It has an address and works over HTTP like any other Web server e.g. Apache or Nginx.
 
 When integrating with the Kubernetes Service Catalog, in previous steps, hopefully you looked at the `ClusterServiceBroker` configuration.
-It contains a URL, TLS CA certificate and the bearer token for authorization.
+It contains a URL, TLS CA certificate and the configured authorization credentials.
 
 There is no reason why this URL cannot be a publicly available address.
 Once you realize this, then it's a logical next step to realize that the Kubernetes Service Catalog acts as an aggregation of all Service Brokers it's told about.

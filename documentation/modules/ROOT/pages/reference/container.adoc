@@ -41,9 +41,28 @@ The Service Broker must use TLS to provide network level security.
 The TLS private key argument must be a path to a PEM formatted private key.
 This argument defaults to `/var/run/secrets/service-broker/tls-private-key`.
 
+-authentication::
+
+The service broker must use some form of authentication.
+A value of `basic` means username and password, and `-username` and `-password` flags are used to load credentials.
+A value of `token` means bearer token authentication, and the `-token` flag is used to load credentials.
+This argument defaults to `basic`.
+
+-username::
+
+The Service Broker may use basic authentication to provide API level protection against malicious attacks.
+The username argument must be a path to a file containing a bearer token string.
+This argument defaults to `/var/run/secrets/service-broker/username`.
+
+-password::
+
+The Service Broker may use basic authentication to provide API level protection against malicious attacks.
+The password argument must be a path to a file containing a bearer token string.
+This argument defaults to `/var/run/secrets/service-broker/password`.
+
 -token string::
 
-The Service Broker must use bearer token authentication to provide API level protection against malicious attacks.
+The Service Broker may use bearer token authentication to provide API level protection against malicious attacks.
 The token argument must be a path to a file containing a bearer token string.
 This argument defaults to `/var/run/secrets/service-broker/token`.
 

@@ -16,6 +16,7 @@ package broker
 
 import (
 	"crypto/tls"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -33,6 +34,9 @@ import (
 
 	"k8s.io/client-go/kubernetes/scheme"
 )
+
+// ErrInternalError is returned when something really bad happened.
+var ErrInternalError = errors.New("internal error")
 
 // ErrRequestMalformed is returned when the request is not as we expect.
 var ErrRequestMalformed = errors.New("request malformed")
@@ -84,14 +88,30 @@ func handleReadiness(w http.ResponseWriter) error {
 }
 
 // handleBrokerBearerToken implements RFC-6750.
-func handleBrokerBearerToken(w http.ResponseWriter, r *http.Request) error {
+func handleBrokerBearerToken(c *ServerConfiguration, w http.ResponseWriter, r *http.Request) error {
 	header, err := getHeaderSingle(r, "Authorization")
 	if err != nil {
 		httpResponse(w, http.StatusUnauthorized)
 		return err
 	}
 
-	if header != "Bearer "+config.Token() {
+	if header != "Bearer "+*c.Token {
+		httpResponse(w, http.StatusUnauthorized)
+		return fmt.Errorf("%w: authorization failed", ErrUnauthorized)
+	}
+
+	return nil
+}
+
+// handleBrokerBasicAuth implements RFC-7617.
+func handleBrokerBasicAuth(c *ServerConfiguration, w http.ResponseWriter, r *http.Request) error {
+	header, err := getHeaderSingle(r, "Authorization")
+	if err != nil {
+		httpResponse(w, http.StatusUnauthorized)
+		return err
+	}
+
+	if header != "Basic "+base64.StdEncoding.EncodeToString([]byte(c.BasicAuth.Username+":"+c.BasicAuth.Password)) {
 		httpResponse(w, http.StatusUnauthorized)
 		return fmt.Errorf("%w: authorization failed", ErrUnauthorized)
 	}
@@ -144,9 +164,19 @@ func handleContentTypeHeader(w http.ResponseWriter, r *http.Request) error {
 
 // handleRequestHeaders checks that required headers are sent and are
 // valid, and that content encodings are correct.
-func handleRequestHeaders(w http.ResponseWriter, r *http.Request) error {
-	if err := handleBrokerBearerToken(w, r); err != nil {
-		return err
+func handleRequestHeaders(c *ServerConfiguration, w http.ResponseWriter, r *http.Request) error {
+	switch {
+	case c.Token != nil:
+		if err := handleBrokerBearerToken(c, w, r); err != nil {
+			return err
+		}
+	case c.BasicAuth != nil:
+		if err := handleBrokerBasicAuth(c, w, r); err != nil {
+			return err
+		}
+	default:
+		httpResponse(w, http.StatusInternalServerError)
+		return ErrInternalError
 	}
 
 	if err := handleBrokerAPIHeader(w, r); err != nil {
@@ -165,23 +195,27 @@ func handleRequestHeaders(w http.ResponseWriter, r *http.Request) error {
 // version is being used and the cnntent type is correct.
 type openServiceBrokerHandler struct {
 	http.Handler
+	configuration *ServerConfiguration
 }
 
 // NewOpenServiceBrokerHandler initializes the main router with the Open Service Broker API.
-func NewOpenServiceBrokerHandler() http.Handler {
+func NewOpenServiceBrokerHandler(configuration *ServerConfiguration) http.Handler {
 	router := httprouter.New()
 
 	router.GET("/readyz", handleReadyz)
 	router.GET("/v2/catalog", handleReadCatalog)
-	router.PUT("/v2/service_instances/:instance_id", handleCreateServiceInstance)
-	router.GET("/v2/service_instances/:instance_id", handleReadServiceInstance)
-	router.PATCH("/v2/service_instances/:instance_id", handleUpdateServiceInstance)
-	router.DELETE("/v2/service_instances/:instance_id", handleDeleteServiceInstance)
-	router.GET("/v2/service_instances/:instance_id/last_operation", handlePollServiceInstance)
-	router.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", handleCreateServiceBinding)
-	router.DELETE("/v2/service_instances/:instance_id/service_bindings/:binding_id", handleDeleteServiceBinding)
+	router.PUT("/v2/service_instances/:instance_id", handleCreateServiceInstance(configuration))
+	router.GET("/v2/service_instances/:instance_id", handleReadServiceInstance(configuration))
+	router.PATCH("/v2/service_instances/:instance_id", handleUpdateServiceInstance(configuration))
+	router.DELETE("/v2/service_instances/:instance_id", handleDeleteServiceInstance(configuration))
+	router.GET("/v2/service_instances/:instance_id/last_operation", handlePollServiceInstance(configuration))
+	router.PUT("/v2/service_instances/:instance_id/service_bindings/:binding_id", handleCreateServiceBinding(configuration))
+	router.DELETE("/v2/service_instances/:instance_id/service_bindings/:binding_id", handleDeleteServiceBinding(configuration))
 
-	return &openServiceBrokerHandler{Handler: router}
+	return &openServiceBrokerHandler{
+		Handler:       router,
+		configuration: configuration,
+	}
 }
 
 // responseWriter wraps the standard response writer so we can extract the response data.
@@ -245,7 +279,7 @@ func (handler *openServiceBrokerHandler) ServeHTTP(w http.ResponseWriter, r *htt
 	// Ignore security checks for the readiness handler
 	if r.URL.Path != "/readyz" {
 		// Process headers, API versions, content types.
-		if err := handleRequestHeaders(writer, r); err != nil {
+		if err := handleRequestHeaders(handler.configuration, writer, r); err != nil {
 			glog.V(log.LevelDebug).Info(err)
 			return
 		}
@@ -255,29 +289,54 @@ func (handler *openServiceBrokerHandler) ServeHTTP(w http.ResponseWriter, r *htt
 	handler.Handler.ServeHTTP(writer, r)
 }
 
+// ServerConfigurationBasicAuth defines basic authentication.
+type ServerConfigurationBasicAuth struct {
+	// Username is the user API requests will require.
+	Username string
+
+	// Password is the password for the user.
+	Password string
+}
+
+// ServerConfiguration is used to propagate server configuration to the server instance
+// and its handlers.
+type ServerConfiguration struct {
+	// Namespace is the namespace the broker is running in.
+	Namespace string
+
+	// Token is set when using bearer token authentication.
+	Token *string
+
+	// BasicAuth is set when using basic authentication.
+	BasicAuth *ServerConfigurationBasicAuth
+
+	// Certificate is the TLS key/certificate to serve with.
+	Certificate tls.Certificate
+}
+
 // ConfigureServer is the main entry point for both the container and test.
-func ConfigureServer(clients client.Clients, namespace, token string) error {
+func ConfigureServer(clients client.Clients, configuration *ServerConfiguration) error {
 	// Static configuration.
 	if err := apis.AddToScheme(scheme.Scheme); err != nil {
 		return err
 	}
 
 	// Setup globals.
-	if err := config.Configure(clients, namespace, token); err != nil {
+	if err := config.Configure(clients, configuration.Namespace); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func RunServer(certificate tls.Certificate) error {
+func RunServer(configuration *ServerConfiguration) error {
 	// Start the server.
 	server := &http.Server{
 		Addr:    ":8443",
-		Handler: NewOpenServiceBrokerHandler(),
+		Handler: NewOpenServiceBrokerHandler(configuration),
 		TLSConfig: &tls.Config{
 			Certificates: []tls.Certificate{
-				certificate,
+				configuration.Certificate,
 			},
 		},
 	}
