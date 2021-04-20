@@ -59,6 +59,30 @@ spec:
                       description: Plan is the name of the service plan to bind to.
                       minLength: 1
                       type: string
+                    registryNamespace:
+                      description: RegistryNamespace is only relevant when used with
+                        RegistryScope in the "Explicit" mode, and specifies the exact
+                        namespace a service instance registry will be generated in.
+                      type: string
+                    registryScope:
+                      default: BrokerLocal
+                      description: RegistryScope controls where the registry for a
+                        service instance or binding is located.  The service broker
+                        makes all generated resources owned by the relevant registry,
+                        so deleting a service instance means deleting the registry
+                        and letting garbage collection do the rest.  What is particularly
+                        important is that resources must be located in the same namespace
+                        as their owners, or they will be garbage collected.  "BrokerLocal",
+                        the default provisions service registries in the same namespace
+                        as the service broker.  "Explicit" allows service registries
+                        to be hard coded to a specific namespace. "InstanceLocal"
+                        will provision service registries in the same namespace as
+                        the service instance was provisioned in.
+                      enum:
+                      - Explicit
+                      - BrokerLocal
+                      - InstanceLocal
+                      type: string
                     service:
                       description: Service is the name of the service offering to
                         bind to.

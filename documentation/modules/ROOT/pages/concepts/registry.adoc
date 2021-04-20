@@ -126,6 +126,31 @@ Therefore, where singleton templates have been used to generate Kubernetes resou
 .Registry Ownership of Resources and Resource Sharing with Singletons
 image::reg-gc.png[align="center"]
 
+[IMPORTANT]
+====
+Kubernetes garbage collection only works when the registry and its dependent resources reside in the same namespace.
+Failure to observe this constraint will result in your service instances and bindings being deleted erroneously.
+
+See the https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/[offical documentation^] for additional garbage collection rules.
+====
+
+=== Registry Scoping
+
+The namespace in which a registry is generated is fully under your control, see the documentation for the configuration bindings for more details (`kubectl explain servicebrokerconfig.spec.bindings.registryScope`)
+The default option -- `BrokerLocal` -- maintains backward compatibility, and registries will be generated in the same namespace as the service broker.
+This, therefore, leads to the requirement that all service instance resources must be provisioned in that namespace.
+
+Other options include an explicit namespace -- `Explicit` -- where the registry and resources are hard coded to a specific namespace, and service instance local -- `InstanceLocal` -- where the registry will be provisioned in the same namespace as the service instance, as dictated by the namespace provided in the service instance creation context.
+
+== Registry Directory
+
+Garbage collection only works when the registry is located in the same namespace as the resources that it is associated with.
+The Service Broker only knows the exact namespace a service will be provisioned in on service instance creation, as provided by the request context.
+In order to keep track of what namespace contains the service instance and binding registries, the Service Broker maintains a directory.
+
+The directory is a simple map from service instance ID to a JSON document that records the service instance namespace.
+Thus, when a request to get or poll a service instance is made, where the namespace is unknown, the Service Broker can interrogate its directory and determine the correct namespace to use to look for the relevant registries.
+
 == Next Steps
 
 We have now covered all basic configuration topics.

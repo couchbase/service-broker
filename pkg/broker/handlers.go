@@ -81,8 +81,14 @@ func handleCreateServiceInstance(configuration *ServerConfiguration) func(http.R
 			return
 		}
 
+		dirent, err := registerDirectoryInstance(config.Config(), request.Context, configuration.Namespace, instanceID, request.ServiceID, request.PlanID)
+		if err != nil {
+			jsonError(w, err)
+			return
+		}
+
 		// Check if the instance already exists.
-		entry, err := registry.New(registry.ServiceInstance, configuration.Namespace, instanceID, false)
+		entry, err := registry.New(registry.ServiceInstance, dirent.Namespace, instanceID, false)
 		if err != nil {
 			jsonError(w, err)
 			return
@@ -333,8 +339,10 @@ func handleReadServiceInstance(configuration *ServerConfiguration) func(http.Res
 			return
 		}
 
+		dirent := getDirectoryInstance(configuration.Namespace, instanceID)
+
 		// Check if the instance exists.
-		entry, err := registry.New(registry.ServiceInstance, configuration.Namespace, instanceID, true)
+		entry, err := registry.New(registry.ServiceInstance, dirent.Namespace, instanceID, true)
 		if err != nil {
 			jsonError(w, err)
 			return
@@ -449,9 +457,11 @@ func handleUpdateServiceInstance(configuration *ServerConfiguration) func(http.R
 			return
 		}
 
+		dirent := getDirectoryInstance(configuration.Namespace, instanceID)
+
 		// Check if the instance already exists.
 		// Check if the instance exists.
-		entry, err := registry.New(registry.ServiceInstance, configuration.Namespace, instanceID, false)
+		entry, err := registry.New(registry.ServiceInstance, dirent.Namespace, instanceID, false)
 		if err != nil {
 			jsonError(w, err)
 			return
@@ -562,7 +572,12 @@ func handleDeleteServiceInstance(configuration *ServerConfiguration) func(http.R
 			return
 		}
 
-		entry, err := registry.New(registry.ServiceInstance, configuration.Namespace, instanceID, false)
+		dirent := getDirectoryInstance(configuration.Namespace, instanceID)
+
+		// Probably the wrong place for this...
+		deleteDirectoryInstance(configuration.Namespace, instanceID)
+
+		entry, err := registry.New(registry.ServiceInstance, dirent.Namespace, instanceID, false)
 		if err != nil {
 			jsonError(w, err)
 			return
@@ -653,7 +668,9 @@ func handlePollServiceInstance(configuration *ServerConfiguration) func(http.Res
 			return
 		}
 
-		entry, err := registry.New(registry.ServiceInstance, configuration.Namespace, instanceID, false)
+		dirent := getDirectoryInstance(configuration.Namespace, instanceID)
+
+		entry, err := registry.New(registry.ServiceInstance, dirent.Namespace, instanceID, false)
 		if err != nil {
 			jsonError(w, err)
 			return
@@ -838,7 +855,9 @@ func handleCreateServiceBinding(configuration *ServerConfiguration) func(http.Re
 		}
 
 		// Check if the service instance exists.
-		instanceEntry, err := registry.New(registry.ServiceInstance, configuration.Namespace, instanceID, true)
+		dirent := getDirectoryInstance(configuration.Namespace, instanceID)
+
+		instanceEntry, err := registry.New(registry.ServiceInstance, dirent.Namespace, instanceID, true)
 		if err != nil {
 			jsonError(w, err)
 			return
@@ -850,7 +869,7 @@ func handleCreateServiceBinding(configuration *ServerConfiguration) func(http.Re
 		}
 
 		// Check if the binding already exists.
-		entry, err := registry.New(registry.ServiceBinding, configuration.Namespace, bindingID, false)
+		entry, err := registry.New(registry.ServiceBinding, dirent.Namespace, bindingID, false)
 		if err != nil {
 			jsonError(w, err)
 			return
@@ -1081,7 +1100,9 @@ func handleDeleteServiceBinding(configuration *ServerConfiguration) func(http.Re
 			return
 		}
 
-		instanceEntry, err := registry.New(registry.ServiceInstance, configuration.Namespace, instanceID, true)
+		dirent := getDirectoryInstance(configuration.Namespace, instanceID)
+
+		instanceEntry, err := registry.New(registry.ServiceInstance, dirent.Namespace, instanceID, true)
 		if err != nil {
 			jsonError(w, err)
 			return
@@ -1099,7 +1120,7 @@ func handleDeleteServiceBinding(configuration *ServerConfiguration) func(http.Re
 			return
 		}
 
-		entry, err := registry.New(registry.ServiceBinding, configuration.Namespace, bindingID, false)
+		entry, err := registry.New(registry.ServiceBinding, dirent.Namespace, bindingID, false)
 		if err != nil {
 			jsonError(w, err)
 			return

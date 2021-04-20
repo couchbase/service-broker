@@ -128,4 +128,5 @@ image::sec-static.png[align="center"]
 
 == Hybrid Namespace Selection
 
-Due to the flexibility of the Service Broker, you may choose to combine dynamically and statically namespaced configuration templates as you choose.
+Mixing the two forms of namespace selection is not supported.
+Read xref:concepts/registry.adoc#registry-based-garbage-collection[the registry based garbage collection] documentation for further details on why, and how to correctly configure your service instances and bindings.

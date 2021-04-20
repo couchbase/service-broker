@@ -266,12 +266,48 @@ type RegistryValue struct {
 	Value string `json:"value"`
 }
 
+// RegistryScope allows the user to configure where the registry will be provisioned.
+// +kubebuilder:validation:Enum=Explicit;BrokerLocal;InstanceLocal
+type RegistryScope string
+
+const (
+	// RegistryScopeExplicit provisions the registry where you tell it to.
+	RegistryScopeExplicit RegistryScope = "Explicit"
+
+	// RegistryScopeBrokerLocal provisions the registry in the same namespace
+	// as the broker is running in.
+	RegistryScopeBrokerLocal RegistryScope = "BrokerLocal"
+
+	// RegistryScopeInstanceLocal provisions the registry in the same namespace
+	// as the service instance.
+	RegistryScopeInstanceLocal RegistryScope = "InstanceLocal"
+)
+
 // ConfigurationBinding binds a service plan to a set of templates
 // required to realize that plan.
 type ConfigurationBinding struct {
 	// Name is a unique identifier for the binding.
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`
+
+	// RegistryScope controls where the registry for a service instance
+	// or binding is located.  The service broker makes all generated
+	// resources owned by the relevant registry, so deleting a service
+	// instance means deleting the registry and letting garbage collection
+	// do the rest.  What is particularly important is that resources
+	// must be located in the same namespace as their owners, or they will
+	// be garbage collected.  "BrokerLocal", the default provisions service
+	// registries in the same namespace as the service broker.  "Explicit"
+	// allows service registries to be hard coded to a specific namespace.
+	// "InstanceLocal" will provision service registries in the same
+	// namespace as the service instance was provisioned in.
+	// +kubebuilder:default="BrokerLocal"
+	RegistryScope RegistryScope `json:"registryScope,omitempty"`
+
+	// RegistryNamespace is only relevant when used with RegistryScope in the
+	// "Explicit" mode, and specifies the exact namespace a service instance
+	// registry will be generated in.
+	RegistryNamespace string `json:"registryNamespace,omitempty"`
 
 	// Service is the name of the service offering to bind to.
 	// +kubebuilder:validation:MinLength=1

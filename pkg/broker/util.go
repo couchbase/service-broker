@@ -25,6 +25,7 @@ import (
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/errors"
 	"github.com/couchbase/service-broker/pkg/log"
+	"github.com/couchbase/service-broker/pkg/registry"
 
 	"github.com/go-openapi/jsonpointer"
 	"github.com/go-openapi/spec"
@@ -376,4 +377,76 @@ func getNamespace(context *runtime.RawExtension, namespace string) (string, erro
 	}
 
 	return namespace, nil
+}
+
+// registerDirectoryInstance allows the namespace of the registry to be chosen so garbage
+// collection works as intended.  All service instances get a directory entry for simplicity.
+func registerDirectoryInstance(config *v1.ServiceBrokerConfig, context *runtime.RawExtension, namespace, instanceID, serviceID, planID string) (*registry.DirectoryEntry, error) {
+	binding, err := config.GetTemplateBindings(serviceID, planID)
+	if err != nil {
+		return nil, err
+	}
+
+	dirent := &registry.DirectoryEntry{}
+
+	switch binding.RegistryScope {
+	case "", v1.RegistryScopeBrokerLocal:
+		// This is the default for backwards compatibility.
+		dirent.Namespace = namespace
+	case v1.RegistryScopeExplicit:
+		dirent.Namespace = binding.RegistryNamespace
+	case v1.RegistryScopeInstanceLocal:
+		rn, err := getNamespace(context, namespace)
+		if err != nil {
+			return nil, err
+		}
+
+		dirent.Namespace = rn
+	default:
+		return nil, errors.NewConfigurationError("unable to resolve registry namespace type %s", binding.RegistryScope)
+	}
+
+	directory, err := registry.NewDirectory(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := directory.Add(instanceID, dirent); err != nil {
+		return nil, err
+	}
+
+	return dirent, nil
+}
+
+// getDirectoryInstance returns the corresponding registry namespace for a service instance.
+// As this is required functionality, and existing users will not have a directory, we cannot
+// raise any errors here, instead return the service broker namespace to maintain backward
+// compaibility.
+func getDirectoryInstance(namespace, instanceID string) *registry.DirectoryEntry {
+	fake := &registry.DirectoryEntry{
+		Namespace: namespace,
+	}
+
+	directory, err := registry.NewDirectory(namespace)
+	if err != nil {
+		return fake
+	}
+
+	dirent, err := directory.Lookup(instanceID)
+	if err != nil {
+		return fake
+	}
+
+	return dirent
+}
+
+// deleteDirectoryInstance like it's counterpart above needs to ignore errors here
+// as existing service instances from earlier version won't have a directory entry.
+func deleteDirectoryInstance(namespace, instanceID string) {
+	directory, err := registry.NewDirectory(namespace)
+	if err != nil {
+		return
+	}
+
+	_ = directory.Remove(instanceID)
 }
