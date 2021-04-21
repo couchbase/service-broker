@@ -25,14 +25,6 @@ Unsurprisingly, given a service plan name is unique within its parent service of
 Configuration bindings use this unique identifier to map from a service plan to a configuration binding.
 This is a one-to-one mapping and every plan must have a binding.
 
-=== Templates
-
-Configuration bindings can be thought of as lists of Kubernetes resources.
-In our example this would be a `ServiceAccount`, `Role` and all the other resources required to create our service instance in Kubernetes.
-
-In reality, the resources the binding refers to are all templates--a base Kubernetes resource that can be modified dynamically based on request parameters.
-Templates are covered in more detail in the next section.
-
 === Registry Definitions
 
 Configuration bindings may also contain lists of registry definitions.
@@ -41,7 +33,15 @@ These are simple functions--based on Go language templates--that accept inputs f
 These are covered in more detail in a xref:concepts/dynamic-attributes.adoc[later section], however we will mention that registry entries defined in the configuration binding may be used to generate values that can used as inputs to template rending later.
 Such values can be shared resource names, passwords and even TLS configuration.
 
-=== Readiness Checks
+=== Steps
+
+When provisioning a service instance, it's possible that you may be provisioning a logical set of services.
+For this reason provisioning is divided into steps.
+
+Each step contains templates that represent a logical service, and a set of readiness gates.
+Readiness checks act as blocking barriers between steps, so you can ensure one service is running, before starting a dependent service.
+
+==== Readiness Checks
 
 The Service Broker, in simple terms, creates Kubernetes resources.
 This operation is almost instantaneous, however, Kubernetes is an eventually-consistent system.
@@ -51,6 +51,14 @@ To solve this problem, the Service Broker allows you to specify readiness checks
 These allow you to poll resources created as part of a service instance for actual readiness.
 For example a Kubernetes `Deployment` will report as available only when all of its pods are ready.
 Readiness checks allow the Service Broker API to declare a service instance creation as successful only when its underlying resources are available to be consumed by a client.
+
+==== Templates
+
+Configuration bindings can be thought of as lists of Kubernetes resources.
+In our example this would be a `ServiceAccount`, `Role` and all the other resources required to create our service instance in Kubernetes.
+
+In reality, the resources the binding refers to are all templates--a base Kubernetes resource that can be modified dynamically based on request parameters.
+Templates are covered in more detail in the next section.
 
 === Processing Rules
 

@@ -32,13 +32,26 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// Creator caches various data associated with provisioning.
-type Creator struct {
-	resourceType ResourceType
+type createStep struct {
+	// name of the step.
+	name string
 
 	// templates contains the list of rendered templates.  Used as a cache
 	// between the synchronous and asynchronous phases of provisioning.
 	templates []*v1.ConfigurationTemplate
+
+	// readinessChecks are used to block progress between steps until something
+	// is known to be up and in a good state.
+	readinessChecks []v1.ConfigurationReadinessCheck
+}
+
+// Creator caches various data associated with provisioning.
+type Creator struct {
+	resourceType ResourceType
+
+	// Each creation is modelled as a set of steps with optional barriers
+	// in between them.
+	steps []createStep
 }
 
 // NewCreator initializes all the data required for
@@ -49,18 +62,6 @@ func NewCreator(resourceType ResourceType) (*Creator, error) {
 	}
 
 	return provisioner, nil
-}
-
-// renderTemplate applies any requested parameters to the template.
-func (p *Creator) renderTemplate(template *v1.ConfigurationTemplate, entry *registry.Entry) error {
-	t, err := renderTemplate(template, entry, nil)
-	if err != nil {
-		return err
-	}
-
-	p.templates = append(p.templates, t)
-
-	return nil
 }
 
 // createResource instantiates rendered template resources.
@@ -249,15 +250,39 @@ func (p *Creator) Prepare(entry *registry.Entry) error {
 
 	glog.Infof("rendering templates for binding")
 
-	for _, templateName := range templates.Templates {
-		template, err := getTemplate(templateName)
-		if err != nil {
-			return err
+	// Use either the provided steps, or implictly create a default step.
+	steps := templates.Steps
+	if steps == nil {
+		steps = append(steps, v1.ServiceBrokerTemplateListStep{
+			Name:            "default",
+			Templates:       templates.Templates,
+			ReadinessChecks: templates.ReadinessChecks,
+		})
+	}
+
+	for _, step := range steps {
+		glog.Infof("rendering templates for step %s", step.Name)
+
+		createStep := createStep{
+			name:            step.Name,
+			readinessChecks: step.ReadinessChecks,
 		}
 
-		if err = p.renderTemplate(template, entry); err != nil {
-			return err
+		for _, templateName := range step.Templates {
+			template, err := getTemplate(templateName)
+			if err != nil {
+				return err
+			}
+
+			t, err := renderTemplate(template, entry, nil)
+			if err != nil {
+				return err
+			}
+
+			createStep.templates = append(createStep.templates, t)
 		}
+
+		p.steps = append(p.steps, createStep)
 	}
 
 	return nil
@@ -265,11 +290,19 @@ func (p *Creator) Prepare(entry *registry.Entry) error {
 
 // run performs asynchronous creation tasks.
 func (p *Creator) run(entry *registry.Entry) error {
-	glog.Infof("creating resources")
+	for _, step := range p.steps {
+		glog.Infof("creating resources for step %s", step.name)
 
-	for _, template := range p.templates {
-		if err := p.createResource(template, entry); err != nil {
-			return err
+		for _, template := range step.templates {
+			if err := p.createResource(template, entry); err != nil {
+				return err
+			}
+		}
+
+		for _, check := range step.readinessChecks {
+			if err := barrier(check, entry); err != nil {
+				return err
+			}
 		}
 	}
 
