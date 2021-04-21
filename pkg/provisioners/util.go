@@ -27,43 +27,9 @@ import (
 	"github.com/golang/glog"
 )
 
-// getServiceAndPlanNames translates from GUIDs to human readable names used in configuration.
-func getServiceAndPlanNames(serviceID, planID string) (string, string, error) {
-	for _, service := range config.Config().Spec.Catalog.Services {
-		if service.ID == serviceID {
-			for _, plan := range service.Plans {
-				if plan.ID == planID {
-					return service.Name, plan.Name, nil
-				}
-			}
-
-			return "", "", fmt.Errorf("%w: unable to locate plan for ID %s", ErrResourceReferenceMissing, planID)
-		}
-	}
-
-	return "", "", fmt.Errorf("%w: unable to locate service for ID %s", ErrResourceReferenceMissing, serviceID)
-}
-
-// getTemplateBindings returns the template bindings associated with a creation request's
-// service and plan IDs.
-func getTemplateBindings(serviceID, planID string) (*v1.ConfigurationBinding, error) {
-	service, plan, err := getServiceAndPlanNames(serviceID, planID)
-	if err != nil {
-		return nil, err
-	}
-
-	for index, binding := range config.Config().Spec.Bindings {
-		if binding.Service == service && binding.Plan == plan {
-			return &config.Config().Spec.Bindings[index], nil
-		}
-	}
-
-	return nil, fmt.Errorf("%w: unable to locate template bindings for service plan %s/%s", ErrResourceReferenceMissing, service, plan)
-}
-
 // getTemplateBinding returns the binding associated with a specific resource type.
 func getTemplateBinding(t ResourceType, serviceID, planID string) (*v1.ServiceBrokerTemplateList, error) {
-	bindings, err := getTemplateBindings(serviceID, planID)
+	bindings, err := config.Config().GetTemplateBindings(serviceID, planID)
 	if err != nil {
 		return nil, err
 	}
