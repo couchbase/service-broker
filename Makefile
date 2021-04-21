@@ -206,7 +206,7 @@ acceptance: container crd
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go test -c -o build/bin/acceptance ./test/acceptance
 	docker build -f test/acceptance/Dockerfile -t $(ACCEPTANCE_IMAGE) .
 	kind load docker-image $(ACCEPTANCE_IMAGE)
-	kind load docker-image $(DOCKER_IMAGE):$(VERSION)
+	kind load docker-image $(DOCKER_IMAGE):latest
 	kubectl apply -f test/acceptance/serviceaccount.yaml
 	kubectl run -i acceptance --serviceaccount=couchbase-service-broker-acceptance --image=$(ACCEPTANCE_IMAGE) --image-pull-policy=Never --restart=Never -- -test.v -test.failfast -logtostderr -v 1
 
