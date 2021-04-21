@@ -19,6 +19,8 @@ rules:
 - apiGroups:
   - couchbase.com
   resources:
+  - couchbaseautoscalers
+  - couchbaseautoscalers/status
   - couchbaseclusters
   - couchbasebuckets
   - couchbaseephemeralbuckets
@@ -40,7 +42,7 @@ rules:
   - secrets
   - nodes
   - pods
-  - pods/exec
+  - pods/status
   - services
   - persistentvolumeclaims
   - secrets
@@ -165,6 +167,7 @@ spec:
         - watch
         - create
         - update
+        - delete
       - apiGroups:
         - couchbase.com
         resources:
@@ -198,6 +201,21 @@ spec:
         - watch
         - delete
       - apiGroups:
+        - couchbase.com
+        resources:
+        - couchbaseautoscalers
+        verbs:
+        - list
+        - watch
+        - create
+        - delete
+      - apiGroups:
+        - couchbase.com
+        resources:
+        - couchbaseautoscalers/status
+        verbs:
+        - update
+      - apiGroups:
         - ""
         resources:
         - configmaps
@@ -205,10 +223,12 @@ spec:
         - get
         - create
         - update
+        - delete
       - apiGroups:
         - ""
         resources:
         - pods
+        - pods/status
         - services
         - persistentvolumeclaims
         verbs:
@@ -218,12 +238,7 @@ spec:
         - create
         - update
         - delete
-      - apiGroups:
-        - ""
-        resources:
-        - pods/exec
-        verbs:
-        - create
+        - patch
       - apiGroups:
         - ""
         resources:
@@ -238,6 +253,8 @@ spec:
         - secrets
         verbs:
         - get
+        - create
+        - update
         - list
         - watch
       - apiGroups:
@@ -284,7 +301,7 @@ spec:
           spec:
             containers:
             - name: couchbase-operator
-              image: couchbase/operator:2.0.2
+              image: couchbase/operator:2.1.0
               args:
               - --pod-create-timeout=10m
               command:
@@ -303,6 +320,11 @@ spec:
                 name: http
               - containerPort: 8383
                 name: prometheus
+              readinessProbe:
+                httpGet:
+                  path: /readyz
+                  port: http
+                  scheme: HTTP
             serviceAccountName: couchbase-operator
   - name: couchbase-admin-secret
     template:
@@ -343,7 +365,7 @@ spec:
       metadata:
         name: '{{ registry "instance-name" }}'
       spec:
-        image: '{{ parameter "/image" | default "couchbase/server:6.5.1" }}'
+        image: '{{ parameter "/image" | default "couchbase/server:6.6.2" }}'
         security:
           adminSecret: '{{ printf "%v-admin" (registry "instance-name") }}'
           rbac:
@@ -440,7 +462,7 @@ spec:
       - name: server-key
         value: '{{ generatePrivateKey "RSA" "PKCS#1" 2048 }}'
       - name: server-cert
-        value: '{{ generateCertificate (registry "server-key") "Couchbase Server" "87600h" "Server" (list (printf "DNS:%s-srv" (registry "instance-name")) (printf "DNS:%s-srv.%s" (registry "instance-name") (registry "namespace")) (printf "DNS:%s-srv.%s.svc" (registry "instance-name") (registry "namespace")) (printf "DNS:*.%s" (registry "instance-name")) (printf "DNS:*.%s.%s" (registry "instance-name") (registry "namespace")) (printf "DNS:*.%s.%s.svc" (registry "instance-name") (registry "namespace")) "DNS:localhost") (registry "ca-key") (registry "ca-cert") }}'
+        value: '{{ generateCertificate (registry "server-key") "Couchbase Server" "87600h" "Server" (list (printf "DNS:%s-srv" (registry "instance-name")) (printf "DNS:%s-srv.%s" (registry "instance-name") (registry "namespace")) (printf "DNS:%s-srv.%s.svc" (registry "instance-name") (registry "namespace")) (printf "DNS:*.%s-srv.%s.svc.cluster.local" (registry "instance-name") (registry "namespace")) (printf "DNS:*.%s" (registry "instance-name")) (printf "DNS:*.%s.%s" (registry "instance-name") (registry "namespace")) (printf "DNS:*.%s.%s.svc" (registry "instance-name") (registry "namespace")) (printf "DNS:*.%s.%s.svc.cluster.local" (registry "instance-name") (registry "namespace")) "DNS:localhost") (registry "ca-key") (registry "ca-cert") }}'
       templates:
       - couchbase-operator-serviceaccount
       - couchbase-operator-role

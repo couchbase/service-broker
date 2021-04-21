@@ -57,7 +57,7 @@ func readYAMLObjects(path string) ([]*unstructured.Unstructured, error) {
 
 	objects := []*unstructured.Unstructured{}
 
-	sections := strings.Split(string(data), "---")
+	sections := strings.Split(string(data), "\n---\n")
 	for _, section := range sections {
 		if strings.TrimSpace(section) == "" {
 			continue
