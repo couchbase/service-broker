@@ -785,24 +785,6 @@ func handlePollServiceInstance(configuration *ServerConfiguration) func(http.Res
 			return
 		}
 
-		// Check the readiness of resources, an error is a genuine error whereas a condtition
-		// unready error is expected and polling should continue.
-		if err := provisioners.Ready(provisioners.ResourceTypeServiceInstance, entry, instanceServiceID, instancePlanID); err != nil {
-			if provisioners.IsConditionUnreadyError(err) {
-				response := &api.PollServiceInstanceResponse{
-					State:       api.PollStateInProgress,
-					Description: err.Error(),
-				}
-				JSONResponse(w, http.StatusOK, response)
-
-				return
-			}
-
-			jsonError(w, err)
-
-			return
-		}
-
 		// All checks have passed, instance successfully provisioned.
 		if err := operation.End(entry); err != nil {
 			jsonError(w, err)

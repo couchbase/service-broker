@@ -463,24 +463,41 @@ spec:
         value: '{{ generatePrivateKey "RSA" "PKCS#1" 2048 }}'
       - name: server-cert
         value: '{{ generateCertificate (registry "server-key") "Couchbase Server" "87600h" "Server" (list (printf "DNS:%s-srv" (registry "instance-name")) (printf "DNS:%s-srv.%s" (registry "instance-name") (registry "namespace")) (printf "DNS:%s-srv.%s.svc" (registry "instance-name") (registry "namespace")) (printf "DNS:*.%s-srv.%s.svc.cluster.local" (registry "instance-name") (registry "namespace")) (printf "DNS:*.%s" (registry "instance-name")) (printf "DNS:*.%s.%s" (registry "instance-name") (registry "namespace")) (printf "DNS:*.%s.%s.svc" (registry "instance-name") (registry "namespace")) (printf "DNS:*.%s.%s.svc.cluster.local" (registry "instance-name") (registry "namespace")) "DNS:localhost") (registry "ca-key") (registry "ca-cert") }}'
-      templates:
-      - couchbase-operator-serviceaccount
-      - couchbase-operator-role
-      - couchbase-operator-rolebinding
-      - couchbase-operator-deployment
-      - couchbase-admin-secret
-      - couchbase-operator-tls-secret
-      - couchbase-server-tls-secret
-      - couchbase-developer-private
-      readinessChecks:
-      - name: couchbase-cluster-available
-        condition:
-          apiVersion: couchbase.com/v2
-          kind: CouchbaseCluster
-          namespace: '{{ registry "namespace" }}'
-          name: '{{ registry "instance-name" }}'
-          type: Available
-          status: "True"
+      steps:
+      - name: couchbase-operator
+        templates:
+        - couchbase-operator-serviceaccount
+        - couchbase-operator-role
+        - couchbase-operator-rolebinding
+        - couchbase-operator-deployment
+        # Readiness checks act as a barrier between one step and the next
+        # and acts as a fail fast trigger.
+        readinessChecks:
+        - name: couchbase-operator-available
+          timeout: 1m
+          condition:
+            apiVersion: apps/v1
+            kind: Deployment
+            namespace: '{{ registry "namespace" }}'
+            name: couchbase-operator
+            type: Available
+            status: "True"
+      - name: couchbase-cluster
+        templates:
+        - couchbase-admin-secret
+        - couchbase-operator-tls-secret
+        - couchbase-server-tls-secret
+        - couchbase-developer-private
+        readinessChecks:
+        - name: couchbase-cluster-available
+          timeout: 5m
+          condition:
+            apiVersion: couchbase.com/v2
+            kind: CouchbaseCluster
+            namespace: '{{ registry "namespace" }}'
+            name: '{{ registry "instance-name" }}'
+            type: Available
+            status: "True"
     serviceBinding:
       registry:
       - name: binding-name

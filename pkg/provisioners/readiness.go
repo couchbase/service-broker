@@ -16,12 +16,14 @@ package provisioners
 
 import (
 	"fmt"
+	"time"
 
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	"github.com/couchbase/service-broker/pkg/config"
 	"github.com/couchbase/service-broker/pkg/errors"
 	"github.com/couchbase/service-broker/pkg/operation"
 	"github.com/couchbase/service-broker/pkg/registry"
+	"github.com/couchbase/service-broker/pkg/util"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -170,11 +172,33 @@ func Ready(t ResourceType, entry *registry.Entry, serviceID, planID string) erro
 			if err := conditionReady(entry, readinessCheck.Condition); err != nil {
 				return err
 			}
-
 		default:
 			return fmt.Errorf("%w: readiness check %s check type undefined", ErrResourceAttributeMissing, readinessCheck.Name)
 		}
 	}
 
 	return nil
+}
+
+// barrier waits for a readiness check to complete before continuing.
+func barrier(readinessCheck v1.ConfigurationReadinessCheck, entry *registry.Entry) error {
+	doCheck := func() error {
+		switch {
+		case readinessCheck.Condition != nil:
+			if err := conditionReady(entry, readinessCheck.Condition); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("%w: readiness check %s check type undefined", ErrResourceAttributeMissing, readinessCheck.Name)
+		}
+
+		return nil
+	}
+
+	timeout := time.Minute
+	if readinessCheck.Timeout != nil {
+		timeout = readinessCheck.Timeout.Duration
+	}
+
+	return util.WaitFor(doCheck, timeout)
 }

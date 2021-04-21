@@ -338,12 +338,41 @@ type ServiceBrokerTemplateList struct {
 
 	// Templates defines all the templates that will be created, in order,
 	// by the service broker for this operation.
+	// This field is deprecated, use steps instead.
 	// +listType=set
 	Templates []string `json:"templates,omitempty"`
 
 	// ReadinessChecks defines a set of tests that define whether a service instance
 	// or service binding is actually ready as reported by the service broker polling
 	// API.
+	// +listType=map
+	// +listMapKey=name
+	ReadinessChecks []ConfigurationReadinessCheck `json:"readinessChecks,omitempty"`
+
+	// Steps allows a service instance or binding deployment to be split into steps.
+	// A steps will block until the readiness check, if defined, passes, before
+	// continuing on to the next one.  Steps cannot be used at the same time as
+	// templates and readiness checks.
+	// +listType=map
+	// +listMapKey=name
+	Steps []ServiceBrokerTemplateListStep `json:"steps,omitempty"`
+}
+
+// ServiceBrokerTemplateListStep allows a service instance to be provisioned in steps
+// blocking until a readiness check has completed before moving on to the next one.
+type ServiceBrokerTemplateListStep struct {
+	// Name of the step for logging and debugging purposes.
+	Name string `json:"name"`
+
+	// Templates defines all the templates that will be created, in order,
+	// by the service broker for this operation.
+	// +listType=set
+	Templates []string `json:"templates,omitempty"`
+
+	// ReadinessChecks defines a set of tests that define whether a step is complete.
+	// These checks have no affect on the aysnchronous polling at the service broker
+	// API level, as such it's common to define these between steps only, and have a
+	// top level readiness check for service availability.
 	// +listType=map
 	// +listMapKey=name
 	ReadinessChecks []ConfigurationReadinessCheck `json:"readinessChecks,omitempty"`
@@ -358,6 +387,10 @@ type ConfigurationReadinessCheck struct {
 	// Condition allows the service broker to poll well-formed status conditions
 	// in order to determine whether a specific resource is ready.
 	Condition *ConfigurationReadinessCheckCondition `json:"condition,omitempty"`
+
+	// Timeout is the timeout durations for this check.
+	// +kubebuilder:default="1m"
+	Timeout *metav1.Duration `json:"timeout,omitempty"`
 }
 
 // ConfigurationReadinessCheckCondition allows the service broker to poll well-formed
