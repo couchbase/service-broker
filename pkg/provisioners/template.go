@@ -30,6 +30,7 @@ import (
 	"github.com/couchbase/service-broker/pkg/registry"
 	"github.com/couchbase/service-broker/pkg/util"
 
+	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/go-openapi/jsonpointer"
 	"github.com/golang/glog"
 )
@@ -159,6 +160,15 @@ func templateFunctionSnippetArray(entry *registry.Entry) func(name string, param
 // templateFunctionList makes a slice out of a variadic set of inputs.
 func templateFunctionList(elements ...interface{}) []interface{} {
 	return elements
+}
+
+// templateFunctionGeneratePetName generates a random petname.
+func templateFunctionGeneratePetName(numWords int) (string, error) {
+	if numWords == 0 {
+		return "", errors.NewConfigurationError("petNames: minimum numbers of words is 1")
+	}
+
+	return petname.Generate(numWords, "-"), nil
 }
 
 // templateFunctionGeneratePassword generates a password.
@@ -412,6 +422,7 @@ func renderTemplateString(str string, entry *registry.Entry, data interface{}) (
 		"snippetArray":        templateFunctionSnippetArray(entry),
 		"list":                templateFunctionList,
 		"generatePassword":    templateFunctionGeneratePassword,
+		"generatePetName":     templateFunctionGeneratePetName,
 		"generatePrivateKey":  templateFunctionGeneratePrivatekey,
 		"generateCertificate": templateFunctionGenerateCertificate,
 		"required":            templateFunctionRequired,

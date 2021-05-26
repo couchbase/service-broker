@@ -452,7 +452,7 @@ spec:
     serviceInstance:
       registry:
       - name: instance-name
-        value: '{{ printf "instance-%s" (generatePassword 8 "abcdefghijklmnopqrstuvwxyz0123456789") }}'
+        value: '{{ printf "%s-%s" (generatePetName 2) (generatePassword 8 "abcdefghijklmnopqrstuvwxyz0123456789") }}'
       - name: dashboard-url
         value: '{{ printf "https://%s.%s:18091" (registry "instance-name") (registry "namespace") }}'
       - name: ca-key
