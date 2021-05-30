@@ -323,6 +323,20 @@ The Service Broker is reactive--it responds to API calls--therefore will never s
 You should deploy a certificate manager with your service instances if this functionality is required by your security policy.
 ====
 
+[#generate-pet-name]
+==== Generate Pet name
+
+The pet name generator generates a random string consisting of a specific number of words separated by '-'. 
+
+The resulting string comprises of random adverbs, an adjective, and an animal name.
+
+For example, to generate a 3 word string:
+
+[source]
+----
+{{ generatePetName 3 }}
+----
+
 === Assertions
 
 Assertions allow error checking to be performed earlier in the pipeline to raise errors in a more constrained manner.
