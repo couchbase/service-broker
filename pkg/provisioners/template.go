@@ -164,7 +164,7 @@ func templateFunctionList(elements ...interface{}) []interface{} {
 
 // templateFunctionGeneratePetName generates a random petname.
 func templateFunctionGeneratePetName(numWords int) (string, error) {
-	if numWords == 0 {
+	if numWords <= 0 {
 		return "", errors.NewConfigurationError("petNames: minimum numbers of words is 1")
 	}
 
