@@ -329,6 +329,7 @@ You should deploy a certificate manager with your service instances if this func
 The pet name generator generates a random string consisting of a specific number of words separated by '-'. 
 
 The resulting string comprises of random adverbs, an adjective, and an animal name.
+The parameter defines the number of elements to include in the name, and must be an integer greater than or equal to 1.
 
 For example, to generate a 3 word string:
 
@@ -336,6 +337,20 @@ For example, to generate a 3 word string:
 ----
 {{ generatePetName 3 }}
 ----
+
+.Pet Name Randomness
+[TIP]
+====
+While pet names are generally easy to communicate between humans, there are limitations to their use.
+Dictionary size is a concern as that gives rise to the possibility of pet name collisions.
+As an example, a 2 element pet name is likely to generate the same name as one that already exists within about 500 calls.
+For this reason it's highly recommended to compose resource names with an additional source of cryptographic entropy:
+
+[source]
+----
+{{ printf "%s-%s" (generatePetName 2) (generatePassword 8 nil) }}
+----
+====
 
 === Assertions
 
