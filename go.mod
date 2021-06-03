@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/bombsimon/wsl/v2 v2.0.0 // indirect
+	github.com/dustinkirkland/golang-petname v0.0.0-20191129215211-8e5a1ed0cff0
 	github.com/evanphx/json-patch v4.5.0+incompatible
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-openapi/jsonpointer v0.19.3
