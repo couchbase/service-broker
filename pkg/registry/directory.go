@@ -15,6 +15,7 @@
 package registry
 
 import (
+	"context"
 	"encoding/json"
 
 	v1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
@@ -59,7 +60,7 @@ type DirectoryEntry struct {
 func NewDirectory(namespace string) (*Directory, error) {
 	exists := true
 
-	secret, err := config.Clients().Kubernetes().CoreV1().Secrets(namespace).Get(directoryName, metav1.GetOptions{})
+	secret, err := config.Clients().Kubernetes().CoreV1().Secrets(namespace).Get(context.TODO(), directoryName, metav1.GetOptions{})
 	if err != nil {
 		if !k8s_errors.IsNotFound(err) {
 			return nil, err
@@ -92,7 +93,7 @@ func NewDirectory(namespace string) (*Directory, error) {
 // commit writes out the cached directory.
 func (d *Directory) commit() error {
 	if d.exists {
-		secret, err := config.Clients().Kubernetes().CoreV1().Secrets(d.secret.Namespace).Update(d.secret)
+		secret, err := config.Clients().Kubernetes().CoreV1().Secrets(d.secret.Namespace).Update(context.TODO(), d.secret, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
@@ -102,7 +103,7 @@ func (d *Directory) commit() error {
 		return nil
 	}
 
-	secret, err := config.Clients().Kubernetes().CoreV1().Secrets(d.secret.Namespace).Create(d.secret)
+	secret, err := config.Clients().Kubernetes().CoreV1().Secrets(d.secret.Namespace).Create(context.TODO(), d.secret, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}

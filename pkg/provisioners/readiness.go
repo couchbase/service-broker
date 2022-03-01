@@ -15,6 +15,7 @@
 package provisioners
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -96,9 +97,9 @@ func conditionReady(entry *registry.Entry, condition *v1.ConfigurationReadinessC
 	var object *unstructured.Unstructured
 
 	if mapping.Scope.Name() == meta.RESTScopeNameRoot {
-		object, err = client.Resource(mapping.Resource).Get(name, metav1.GetOptions{})
+		object, err = client.Resource(mapping.Resource).Get(context.TODO(), name, metav1.GetOptions{})
 	} else {
-		object, err = client.Resource(mapping.Resource).Namespace(namespace).Get(name, metav1.GetOptions{})
+		object, err = client.Resource(mapping.Resource).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	}
 
 	if err != nil {

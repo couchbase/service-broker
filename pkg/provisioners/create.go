@@ -15,6 +15,7 @@
 package provisioners
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -139,9 +140,9 @@ func (p *Creator) createResource(template *v1.ConfigurationTemplate, entry *regi
 	client := config.Clients().Dynamic()
 
 	if mapping.Scope.Name() == meta.RESTScopeNameRoot {
-		_, err = client.Resource(mapping.Resource).Create(object, metav1.CreateOptions{})
+		_, err = client.Resource(mapping.Resource).Create(context.TODO(), object, metav1.CreateOptions{})
 	} else {
-		_, err = client.Resource(mapping.Resource).Namespace(namespace).Create(object, metav1.CreateOptions{})
+		_, err = client.Resource(mapping.Resource).Namespace(namespace).Create(context.TODO(), object, metav1.CreateOptions{})
 	}
 
 	if err != nil {
@@ -151,7 +152,7 @@ func (p *Creator) createResource(template *v1.ConfigurationTemplate, entry *regi
 		if k8s_errors.IsAlreadyExists(err) && template.Singleton {
 			glog.Infof("singleton resource already exists, adding owner reference")
 
-			existing, err := client.Resource(mapping.Resource).Namespace(namespace).Get(object.GetName(), metav1.GetOptions{})
+			existing, err := client.Resource(mapping.Resource).Namespace(namespace).Get(context.TODO(), object.GetName(), metav1.GetOptions{})
 			if err != nil {
 				glog.Infof("unable to get existing singleton resource: %v", err)
 				return err
@@ -181,9 +182,9 @@ func (p *Creator) createResource(template *v1.ConfigurationTemplate, entry *regi
 			}
 
 			if mapping.Scope.Name() == meta.RESTScopeNameRoot {
-				_, err = client.Resource(mapping.Resource).Update(existing, metav1.UpdateOptions{})
+				_, err = client.Resource(mapping.Resource).Update(context.TODO(), existing, metav1.UpdateOptions{})
 			} else {
-				_, err = client.Resource(mapping.Resource).Namespace(namespace).Update(existing, metav1.UpdateOptions{})
+				_, err = client.Resource(mapping.Resource).Namespace(namespace).Update(context.TODO(), existing, metav1.UpdateOptions{})
 			}
 
 			if err != nil {

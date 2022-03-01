@@ -15,6 +15,7 @@
 package util
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"path"
@@ -127,7 +128,7 @@ func createResource(clients client.Clients, namespace string, object *unstructur
 	if mapping.Scope.Name() == meta.RESTScopeNameRoot {
 		glog.V(1).Infof("Creating %s %s %s", object.GetAPIVersion(), object.GetKind(), object.GetName())
 
-		object, err = clients.Dynamic().Resource(mapping.Resource).Create(object, metav1.CreateOptions{})
+		object, err = clients.Dynamic().Resource(mapping.Resource).Create(context.TODO(), object, metav1.CreateOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -137,7 +138,7 @@ func createResource(clients client.Clients, namespace string, object *unstructur
 
 	glog.V(1).Infof("Creating %s %s %s/%s", object.GetAPIVersion(), object.GetKind(), namespace, object.GetName())
 
-	object, err = clients.Dynamic().Resource(mapping.Resource).Namespace(namespace).Create(object, metav1.CreateOptions{})
+	object, err = clients.Dynamic().Resource(mapping.Resource).Namespace(namespace).Create(context.TODO(), object, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -185,14 +186,14 @@ func getResource(clients client.Clients, namespace string, object *unstructured.
 	}
 
 	if mapping.Scope.Name() == meta.RESTScopeNameRoot {
-		if object, err = clients.Dynamic().Resource(mapping.Resource).Get(object.GetName(), metav1.GetOptions{}); err != nil {
+		if object, err = clients.Dynamic().Resource(mapping.Resource).Get(context.TODO(), object.GetName(), metav1.GetOptions{}); err != nil {
 			return nil, err
 		}
 
 		return object, nil
 	}
 
-	if object, err = clients.Dynamic().Resource(mapping.Resource).Namespace(namespace).Get(object.GetName(), metav1.GetOptions{}); err != nil {
+	if object, err = clients.Dynamic().Resource(mapping.Resource).Namespace(namespace).Get(context.TODO(), object.GetName(), metav1.GetOptions{}); err != nil {
 		return nil, err
 	}
 
@@ -362,14 +363,14 @@ func DeleteResource(clients client.Clients, namespace string, object *unstructur
 	if mapping.Scope.Name() == meta.RESTScopeNameRoot {
 		glog.V(1).Infof("Deleting %s %s %s", object.GetAPIVersion(), object.GetKind(), object.GetName())
 
-		if err := clients.Dynamic().Resource(mapping.Resource).Delete(object.GetName(), metav1.NewDeleteOptions(0)); err != nil {
+		if err := clients.Dynamic().Resource(mapping.Resource).Delete(context.TODO(), object.GetName(), metav1.DeleteOptions{}); err != nil {
 			glog.V(1).Info(err)
 			return
 		}
 	} else {
 		glog.V(1).Infof("Deleting %s %s %s/%s", object.GetAPIVersion(), object.GetKind(), namespace, object.GetName())
 
-		if err := clients.Dynamic().Resource(mapping.Resource).Namespace(namespace).Delete(object.GetName(), metav1.NewDeleteOptions(0)); err != nil {
+		if err := clients.Dynamic().Resource(mapping.Resource).Namespace(namespace).Delete(context.TODO(), object.GetName(), metav1.DeleteOptions{}); err != nil {
 			glog.V(1).Info(err)
 			return
 		}

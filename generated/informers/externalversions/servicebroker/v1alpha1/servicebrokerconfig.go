@@ -17,6 +17,7 @@
 package v1alpha1
 
 import (
+	"context"
 	time "time"
 
 	servicebroker "github.com/couchbase/service-broker/generated/clientset/servicebroker"
@@ -59,13 +60,13 @@ func NewFilteredServiceBrokerConfigInformer(client servicebroker.Interface, name
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ServicebrokerV1alpha1().ServiceBrokerConfigs(namespace).List(options)
+				return client.ServicebrokerV1alpha1().ServiceBrokerConfigs(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ServicebrokerV1alpha1().ServiceBrokerConfigs(namespace).Watch(options)
+				return client.ServicebrokerV1alpha1().ServiceBrokerConfigs(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&servicebrokerv1alpha1.ServiceBrokerConfig{},
