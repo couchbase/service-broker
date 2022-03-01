@@ -15,6 +15,7 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -272,7 +273,7 @@ func updateStatus(config *v1.ServiceBrokerConfig) error {
 	newConfig := config.DeepCopy()
 	newConfig.Status = status
 
-	if _, err := c.clients.Broker().ServicebrokerV1alpha1().ServiceBrokerConfigs(newConfig.Namespace).Update(newConfig); err != nil {
+	if _, err := c.clients.Broker().ServicebrokerV1alpha1().ServiceBrokerConfigs(newConfig.Namespace).Update(context.TODO(), newConfig, metav1.UpdateOptions{}); err != nil {
 		glog.Infof("failed to update service broker configuration status: %v", err)
 		return rerr
 	}

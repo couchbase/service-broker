@@ -15,6 +15,7 @@
 package provisioners
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -155,9 +156,9 @@ func (u *Updater) Prepare(entry *registry.Entry) error {
 		var currentObject *unstructured.Unstructured
 
 		if mapping.Scope.Name() == meta.RESTScopeNameRoot {
-			currentObject, err = client.Resource(mapping.Resource).Get(newObject.GetName(), metav1.GetOptions{})
+			currentObject, err = client.Resource(mapping.Resource).Get(context.TODO(), newObject.GetName(), metav1.GetOptions{})
 		} else {
-			currentObject, err = client.Resource(mapping.Resource).Namespace(namespace).Get(newObject.GetName(), metav1.GetOptions{})
+			currentObject, err = client.Resource(mapping.Resource).Namespace(namespace).Get(context.TODO(), newObject.GetName(), metav1.GetOptions{})
 		}
 
 		if err != nil {
@@ -243,9 +244,9 @@ func (u *Updater) run() error {
 		}
 
 		if mapping.Scope.Name() == meta.RESTScopeNameRoot {
-			_, err = client.Resource(mapping.Resource).Update(resource, metav1.UpdateOptions{})
+			_, err = client.Resource(mapping.Resource).Update(context.TODO(), resource, metav1.UpdateOptions{})
 		} else {
-			_, err = client.Resource(mapping.Resource).Namespace(resource.GetNamespace()).Update(resource, metav1.UpdateOptions{})
+			_, err = client.Resource(mapping.Resource).Namespace(resource.GetNamespace()).Update(context.TODO(), resource, metav1.UpdateOptions{})
 		}
 
 		if err != nil {

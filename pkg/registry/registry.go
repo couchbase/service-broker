@@ -16,6 +16,7 @@
 package registry
 
 import (
+	"context"
 	"encoding/json"
 	goerrors "errors"
 	"fmt"
@@ -217,7 +218,7 @@ func New(t Type, namespace, name string, readOnly bool) (*Entry, error) {
 	exists := true
 
 	// Look up an existing config map.
-	secret, err := config.Clients().Kubernetes().CoreV1().Secrets(namespace).Get(resourceName, metav1.GetOptions{})
+	secret, err := config.Clients().Kubernetes().CoreV1().Secrets(namespace).Get(context.TODO(), resourceName, metav1.GetOptions{})
 	if err != nil {
 		if !k8s_errors.IsNotFound(err) {
 			return nil, err
@@ -289,7 +290,7 @@ func (e *Entry) Commit() error {
 	}
 
 	if e.exists {
-		secret, err := config.Clients().Kubernetes().CoreV1().Secrets(e.secret.Namespace).Update(e.secret)
+		secret, err := config.Clients().Kubernetes().CoreV1().Secrets(e.secret.Namespace).Update(context.TODO(), e.secret, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
@@ -299,7 +300,7 @@ func (e *Entry) Commit() error {
 		return nil
 	}
 
-	secret, err := config.Clients().Kubernetes().CoreV1().Secrets(e.secret.Namespace).Create(e.secret)
+	secret, err := config.Clients().Kubernetes().CoreV1().Secrets(e.secret.Namespace).Create(context.TODO(), e.secret, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
@@ -320,7 +321,7 @@ func (e *Entry) Delete() error {
 		return nil
 	}
 
-	if err := config.Clients().Kubernetes().CoreV1().Secrets(e.secret.Namespace).Delete(e.secret.Name, metav1.NewDeleteOptions(0)); err != nil {
+	if err := config.Clients().Kubernetes().CoreV1().Secrets(e.secret.Namespace).Delete(context.TODO(), e.secret.Name, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 

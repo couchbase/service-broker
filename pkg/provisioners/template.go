@@ -76,6 +76,10 @@ func templateFunctionParameter(entry *registry.Entry) func(string) (interface{},
 			return nil, fmt.Errorf("%w: unable to lookup parameters", ErrRegistryEntryMissing)
 		}
 
+		if parameters == nil {
+			return nil, nil
+		}
+
 		pointer, err := jsonpointer.New(path)
 		if err != nil {
 			return nil, errors.NewConfigurationError("json pointer malformed: %v", err)

@@ -17,6 +17,8 @@
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "github.com/couchbase/service-broker/pkg/apis/servicebroker/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -37,7 +39,7 @@ var servicebrokerconfigsResource = schema.GroupVersionResource{Group: "servicebr
 var servicebrokerconfigsKind = schema.GroupVersionKind{Group: "servicebroker.couchbase.com", Version: "v1alpha1", Kind: "ServiceBrokerConfig"}
 
 // Get takes name of the serviceBrokerConfig, and returns the corresponding serviceBrokerConfig object, and an error if there is any.
-func (c *FakeServiceBrokerConfigs) Get(name string, options v1.GetOptions) (result *v1alpha1.ServiceBrokerConfig, err error) {
+func (c *FakeServiceBrokerConfigs) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.ServiceBrokerConfig, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(servicebrokerconfigsResource, c.ns, name), &v1alpha1.ServiceBrokerConfig{})
 
@@ -48,7 +50,7 @@ func (c *FakeServiceBrokerConfigs) Get(name string, options v1.GetOptions) (resu
 }
 
 // List takes label and field selectors, and returns the list of ServiceBrokerConfigs that match those selectors.
-func (c *FakeServiceBrokerConfigs) List(opts v1.ListOptions) (result *v1alpha1.ServiceBrokerConfigList, err error) {
+func (c *FakeServiceBrokerConfigs) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.ServiceBrokerConfigList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(servicebrokerconfigsResource, servicebrokerconfigsKind, c.ns, opts), &v1alpha1.ServiceBrokerConfigList{})
 
@@ -70,14 +72,14 @@ func (c *FakeServiceBrokerConfigs) List(opts v1.ListOptions) (result *v1alpha1.S
 }
 
 // Watch returns a watch.Interface that watches the requested serviceBrokerConfigs.
-func (c *FakeServiceBrokerConfigs) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeServiceBrokerConfigs) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(servicebrokerconfigsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a serviceBrokerConfig and creates it.  Returns the server's representation of the serviceBrokerConfig, and an error, if there is any.
-func (c *FakeServiceBrokerConfigs) Create(serviceBrokerConfig *v1alpha1.ServiceBrokerConfig) (result *v1alpha1.ServiceBrokerConfig, err error) {
+func (c *FakeServiceBrokerConfigs) Create(ctx context.Context, serviceBrokerConfig *v1alpha1.ServiceBrokerConfig, opts v1.CreateOptions) (result *v1alpha1.ServiceBrokerConfig, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(servicebrokerconfigsResource, c.ns, serviceBrokerConfig), &v1alpha1.ServiceBrokerConfig{})
 
@@ -88,7 +90,7 @@ func (c *FakeServiceBrokerConfigs) Create(serviceBrokerConfig *v1alpha1.ServiceB
 }
 
 // Update takes the representation of a serviceBrokerConfig and updates it. Returns the server's representation of the serviceBrokerConfig, and an error, if there is any.
-func (c *FakeServiceBrokerConfigs) Update(serviceBrokerConfig *v1alpha1.ServiceBrokerConfig) (result *v1alpha1.ServiceBrokerConfig, err error) {
+func (c *FakeServiceBrokerConfigs) Update(ctx context.Context, serviceBrokerConfig *v1alpha1.ServiceBrokerConfig, opts v1.UpdateOptions) (result *v1alpha1.ServiceBrokerConfig, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(servicebrokerconfigsResource, c.ns, serviceBrokerConfig), &v1alpha1.ServiceBrokerConfig{})
 
@@ -100,7 +102,7 @@ func (c *FakeServiceBrokerConfigs) Update(serviceBrokerConfig *v1alpha1.ServiceB
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeServiceBrokerConfigs) UpdateStatus(serviceBrokerConfig *v1alpha1.ServiceBrokerConfig) (*v1alpha1.ServiceBrokerConfig, error) {
+func (c *FakeServiceBrokerConfigs) UpdateStatus(ctx context.Context, serviceBrokerConfig *v1alpha1.ServiceBrokerConfig, opts v1.UpdateOptions) (*v1alpha1.ServiceBrokerConfig, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(servicebrokerconfigsResource, "status", c.ns, serviceBrokerConfig), &v1alpha1.ServiceBrokerConfig{})
 
@@ -111,23 +113,23 @@ func (c *FakeServiceBrokerConfigs) UpdateStatus(serviceBrokerConfig *v1alpha1.Se
 }
 
 // Delete takes name of the serviceBrokerConfig and deletes it. Returns an error if one occurs.
-func (c *FakeServiceBrokerConfigs) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeServiceBrokerConfigs) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(servicebrokerconfigsResource, c.ns, name), &v1alpha1.ServiceBrokerConfig{})
+		Invokes(testing.NewDeleteActionWithOptions(servicebrokerconfigsResource, c.ns, name, opts), &v1alpha1.ServiceBrokerConfig{})
 
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeServiceBrokerConfigs) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(servicebrokerconfigsResource, c.ns, listOptions)
+func (c *FakeServiceBrokerConfigs) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(servicebrokerconfigsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.ServiceBrokerConfigList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched serviceBrokerConfig.
-func (c *FakeServiceBrokerConfigs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ServiceBrokerConfig, err error) {
+func (c *FakeServiceBrokerConfigs) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.ServiceBrokerConfig, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(servicebrokerconfigsResource, c.ns, name, pt, data, subresources...), &v1alpha1.ServiceBrokerConfig{})
 

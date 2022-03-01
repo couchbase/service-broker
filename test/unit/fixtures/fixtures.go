@@ -15,6 +15,7 @@
 package fixtures
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -431,7 +432,7 @@ var (
 
 // MustSetFixtureField sets the named field in the fixture Kubernetes resource.
 func MustSetFixtureField(t *testing.T, clients client.Clients, value interface{}, path ...string) {
-	object, err := clients.Dynamic().Resource(fixtureGVR).Namespace(util.Namespace).Get("instance-"+ServiceInstanceName, metav1.GetOptions{})
+	object, err := clients.Dynamic().Resource(fixtureGVR).Namespace(util.Namespace).Get(context.TODO(), "instance-"+ServiceInstanceName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -440,7 +441,7 @@ func MustSetFixtureField(t *testing.T, clients client.Clients, value interface{}
 		t.Fatal(err)
 	}
 
-	if _, err := clients.Dynamic().Resource(fixtureGVR).Namespace(util.Namespace).Update(object, metav1.UpdateOptions{}); err != nil {
+	if _, err := clients.Dynamic().Resource(fixtureGVR).Namespace(util.Namespace).Update(context.TODO(), object, metav1.UpdateOptions{}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -448,7 +449,7 @@ func MustSetFixtureField(t *testing.T, clients client.Clients, value interface{}
 // AssertFixtureFieldSet asserts that the named field in the Kubernetes resource is
 // set as expected.
 func AssertFixtureFieldSet(t *testing.T, clients client.Clients, value interface{}, path ...string) {
-	object, err := clients.Dynamic().Resource(fixtureGVR).Namespace(util.Namespace).Get("instance-"+ServiceInstanceName, metav1.GetOptions{})
+	object, err := clients.Dynamic().Resource(fixtureGVR).Namespace(util.Namespace).Get(context.TODO(), "instance-"+ServiceInstanceName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -466,7 +467,7 @@ func AssertFixtureFieldSet(t *testing.T, clients client.Clients, value interface
 // AssertFixtureFieldNotSet asserts that the named field in the Kubernetes resource
 // is not set as expected.
 func AssertFixtureFieldNotSet(t *testing.T, clients client.Clients, path ...string) {
-	object, err := clients.Dynamic().Resource(fixtureGVR).Namespace(util.Namespace).Get("instance-"+ServiceInstanceName, metav1.GetOptions{})
+	object, err := clients.Dynamic().Resource(fixtureGVR).Namespace(util.Namespace).Get(context.TODO(), "instance-"+ServiceInstanceName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -190,7 +190,8 @@ cover:
 
 # The linter must pass for all code submissions, it is controlled by .golangci.yml.
 lint: $(GENERATED_DIR)
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint run
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.27.0
+	$(HOME)/go/bin/golangci-lint run
 
 # The unit tests must pass for all code submissions, additionally code
 # coverage should be checked to ensure code submissions actually work.
@@ -208,7 +209,7 @@ acceptance: container crd
 	kind load docker-image $(ACCEPTANCE_IMAGE)
 	kind load docker-image $(DOCKER_IMAGE):latest
 	kubectl apply -f test/acceptance/serviceaccount.yaml
-	kubectl run -i acceptance --serviceaccount=couchbase-service-broker-acceptance --image=$(ACCEPTANCE_IMAGE) --image-pull-policy=Never --restart=Never -- -test.v -test.failfast -logtostderr -v 1
+	kubectl run -i acceptance --overrides='{"spec":{"serviceAccountName":"couchbase-service-broker-acceptance"}}' --image=$(ACCEPTANCE_IMAGE) --image-pull-policy=Never --restart=Never -- -test.v -test.failfast -logtostderr -v 1
 
 # Main install target, creates all archive files.
 install: $(INSTALL_TARGETS)
@@ -250,10 +251,14 @@ clean:
 # GOPATH style install hence the hacks with the output base.  This may get fixed
 # in a later release.
 $(GENERATED_DIR): $(APISRC)
-	go run k8s.io/code-generator/cmd/deepcopy-gen --input-dirs $(GENAPIS) -O zz_generated.deepcopy --bounding-dirs $(GENAPIBASE) $(GENARGS)
-	go run k8s.io/code-generator/cmd/client-gen --clientset-name $(GENCLIENTNAME) --input-base "" --input $(GENAPIS) --output-package $(GENCLIENTS) $(GENARGS)
-	go run k8s.io/code-generator/cmd/lister-gen --input-dirs $(GENAPIS) --output-package $(GENLISTERS) $(GENARGS)
-	go run k8s.io/code-generator/cmd/informer-gen --input-dirs $(GENAPIS) --versioned-clientset-package $(GENCLIENTS)/$(GENCLIENTNAME) --listers-package $(GENLISTERS) --output-package $(GENINFORMERS) $(GENARGS)
+	go install k8s.io/code-generator/cmd/deepcopy-gen@v0.23.2
+	go install k8s.io/code-generator/cmd/client-gen@v0.23.2
+	go install k8s.io/code-generator/cmd/lister-gen@v0.23.2
+	go install k8s.io/code-generator/cmd/informer-gen@v0.23.2
+	$(HOME)/go/bin/deepcopy-gen --input-dirs $(GENAPIS) -O zz_generated.deepcopy --bounding-dirs $(GENAPIBASE) $(GENARGS)
+	$(HOME)/go/bin/client-gen --clientset-name $(GENCLIENTNAME) --input-base "" --input $(GENAPIS) --output-package $(GENCLIENTS) $(GENARGS)
+	$(HOME)/go/bin/lister-gen --input-dirs $(GENAPIS) --output-package $(GENLISTERS) $(GENARGS)
+	$(HOME)/go/bin/informer-gen --input-dirs $(GENAPIS) --versioned-clientset-package $(GENCLIENTS)/$(GENCLIENTNAME) --listers-package $(GENLISTERS) --output-package $(GENINFORMERS) $(GENARGS)
 	@touch $(GENERATED_DIR)
 
 # The main broker binary depends on generated code and all source.
@@ -264,7 +269,8 @@ $(BROKER_BIN): $(GENERATED_DIR) $(SOURCE) $(DEPSRC)
 # The CRDs are auto generated and depend on the API source only.
 $(CRD_DIR)/%: $(APISRC)
 	@mkdir -p $(CRD_DIR)
-	go run sigs.k8s.io/controller-tools/cmd/controller-gen crd crd:crdVersions=v1 paths=./pkg/apis/... output:dir=$(CRD_DIR)
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.8.0
+	$(HOME)/go/bin/controller-gen crd crd:crdVersions=v1 paths=./pkg/apis/... output:dir=$(CRD_DIR)
 
 # The TGZ archive relies on the archive directory.
 $(ARCHIVE_TGZ): $(INSTALL_TARGETS)
